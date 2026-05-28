@@ -1105,3 +1105,256 @@ CREATE INDEX ON regwatch.mappings (change_id);
 CREATE INDEX ON regwatch.mappings (framework_id);
 
 \echo ' >> privacy/esg/ai-gov/incident/issue/bcm/regwatch schemas created'
+
+-- =====================================================================
+-- 17. agent.*
+--
+-- agent.agents is intentionally platform-global (the fleet is shared
+-- across tenants; per-tenant usage is recorded in agent.cost_ledger
+-- and agent.runs which both carry tenant_id).
+-- =====================================================================
+CREATE TABLE agent.agents (
+    id                          TEXT PRIMARY KEY,
+    name                        TEXT NOT NULL,
+    slug                        TEXT NOT NULL UNIQUE,
+    description                 TEXT,
+    type                        agent.type NOT NULL,
+    status                      TEXT NOT NULL CHECK (status IN ('idle','running','paused','error')) DEFAULT 'idle',
+    owner_team                  TEXT,
+    cost_per_run_cents          INT NOT NULL DEFAULT 0,
+    cost_monthly_estimate_cents INT NOT NULL DEFAULT 0,
+    fte_equivalent              NUMERIC(5,2) NOT NULL DEFAULT 0,
+    created_at                  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON agent.agents (type);
+CREATE INDEX ON agent.agents (status);
+
+CREATE TABLE agent.runs (
+    id              BIGSERIAL PRIMARY KEY,
+    tenant_id       TEXT REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    agent_id        TEXT NOT NULL REFERENCES agent.agents(id) ON DELETE CASCADE,
+    trigger         agent.run_trigger NOT NULL,
+    started_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    ended_at        TIMESTAMPTZ,
+    status          agent.run_status NOT NULL DEFAULT 'queued',
+    input_summary   TEXT,
+    output_summary  TEXT,
+    tools_called    TEXT[] NOT NULL DEFAULT '{}',
+    cost_cents      INT NOT NULL DEFAULT 0,
+    latency_ms      INT,
+    context         JSONB
+);
+CREATE INDEX ON agent.runs (tenant_id, started_at DESC);
+CREATE INDEX ON agent.runs (agent_id, started_at DESC);
+CREATE INDEX ON agent.runs (status);
+
+CREATE TABLE agent.decisions (
+    id                  BIGSERIAL PRIMARY KEY,
+    tenant_id           TEXT REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    agent_id            TEXT NOT NULL REFERENCES agent.agents(id) ON DELETE CASCADE,
+    run_id              BIGINT NOT NULL REFERENCES agent.runs(id) ON DELETE CASCADE,
+    decision_type       TEXT NOT NULL,
+    input               JSONB,
+    output              JSONB,
+    confidence          NUMERIC(5,4),                   -- 0.0000 → 1.0000
+    outcome             agent.decision_outcome NOT NULL,
+    approver_user_id    UUID REFERENCES platform.users(id) ON DELETE SET NULL,
+    decided_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON agent.decisions (tenant_id);
+CREATE INDEX ON agent.decisions (agent_id);
+CREATE INDEX ON agent.decisions (run_id);
+CREATE INDEX ON agent.decisions (outcome);
+
+CREATE TABLE agent.approvals (
+    id                  BIGSERIAL PRIMARY KEY,
+    decision_id         BIGINT NOT NULL REFERENCES agent.decisions(id) ON DELETE CASCADE,
+    approver_user_id    UUID NOT NULL REFERENCES platform.users(id) ON DELETE CASCADE,
+    approved            BOOLEAN NOT NULL,
+    rationale           TEXT,
+    decided_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON agent.approvals (decision_id);
+
+CREATE TABLE agent.tools (
+    id              BIGSERIAL PRIMARY KEY,
+    agent_id        TEXT NOT NULL REFERENCES agent.agents(id) ON DELETE CASCADE,
+    tool_name       TEXT NOT NULL,
+    tool_kind       TEXT NOT NULL CHECK (tool_kind IN ('api','db','llm','search','script')),
+    description     TEXT,
+    UNIQUE (agent_id, tool_name)
+);
+CREATE INDEX ON agent.tools (agent_id);
+
+CREATE TABLE agent.telemetry (
+    id              BIGSERIAL PRIMARY KEY,
+    agent_id        TEXT NOT NULL REFERENCES agent.agents(id) ON DELETE CASCADE,
+    ts              TIMESTAMPTZ NOT NULL DEFAULT now(),
+    metric          TEXT NOT NULL CHECK (metric IN ('runs','errors','latency_p50','latency_p95','cost_cents')),
+    value           NUMERIC(14,4) NOT NULL
+);
+CREATE INDEX ON agent.telemetry (agent_id, ts DESC);
+CREATE INDEX ON agent.telemetry (metric);
+
+CREATE TABLE agent.cost_ledger (
+    id                  BIGSERIAL PRIMARY KEY,
+    tenant_id           TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    agent_id            TEXT NOT NULL REFERENCES agent.agents(id) ON DELETE CASCADE,
+    ts                  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    runs                INT NOT NULL DEFAULT 0,
+    cost_cents          INT NOT NULL DEFAULT 0,
+    fte_saved_hours     NUMERIC(8,2) NOT NULL DEFAULT 0
+);
+CREATE INDEX ON agent.cost_ledger (tenant_id, ts DESC);
+CREATE INDEX ON agent.cost_ledger (agent_id, ts DESC);
+
+-- =====================================================================
+-- 18. workflow.*
+-- =====================================================================
+CREATE TABLE workflow.definitions (
+    id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id           TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    name                TEXT NOT NULL,
+    description         TEXT,
+    steps               JSONB NOT NULL,                  -- [{kind, ref, label, requires_approval}, …]
+    last_modified_by    UUID REFERENCES platform.users(id) ON DELETE SET NULL,
+    version             INT NOT NULL DEFAULT 1,
+    enabled             BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON workflow.definitions (tenant_id);
+
+CREATE TABLE workflow.executions (
+    id                  BIGSERIAL PRIMARY KEY,
+    tenant_id           TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    workflow_id         UUID NOT NULL REFERENCES workflow.definitions(id) ON DELETE CASCADE,
+    trigger             TEXT NOT NULL,
+    started_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    ended_at            TIMESTAMPTZ,
+    status              workflow.execution_status NOT NULL DEFAULT 'running'
+);
+CREATE INDEX ON workflow.executions (tenant_id, started_at DESC);
+CREATE INDEX ON workflow.executions (workflow_id);
+CREATE INDEX ON workflow.executions (status);
+
+CREATE TABLE workflow.steps (
+    id              BIGSERIAL PRIMARY KEY,
+    tenant_id       TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    execution_id    BIGINT NOT NULL REFERENCES workflow.executions(id) ON DELETE CASCADE,
+    step_no         INT NOT NULL,
+    kind            workflow.step_kind NOT NULL,
+    ref_id          TEXT,                                 -- e.g., agent.id, api endpoint, decision id
+    status          TEXT NOT NULL DEFAULT 'pending',
+    started_at      TIMESTAMPTZ,
+    ended_at        TIMESTAMPTZ,
+    output          JSONB,
+    UNIQUE (execution_id, step_no)
+);
+CREATE INDEX ON workflow.steps (tenant_id);
+CREATE INDEX ON workflow.steps (execution_id);
+
+CREATE TABLE workflow.approvals (
+    id                  BIGSERIAL PRIMARY KEY,
+    tenant_id           TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    execution_id        BIGINT NOT NULL REFERENCES workflow.executions(id) ON DELETE CASCADE,
+    step_no             INT NOT NULL,
+    approver_user_id    UUID NOT NULL REFERENCES platform.users(id) ON DELETE CASCADE,
+    approved            BOOLEAN NOT NULL,
+    decided_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON workflow.approvals (tenant_id);
+CREATE INDEX ON workflow.approvals (execution_id);
+
+-- =====================================================================
+-- 19. integration.*
+-- =====================================================================
+CREATE TABLE integration.connectors (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id       TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    kind            TEXT NOT NULL,                       -- aws, azure, gcp, okta, jira, m365, servicenow, slack, github, …
+    name            TEXT NOT NULL,
+    status          integration.status NOT NULL DEFAULT 'connected',
+    last_sync_at    TIMESTAMPTZ,
+    config          JSONB,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON integration.connectors (tenant_id);
+CREATE INDEX ON integration.connectors (kind);
+CREATE INDEX ON integration.connectors (status);
+
+CREATE TABLE integration.sync_jobs (
+    id                  BIGSERIAL PRIMARY KEY,
+    tenant_id           TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    connector_id        UUID NOT NULL REFERENCES integration.connectors(id) ON DELETE CASCADE,
+    started_at          TIMESTAMPTZ NOT NULL DEFAULT now(),
+    ended_at            TIMESTAMPTZ,
+    status              TEXT NOT NULL DEFAULT 'running' CHECK (status IN ('running','success','failed')),
+    records_ingested    INT NOT NULL DEFAULT 0,
+    errors              INT NOT NULL DEFAULT 0
+);
+CREATE INDEX ON integration.sync_jobs (tenant_id, started_at DESC);
+CREATE INDEX ON integration.sync_jobs (connector_id);
+
+-- Credential metadata only — secrets live in the secret store, not in
+-- the DB. We persist key id, scope and rotation timestamp for audit.
+CREATE TABLE integration.credentials_meta (
+    id              BIGSERIAL PRIMARY KEY,
+    tenant_id       TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    connector_id    UUID NOT NULL REFERENCES integration.connectors(id) ON DELETE CASCADE,
+    key_id          TEXT NOT NULL,
+    scope           TEXT,
+    rotated_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON integration.credentials_meta (tenant_id);
+CREATE INDEX ON integration.credentials_meta (connector_id);
+
+-- =====================================================================
+-- 20. Views (dashboards)
+-- =====================================================================
+CREATE OR REPLACE VIEW compliance.framework_score AS
+SELECT
+    a.tenant_id,
+    a.framework_id,
+    f.name,
+    f.version,
+    f.region,
+    a.status,
+    a.score,
+    a.next_due_at
+FROM compliance.assessments a
+JOIN compliance.frameworks f ON f.id = a.framework_id;
+
+CREATE OR REPLACE VIEW risk.heatmap_cells AS
+SELECT
+    tenant_id,
+    residual_severity AS sev,
+    residual_likelihood AS lik,
+    COUNT(*) AS n
+FROM risk.risks
+GROUP BY tenant_id, residual_severity, residual_likelihood;
+
+CREATE OR REPLACE VIEW agent.fleet_summary AS
+SELECT
+    a.id,
+    a.name,
+    a.type,
+    a.status,
+    COALESCE(SUM(cl.runs), 0)            AS runs_30d,
+    COALESCE(SUM(cl.cost_cents), 0)      AS cost_cents_30d,
+    COALESCE(SUM(cl.fte_saved_hours), 0) AS fte_hours_30d
+FROM agent.agents a
+LEFT JOIN agent.cost_ledger cl
+    ON cl.agent_id = a.id AND cl.ts >= now() - interval '30 days'
+GROUP BY a.id, a.name, a.type, a.status;
+
+CREATE OR REPLACE VIEW vendor.tier_breakdown AS
+SELECT
+    tenant_id,
+    tier,
+    criticality,
+    COUNT(*) AS n
+FROM vendor.vendors
+GROUP BY tenant_id, tier, criticality;
+
+\echo ' >> agent/workflow/integration schemas + dashboard views created'
+\echo ' >> NTT GRC Hub database initialisation complete.'

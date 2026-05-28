@@ -43,7 +43,7 @@
     </div>
     <div>
       <div class="text-[10px] uppercase tracking-wider text-slate-400">FTE hrs</div>
-      <div class="font-mono text-sm font-semibold text-emerald-700">{stats.fteHours30d.toFixed(0)}</div>
+      <div class="font-mono text-sm font-semibold text-violet-700">{stats.fteHours30d.toFixed(0)}</div>
     </div>
   </div>
 

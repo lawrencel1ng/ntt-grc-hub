@@ -15,13 +15,13 @@
   // For each metric we declare:
   //   higherIsBetter: bigger numbers are better (e.g. compliance score, FTE saved)
   //   lowerIsBetter:  smaller numbers are better (e.g. critical risks, findings)
-  // The helper picks emerald (best), amber (middle), rose (worst) by rank.
+  // The helper picks violet (best), amber (middle), rose (worst) by rank.
   type Direction = 'higher' | 'lower';
   function bandCls(values: number[], v: number, dir: Direction): string {
     const sorted = [...values].sort((a, b) => dir === 'higher' ? b - a : a - b);
     const best = sorted[0];
     const worst = sorted[sorted.length - 1];
-    if (v === best && best !== worst) return 'bg-emerald-50 text-emerald-800 ring-emerald-200';
+    if (v === best && best !== worst) return 'bg-violet-50 text-violet-800 ring-violet-200';
     if (v === worst && best !== worst) return 'bg-rose-50 text-rose-800 ring-rose-200';
     return 'bg-amber-50 text-amber-800 ring-amber-200';
   }
@@ -47,7 +47,7 @@
 
   // ---------- Hero card industry/region badge cls ----------
   function regionCls(region: string): string {
-    if (region === 'SG') return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+    if (region === 'SG') return 'bg-violet-50 text-violet-700 ring-violet-200';
     if (region === 'APAC') return 'bg-blue-50 text-blue-700 ring-blue-200';
     return 'bg-slate-100 text-slate-700 ring-slate-200';
   }
@@ -71,7 +71,7 @@
       <Building2 slot="icon" class="h-4 w-4 text-grc-primary" />
     </Kpi>
     <Kpi label="Avg Compliance" value={data.aggregate.avgComplianceScore.toFixed(1)} suffix="/100" delta={2}>
-      <ShieldCheck slot="icon" class="h-4 w-4 text-emerald-600" />
+      <ShieldCheck slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Open Critical Risks" value={data.aggregate.totalOpenCritical.toString()} tone="bad" hint="across hero tenants">
       <AlertTriangle slot="icon" class="h-4 w-4 text-rose-600" />
@@ -124,7 +124,7 @@
             </div>
             <div class="rounded-lg bg-slate-50 px-2 py-2 ring-1 ring-inset ring-slate-100">
               <div class="text-[10px] uppercase tracking-wider text-slate-400">MRR</div>
-              <div class="font-mono text-sm font-semibold text-emerald-700">S${((t?.mrrSgd ?? 0) / 1000).toFixed(0)}K</div>
+              <div class="font-mono text-sm font-semibold text-violet-700">S${((t?.mrrSgd ?? 0) / 1000).toFixed(0)}K</div>
             </div>
           </div>
         </div>
@@ -225,7 +225,7 @@
               <td class="td text-right font-mono">{s.openRisks}</td>
               <td class="td text-right font-mono">{s.avgComplianceScore.toFixed(1)}</td>
               <td class="td text-right font-mono">{s.agentFteSaved30d.toFixed(1)}</td>
-              <td class="td text-right font-mono text-emerald-700">{((t?.mrrSgd ?? 0) / 1000).toFixed(0)}K</td>
+              <td class="td text-right font-mono text-violet-700">{((t?.mrrSgd ?? 0) / 1000).toFixed(0)}K</td>
             </tr>
           {/each}
         </tbody>

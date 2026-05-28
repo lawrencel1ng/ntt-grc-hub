@@ -49,7 +49,7 @@
         </span>
         <span class="flex-shrink-0">
           {#if run.status === 'success'}
-            <CheckCircle2 class="h-3.5 w-3.5 text-emerald-400" />
+            <CheckCircle2 class="h-3.5 w-3.5 text-violet-400" />
           {:else if run.status === 'failed'}
             <XCircle class="h-3.5 w-3.5 text-rose-400" />
           {:else if run.status === 'running'}
@@ -82,7 +82,7 @@
           {/if}
           <div class="flex gap-4 pt-1 text-slate-500">
             <span>latency=<span class="text-slate-300">{fmtLatency(run.latencyMs)}</span></span>
-            <span>cost=<span class="text-emerald-300">{fmtCost(run.costCents)}</span></span>
+            <span>cost=<span class="text-violet-300">{fmtCost(run.costCents)}</span></span>
             <span>status=<span class="text-slate-300">{run.status}</span></span>
           </div>
         </div>

@@ -78,7 +78,7 @@
   }
 
   function jurisdictionCls(_j: string): string {
-    return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+    return 'bg-violet-50 text-violet-700 ring-violet-200';
   }
 
   function newPolicy() {
@@ -86,7 +86,7 @@
   }
 
   const COLUMNS: { id: StatusBucket; title: string; dot: string }[] = [
-    { id: 'approved',  title: 'Approved',   dot: 'bg-emerald-500' },
+    { id: 'approved',  title: 'Approved',   dot: 'bg-violet-500' },
     { id: 'in-review', title: 'In Review',  dot: 'bg-amber-500' },
     { id: 'draft',     title: 'Drafting',   dot: 'bg-blue-500' },
     { id: 'retired',   title: 'Retired',    dot: 'bg-slate-400' }

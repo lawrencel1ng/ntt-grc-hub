@@ -127,12 +127,12 @@
       case 'critical': return 'bg-rose-100 text-rose-800 ring-rose-200';
       case 'high':     return 'bg-orange-50 text-orange-700 ring-orange-200';
       case 'medium':   return 'bg-amber-50 text-amber-700 ring-amber-200';
-      case 'low':      return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'low':      return 'bg-violet-50 text-violet-700 ring-violet-200';
     }
   }
   function statusCls(s: VendorStatus): string {
     switch (s) {
-      case 'active':     return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'active':     return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'onboarding': return 'bg-blue-50 text-blue-700 ring-blue-200';
       case 'offboarded': return 'bg-slate-100 text-slate-500 ring-slate-200';
     }
@@ -141,7 +141,7 @@
     if (score === undefined) return 'text-slate-400';
     if (score < 60) return 'text-rose-700';
     if (score < 80) return 'text-amber-700';
-    return 'text-emerald-700';
+    return 'text-violet-700';
   }
   function fmtMoney(n?: number): string {
     if (n === undefined) return '—';
@@ -293,7 +293,7 @@
                 <div class="flex items-center gap-2">
                   <span class="font-mono text-sm font-semibold {scoreCls(v.lastQuestionnaireScore)}">{v.lastQuestionnaireScore ?? '—'}</span>
                   <div class="w-20">
-                    <Sparkline data={trendFor(v)} stroke={v.lastQuestionnaireScore && v.lastQuestionnaireScore >= 80 ? '#047857' : v.lastQuestionnaireScore && v.lastQuestionnaireScore >= 60 ? '#d97706' : '#e11d48'} />
+                    <Sparkline data={trendFor(v)} stroke={v.lastQuestionnaireScore && v.lastQuestionnaireScore >= 80 ? '#6d28d9' : v.lastQuestionnaireScore && v.lastQuestionnaireScore >= 60 ? '#d97706' : '#e11d48'} />
                   </div>
                 </div>
               </td>

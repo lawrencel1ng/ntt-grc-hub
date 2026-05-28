@@ -53,7 +53,7 @@
       case 'people': return 'bg-blue-50 text-blue-700 ring-blue-200';
       case 'tech':   return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'site':   return 'bg-amber-50 text-amber-700 ring-amber-200';
-      case 'vendor': return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'vendor': return 'bg-violet-50 text-violet-700 ring-violet-200';
     }
   }
   function critCls(c: VendorCriticality): string {
@@ -61,12 +61,12 @@
       case 'critical': return 'bg-rose-100 text-rose-800 ring-rose-200';
       case 'high':     return 'bg-orange-50 text-orange-700 ring-orange-200';
       case 'medium':   return 'bg-amber-50 text-amber-700 ring-amber-200';
-      case 'low':      return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'low':      return 'bg-violet-50 text-violet-700 ring-violet-200';
     }
   }
   function testResultCls(r: BCMTestResult): string {
     switch (r) {
-      case 'pass':    return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'pass':    return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'partial': return 'bg-amber-50 text-amber-700 ring-amber-200';
       case 'fail':    return 'bg-rose-50 text-rose-700 ring-rose-200';
     }
@@ -76,7 +76,7 @@
       case 'tabletop':       return 'bg-slate-100 text-slate-700 ring-slate-200';
       case 'walkthrough':    return 'bg-blue-50 text-blue-700 ring-blue-200';
       case 'simulation':     return 'bg-violet-50 text-violet-700 ring-violet-200';
-      case 'full-failover':  return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'full-failover':  return 'bg-violet-50 text-violet-700 ring-violet-200';
     }
   }
   function sevCls(s: RiskSeverity): string {
@@ -142,7 +142,7 @@
       <Clock slot="icon" class="h-4 w-4 text-amber-600" />
     </Kpi>
     <Kpi label="Last Tested" value={fmtRel(data.plan.lastTestedAt)}>
-      <HistoryIcon slot="icon" class="h-4 w-4 text-emerald-600" />
+      <HistoryIcon slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Next Test" value={fmtRel(data.plan.nextTestAt)}>
       <Calendar slot="icon" class="h-4 w-4 text-blue-600" />

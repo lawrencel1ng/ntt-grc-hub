@@ -196,12 +196,12 @@
       <Lock class="h-4 w-4 text-grc-primary" />
       <h2 class="section-title">Multi-Factor Authentication</h2>
     </div>
-    <div class="rounded-xl bg-emerald-50/70 p-4 ring-1 ring-inset ring-emerald-200">
+    <div class="rounded-xl bg-violet-50/70 p-4 ring-1 ring-inset ring-violet-200">
       <div class="flex items-center gap-2">
-        <ShieldCheck class="h-5 w-5 text-emerald-700" />
-        <span class="font-semibold text-emerald-900">MFA enabled</span>
+        <ShieldCheck class="h-5 w-5 text-violet-700" />
+        <span class="font-semibold text-violet-900">MFA enabled</span>
       </div>
-      <p class="mt-1 text-xs text-emerald-800">TOTP authenticator app · last enrolled 18 Apr 2026 · 2 backup codes remaining.</p>
+      <p class="mt-1 text-xs text-violet-800">TOTP authenticator app · last enrolled 18 Apr 2026 · 2 backup codes remaining.</p>
     </div>
     <button class="btn-secondary mt-3" on:click={() => toast('MFA management dialog would open (demo).')}>Manage MFA</button>
   </div>

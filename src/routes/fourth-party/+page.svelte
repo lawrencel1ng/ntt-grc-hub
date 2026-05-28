@@ -40,7 +40,7 @@
   function pctCls(pct: number): string {
     if (pct >= THRESHOLD_PCT) return 'bg-rose-100 text-rose-800 ring-rose-200';
     if (pct >= 20)            return 'bg-amber-50 text-amber-700 ring-amber-200';
-    return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+    return 'bg-violet-50 text-violet-700 ring-violet-200';
   }
   function statusLabel(pct: number): string {
     if (pct >= THRESHOLD_PCT) return 'over threshold';
@@ -114,7 +114,7 @@
         </div>
       </div>
       <div class="flex items-center gap-3 text-[11px] text-slate-500">
-        <span class="inline-flex items-center gap-1"><span class="inline-block h-2 w-3 rounded bg-emerald-500/50"></span>low</span>
+        <span class="inline-flex items-center gap-1"><span class="inline-block h-2 w-3 rounded bg-violet-500/50"></span>low</span>
         <span class="inline-flex items-center gap-1"><span class="inline-block h-2 w-3 rounded bg-amber-500/50"></span>medium</span>
         <span class="inline-flex items-center gap-1"><span class="inline-block h-2 w-3 rounded bg-rose-500/50"></span>high (&gt;{THRESHOLD_PCT}%)</span>
       </div>

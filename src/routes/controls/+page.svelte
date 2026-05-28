@@ -119,7 +119,7 @@
       <Bot slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Pass Rate (30d)" value={passRate30d.toFixed(1)} suffix="%" delta={2}>
-      <CheckCircle2 slot="icon" class="h-4 w-4 text-emerald-600" />
+      <CheckCircle2 slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Failing Now" value={failingNow.toString()} tone="bad">
       <AlertTriangle slot="icon" class="h-4 w-4 text-rose-600" />

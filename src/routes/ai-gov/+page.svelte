@@ -38,21 +38,21 @@
       case 'unacceptable': return 'bg-rose-100 text-rose-900 ring-rose-300';
       case 'high':         return 'bg-rose-50 text-rose-700 ring-rose-200';
       case 'limited':      return 'bg-amber-50 text-amber-700 ring-amber-200';
-      case 'minimal':      return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'minimal':      return 'bg-violet-50 text-violet-700 ring-violet-200';
     }
   }
   function kindCls(k: AIModelKind): string {
     switch (k) {
       case 'llm':         return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'classifier':  return 'bg-blue-50 text-blue-700 ring-blue-200';
-      case 'regression':  return 'bg-cyan-50 text-cyan-700 ring-cyan-200';
-      case 'vision':      return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'regression':  return 'bg-slate-100 text-slate-700 ring-slate-200';
+      case 'vision':      return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'recommender': return 'bg-amber-50 text-amber-700 ring-amber-200';
     }
   }
   function isoCls(s: ISO42001Status): string {
     switch (s) {
-      case 'compliant':     return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'compliant':     return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'in-progress':   return 'bg-amber-50 text-amber-700 ring-amber-200';
       case 'non-compliant': return 'bg-rose-50 text-rose-700 ring-rose-200';
     }
@@ -71,7 +71,7 @@
       <ShieldCheck slot="icon" class="h-4 w-4 text-rose-600" />
     </Kpi>
     <Kpi label="ISO 42001 Compliant" value={iso42001Pct.toString()} suffix="%" hint="{iso42001Compliant}/{total} models">
-      <Award slot="icon" class="h-4 w-4 text-emerald-600" />
+      <Award slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Prompts Logged (24h)" value={prompts24h.toLocaleString()}>
       <BarChart3 slot="icon" class="h-4 w-4 text-blue-600" />

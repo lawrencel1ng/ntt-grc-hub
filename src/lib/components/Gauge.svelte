@@ -27,15 +27,15 @@
   // value → angle [180, 360]
   $: valAngle = 180 + (clamped / 100) * 180;
 
-  $: valueColor = clamped < 40 ? '#e11d48' : clamped < 70 ? '#f59e0b' : '#047857';
+  $: valueColor = clamped < 40 ? '#e11d48' : clamped < 70 ? '#f59e0b' : '#6d28d9';
 </script>
 
 <div class="flex w-full flex-col items-center">
   <svg viewBox="0 0 {width} {height}" class="w-full max-w-[260px]" role="img" aria-label="{label} gauge: {clamped}">
-    <!-- background segments: red 0-40, amber 40-70, emerald 70-100 -->
+    <!-- background segments: rose 0-40, amber 40-70, violet 70-100 -->
     <path d={arcPath(180, 180 + 0.4 * 180, radius)} fill="none" stroke="#fecdd3" stroke-width={thickness} stroke-linecap="butt" />
     <path d={arcPath(180 + 0.4 * 180, 180 + 0.7 * 180, radius)} fill="none" stroke="#fed7aa" stroke-width={thickness} stroke-linecap="butt" />
-    <path d={arcPath(180 + 0.7 * 180, 360, radius)} fill="none" stroke="#bbf7d0" stroke-width={thickness} stroke-linecap="butt" />
+    <path d={arcPath(180 + 0.7 * 180, 360, radius)} fill="none" stroke="#ddd6fe" stroke-width={thickness} stroke-linecap="butt" />
 
     <!-- value arc -->
     {#if clamped > 0}

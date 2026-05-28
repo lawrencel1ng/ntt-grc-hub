@@ -24,7 +24,7 @@
     if (score >= 15) return 'bg-orange-200 text-orange-900';
     if (score >= 10) return 'bg-amber-200 text-amber-900';
     if (score >= 5)  return 'bg-yellow-100 text-yellow-900';
-    return 'bg-emerald-100 text-emerald-900';
+    return 'bg-violet-100 text-violet-900';
   }
 
   // ---------- KPIs ----------
@@ -135,19 +135,19 @@
       technology:   'bg-blue-50 text-blue-700 ring-blue-200',
       'third-party':'bg-violet-50 text-violet-700 ring-violet-200',
       regulatory:   'bg-amber-50 text-amber-700 ring-amber-200',
-      financial:    'bg-emerald-50 text-emerald-700 ring-emerald-200',
+      financial:    'bg-violet-50 text-violet-700 ring-violet-200',
       operational:  'bg-slate-100 text-slate-700 ring-slate-200',
       people:       'bg-pink-50 text-pink-700 ring-pink-200',
       privacy:      'bg-indigo-50 text-indigo-700 ring-indigo-200',
       ai:           'bg-violet-50 text-violet-700 ring-violet-200',
-      climate:      'bg-teal-50 text-teal-700 ring-teal-200'
+      climate:      'bg-violet-50 text-violet-700 ring-violet-200'
     };
     return m[cat] ?? 'bg-slate-100 text-slate-700 ring-slate-200';
   }
 
   function treatmentCls(t: RiskTreatmentStrategy): string {
     switch (t) {
-      case 'mitigate': return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'mitigate': return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'accept':   return 'bg-amber-50 text-amber-700 ring-amber-200';
       case 'transfer': return 'bg-blue-50 text-blue-700 ring-blue-200';
       case 'avoid':    return 'bg-rose-50 text-rose-700 ring-rose-200';
@@ -181,7 +181,7 @@
       <AlertTriangle slot="icon" class="h-4 w-4 text-rose-600" />
     </Kpi>
     <Kpi label="Mitigated (30d)" value={mitigated30d.toString()}>
-      <CheckCircle2 slot="icon" class="h-4 w-4 text-emerald-600" />
+      <CheckCircle2 slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Accepted" value={accepted.toString()}>
       <ShieldCheck slot="icon" class="h-4 w-4 text-amber-600" />

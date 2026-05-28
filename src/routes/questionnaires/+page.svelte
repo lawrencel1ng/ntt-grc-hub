@@ -67,7 +67,7 @@
   }
   function statusCls(s: QuestionnaireStatus): string {
     switch (s) {
-      case 'complete':    return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'complete':    return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'in-progress': return 'bg-blue-50 text-blue-700 ring-blue-200';
       case 'sent':        return 'bg-amber-50 text-amber-700 ring-amber-200';
     }
@@ -89,16 +89,16 @@
 
 <div class="space-y-6">
   <!-- Hero badge / agent ROI panel -->
-  <div class="card flex items-center gap-3 border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-white px-5 py-3">
-    <div class="rounded-lg bg-emerald-100 p-2 text-emerald-700">
+  <div class="card flex items-center gap-3 border-2 border-violet-300 bg-gradient-to-br from-violet-50 to-white px-5 py-3">
+    <div class="rounded-lg bg-violet-100 p-2 text-violet-700">
       <Bot class="h-5 w-5" />
     </div>
     <div class="flex-1">
-      <div class="flex items-center gap-2 text-sm font-semibold text-emerald-900">
+      <div class="flex items-center gap-2 text-sm font-semibold text-violet-900">
         Vendor Risk Analyst agent — {autoPct}% auto-completion rate
         <AgentTypeBadge type="intelligent" />
       </div>
-      <div class="mt-0.5 text-xs text-emerald-700">
+      <div class="mt-0.5 text-xs text-violet-700">
         {autoCompleted} of {total} questionnaires pre-filled from evidence corpus · ~{hoursSaved} analyst hours saved this month.
       </div>
     </div>
@@ -110,7 +110,7 @@
       <FileQuestion slot="icon" class="h-4 w-4 text-grc-primary" />
     </Kpi>
     <Kpi label="Completed" value={completed.toString()}>
-      <CheckCircle2 slot="icon" class="h-4 w-4 text-emerald-600" />
+      <CheckCircle2 slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="In Progress" value={inProgress.toString()}>
       <Clock slot="icon" class="h-4 w-4 text-amber-600" />

@@ -19,13 +19,13 @@
   }
   function statusCls(s: QuestionnaireStatus): string {
     switch (s) {
-      case 'complete':    return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'complete':    return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'in-progress': return 'bg-blue-50 text-blue-700 ring-blue-200';
       case 'sent':        return 'bg-amber-50 text-amber-700 ring-amber-200';
     }
   }
   function confBorder(c: number): string {
-    if (c >= 80) return 'border-l-4 border-l-emerald-400';
+    if (c >= 80) return 'border-l-4 border-l-violet-400';
     if (c >= 60) return 'border-l-4 border-l-amber-400';
     return 'border-l-4 border-l-rose-400';
   }
@@ -100,16 +100,16 @@
 
   <!-- Agent attribution banner -->
   {#if isAgent}
-    <div class="card flex items-start gap-3 border-2 border-emerald-300 bg-gradient-to-br from-emerald-50 to-white p-5">
-      <div class="rounded-lg bg-emerald-100 p-2 text-emerald-700">
+    <div class="card flex items-start gap-3 border-2 border-violet-300 bg-gradient-to-br from-violet-50 to-white p-5">
+      <div class="rounded-lg bg-violet-100 p-2 text-violet-700">
         <Bot class="h-5 w-5" />
       </div>
       <div class="flex-1">
-        <div class="flex items-center gap-2 text-sm font-semibold text-emerald-900">
+        <div class="flex items-center gap-2 text-sm font-semibold text-violet-900">
           Auto-filled by Vendor Risk Analyst agent
           <AgentTypeBadge type="intelligent" />
         </div>
-        <div class="mt-1 text-xs text-emerald-700">
+        <div class="mt-1 text-xs text-violet-700">
           Completed {fmtDateTime(data.questionnaire.completedAt)} ·
           Avg confidence <span class="font-mono font-semibold">{data.avgConfidence}%</span> ·
           Source: <span class="font-mono font-semibold">{sourcedCount}</span> evidence items

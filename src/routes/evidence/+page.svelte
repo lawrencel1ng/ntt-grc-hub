@@ -59,10 +59,10 @@
       case 'screenshot':   return 'bg-purple-50 text-purple-700 ring-purple-200';
       case 'log':          return 'bg-slate-100 text-slate-700 ring-slate-200';
       case 'config':       return 'bg-blue-50 text-blue-700 ring-blue-200';
-      case 'attestation':  return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'attestation':  return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'document':     return 'bg-amber-50 text-amber-700 ring-amber-200';
       case 'scan-result':  return 'bg-rose-50 text-rose-700 ring-rose-200';
-      case 'api-response': return 'bg-cyan-50 text-cyan-700 ring-cyan-200';
+      case 'api-response': return 'bg-slate-100 text-slate-700 ring-slate-200';
     }
   }
 
@@ -82,7 +82,7 @@
   <!-- KPI strip -->
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
     <Kpi label="Items in Vault" value={data.stats.total.toLocaleString()}>
-      <FileLock2 slot="icon" class="h-4 w-4 text-emerald-600" />
+      <FileLock2 slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Collected (24h)" value={data.stats.last24h.toLocaleString()} delta={18} hint="active collectors">
       <Clock slot="icon" class="h-4 w-4 text-violet-600" />
@@ -92,7 +92,7 @@
       value={data.stats.chainOk ? '✓ Intact' : '⚠ Broken'}
       tone={data.stats.chainOk ? 'good' : 'bad'}
     >
-      <ShieldCheck slot="icon" class="h-4 w-4 text-emerald-600" />
+      <ShieldCheck slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Avg Age" value={avgAgeDays.toFixed(1)} suffix="days">
       <Calendar slot="icon" class="h-4 w-4 text-slate-500" />
@@ -100,13 +100,13 @@
   </div>
 
   <!-- Integrity banner -->
-  <div class="flex items-start gap-3 rounded-xl border-2 border-emerald-300 bg-emerald-50 px-5 py-4">
-    <CheckCircle2 class="mt-0.5 h-5 w-5 flex-none text-emerald-600" />
+  <div class="flex items-start gap-3 rounded-xl border-2 border-violet-300 bg-violet-50 px-5 py-4">
+    <CheckCircle2 class="mt-0.5 h-5 w-5 flex-none text-violet-600" />
     <div class="flex-1">
-      <div class="text-sm font-semibold text-emerald-900">
+      <div class="text-sm font-semibold text-violet-900">
         Vault integrity verified at {nowSgt} SGT
       </div>
-      <div class="mt-0.5 text-xs text-emerald-700">
+      <div class="mt-0.5 text-xs text-violet-700">
         {data.stats.total.toLocaleString()} of {data.stats.total.toLocaleString()} items sealed · prev-row hash chain validated end-to-end.
       </div>
     </div>

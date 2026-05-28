@@ -26,14 +26,14 @@
     if (score >= 15) return 'bg-orange-200 text-orange-900 border-orange-300';
     if (score >= 10) return 'bg-amber-200 text-amber-900 border-amber-300';
     if (score >= 5)  return 'bg-yellow-100 text-yellow-900 border-yellow-200';
-    return 'bg-emerald-100 text-emerald-900 border-emerald-200';
+    return 'bg-violet-100 text-violet-900 border-violet-200';
   }
 
   function statusCls(s: string): string {
     switch (s) {
       case 'identified': return 'bg-slate-100 text-slate-700 ring-slate-200';
       case 'assessed':   return 'bg-blue-50 text-blue-700 ring-blue-200';
-      case 'treated':    return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'treated':    return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'monitoring': return 'bg-amber-50 text-amber-700 ring-amber-200';
       case 'closed':     return 'bg-slate-100 text-slate-500 ring-slate-200';
       default:           return 'bg-slate-100 text-slate-700 ring-slate-200';
@@ -41,7 +41,7 @@
   }
   function treatmentCls(t: string): string {
     switch (t) {
-      case 'mitigate': return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'mitigate': return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'accept':   return 'bg-amber-50 text-amber-700 ring-amber-200';
       case 'transfer': return 'bg-blue-50 text-blue-700 ring-blue-200';
       case 'avoid':    return 'bg-rose-50 text-rose-700 ring-rose-200';
@@ -176,7 +176,7 @@
           <span class="text-2xl text-slate-400">→</span>
           <div class="h-0.5 flex-1 bg-slate-200"></div>
         </div>
-        <div class="mt-2 text-center text-sm font-medium text-emerald-700">
+        <div class="mt-2 text-center text-sm font-medium text-violet-700">
           {delta} point reduction · {pctReduction}% lower
         </div>
       </div>
@@ -369,7 +369,7 @@
                 <td class="td"><span class="tag tag-slate">{c.type}</span></td>
                 <td class="td text-xs text-slate-500">{c.maturity}</td>
                 <td class="td">
-                  <span class="inline-flex items-center gap-1 text-emerald-700">
+                  <span class="inline-flex items-center gap-1 text-violet-700">
                     <Activity class="h-3 w-3" /> pass
                   </span>
                 </td>

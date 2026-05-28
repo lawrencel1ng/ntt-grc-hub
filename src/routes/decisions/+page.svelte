@@ -57,7 +57,7 @@
   function outcomeCls(o: AgentDecisionOutcome): string {
     switch (o) {
       case 'auto-approved':  return 'bg-slate-100 text-slate-700 ring-slate-200';
-      case 'hitl-approved':  return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'hitl-approved':  return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'hitl-rejected':  return 'bg-rose-50 text-rose-700 ring-rose-200';
       default:               return 'bg-amber-50 text-amber-700 ring-amber-200';
     }

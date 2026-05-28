@@ -77,7 +77,7 @@
   }
 
   function statusChip(s: Connector['status']): { cls: string; icon: typeof CheckCircle2; label: string } {
-    if (s === 'connected') return { cls: 'bg-emerald-50 text-emerald-700 ring-emerald-200', icon: CheckCircle2, label: 'Connected' };
+    if (s === 'connected') return { cls: 'bg-violet-50 text-violet-700 ring-violet-200', icon: CheckCircle2, label: 'Connected' };
     if (s === 'degraded')  return { cls: 'bg-amber-50 text-amber-700 ring-amber-200',       icon: AlertTriangle, label: 'Degraded' };
     return                         { cls: 'bg-rose-50 text-rose-700 ring-rose-200',         icon: XCircle,       label: 'Disconnected' };
   }
@@ -132,7 +132,7 @@
   <!-- KPI strip -->
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
     <Kpi label="Total Connected" value={`${connected}/${total}`} delta={4} hint="active integrations">
-      <Container slot="icon" class="h-4 w-4 text-emerald-600" />
+      <Container slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Degraded" value={String(degraded)} delta={0} tone="bad" hint="elevated error rate">
       <AlertTriangle slot="icon" class="h-4 w-4 text-amber-500" />

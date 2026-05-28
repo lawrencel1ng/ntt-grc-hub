@@ -119,10 +119,10 @@
   breadcrumbs={[{ label: 'Agent Fleet', href: '/agents' }, { label: data.agent.name }]}
 >
   <svelte:fragment slot="actions">
-    <span class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-xs font-semibold text-emerald-800">
+    <span class="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-xs font-semibold text-violet-800">
       <DollarSign class="h-3.5 w-3.5" />
       {fmtCost(data.agent.costMonthlyEstimateCents)}/mo
-      <span class="text-emerald-400">·</span>
+      <span class="text-violet-400">·</span>
       ~{data.agent.fteEquivalent.toFixed(2)} FTE saved
     </span>
     <button class="btn-primary" on:click={runNow}>
@@ -161,7 +161,7 @@
         <Clock slot="icon" class="h-4 w-4 text-violet-500" />
       </Kpi>
       <Kpi label="HITL Approval" value={(hitlApprovalRate * 100).toFixed(1)} suffix="%" hint="{hitlApproved}/{hitlReviewed}">
-        <UserCheck slot="icon" class="h-4 w-4 text-emerald-600" />
+        <UserCheck slot="icon" class="h-4 w-4 text-violet-600" />
       </Kpi>
       <Kpi label="P95 Latency" value={String(p95Latency)} suffix="ms">
         <Clock slot="icon" class="h-4 w-4 text-slate-500" />
@@ -277,7 +277,7 @@
                   <td class="td font-mono text-xs">#{r.id}</td>
                   <td class="td"><StatusDot status={r.status} withLabel /></td>
                   <td class="td"><span class="evidence-chip">{prev}</span></td>
-                  <td class="td"><span class="evidence-chip"><FileCheck2 class="h-3 w-3 text-emerald-600" />{curr}</span></td>
+                  <td class="td"><span class="evidence-chip"><FileCheck2 class="h-3 w-3 text-violet-600" />{curr}</span></td>
                 </tr>
               {/each}
             </tbody>

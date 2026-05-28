@@ -57,11 +57,11 @@
   const yTicks = [0, 0.25, 0.5, 0.75, 1];
 
   $: markers = [
-    { label: 'P50', value: percentiles.p50, color: '#047857' },
+    { label: 'P50', value: percentiles.p50, color: '#6d28d9' },
     { label: 'P90', value: percentiles.p90, color: '#f59e0b' },
     { label: 'P99', value: percentiles.p99, color: '#e11d48' }
   ];
-  // P50 marker kept emerald (semantic: low-risk percentile in the red-amber-green scale).
+  // P50 marker uses violet (low-risk percentile in the rose-amber-violet scale).
 </script>
 
 <svg viewBox="0 0 {width} {height}" class="w-full" role="img" aria-label="Loss exceedance curve">

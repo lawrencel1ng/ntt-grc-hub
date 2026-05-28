@@ -57,7 +57,7 @@
       const ago = -ms;
       if (ago > 180 * 86_400_000) return 'text-rose-600';
       if (ago > 90 * 86_400_000)  return 'text-amber-600';
-      return 'text-emerald-700';
+      return 'text-violet-700';
     } else {
       if (ms < 0) return 'text-rose-600';
       if (ms < 30 * 86_400_000) return 'text-amber-600';
@@ -81,10 +81,10 @@
       <ShieldAlert slot="icon" class="h-4 w-4 text-rose-600" />
     </Kpi>
     <Kpi label="Tested Last Quarter" value={testedPct.toString()} suffix="%" hint="{testedLastQ}/{total} plans">
-      <Activity slot="icon" class="h-4 w-4 text-emerald-600" />
+      <Activity slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Within RTO Target" value={withinRtoPct.toString()} suffix="%" hint="{withinRto}/{total} on-target">
-      <CheckCircle2 slot="icon" class="h-4 w-4 text-emerald-600" />
+      <CheckCircle2 slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Open BIA Dependencies" value={biaOpen.toString()} hint="critical + high">
       <Network slot="icon" class="h-4 w-4 text-amber-600" />

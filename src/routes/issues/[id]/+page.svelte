@@ -16,7 +16,7 @@
     switch (s) {
       case 'open':          return 'bg-rose-50 text-rose-700 ring-rose-200';
       case 'in-progress':   return 'bg-blue-50 text-blue-700 ring-blue-200';
-      case 'resolved':      return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'resolved':      return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'accepted-risk': return 'bg-amber-50 text-amber-700 ring-amber-200';
     }
   }
@@ -24,7 +24,7 @@
     switch (s) {
       case 'not-started': return 'bg-slate-100 text-slate-700 ring-slate-200';
       case 'in-progress': return 'bg-blue-50 text-blue-700 ring-blue-200';
-      case 'done':        return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'done':        return 'bg-violet-50 text-violet-700 ring-violet-200';
     }
   }
   function sourceCls(s: IssueSource): string {
@@ -32,7 +32,7 @@
       case 'audit':          return 'bg-blue-50 text-blue-700 ring-blue-200';
       case 'risk-treatment': return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'incident':       return 'bg-rose-50 text-rose-700 ring-rose-200';
-      case 'control-test':   return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'control-test':   return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'regulatory':     return 'bg-amber-50 text-amber-700 ring-amber-200';
     }
   }
@@ -159,7 +159,7 @@
     <ol class="relative ml-3 border-l-2 border-slate-200">
       {#each timeline as t, i (i)}
         <li class="relative ml-6 py-2">
-          <span class="absolute -left-[33px] top-3 inline-flex h-3 w-3 rounded-full {t.status === 'done' ? 'bg-emerald-500' : 'bg-slate-300'} ring-2 ring-white"></span>
+          <span class="absolute -left-[33px] top-3 inline-flex h-3 w-3 rounded-full {t.status === 'done' ? 'bg-violet-500' : 'bg-slate-300'} ring-2 ring-white"></span>
           <div class="font-mono text-[11px] text-slate-500">{t.ts ? t.ts.replace('T', ' ').slice(0, 19) : 'pending'}</div>
           <div class="mt-0.5 text-sm font-medium text-grc-ink">{t.event}</div>
         </li>
@@ -179,7 +179,7 @@
         </div>
       </a>
       <a href="/controls/{linkedControlId}" class="card-hover flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-3">
-        <div class="rounded-lg bg-emerald-50 p-2 text-emerald-700"><ShieldCheck class="h-4 w-4" /></div>
+        <div class="rounded-lg bg-violet-50 p-2 text-violet-700"><ShieldCheck class="h-4 w-4" /></div>
         <div>
           <div class="text-[11px] uppercase tracking-wider text-slate-500">Linked Control</div>
           <div class="text-sm font-mono">{linkedControlId.slice(0, 24)}…</div>

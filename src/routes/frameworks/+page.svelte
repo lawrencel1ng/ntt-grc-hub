@@ -117,7 +117,7 @@
     if (s == null) return 'text-slate-400';
     if (s < 60) return 'text-rose-600';
     if (s < 80) return 'text-amber-600';
-    return 'text-emerald-600';
+    return 'text-violet-600';
   }
 </script>
 
@@ -130,10 +130,10 @@
   <!-- KPI strip -->
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
     <Kpi label="Active Frameworks" value={activeCount.toString()} hint="across all regions">
-      <Library slot="icon" class="h-4 w-4 text-emerald-600" />
+      <Library slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Avg Score" value={avgScore.toFixed(1)} suffix="%" delta={3}>
-      <TrendingUp slot="icon" class="h-4 w-4 text-emerald-600" />
+      <TrendingUp slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Due in 60 days" value={dueIn60.toString()} hint="assessment refresh">
       <Calendar slot="icon" class="h-4 w-4 text-amber-600" />

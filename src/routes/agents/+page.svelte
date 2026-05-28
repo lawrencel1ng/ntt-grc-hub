@@ -109,7 +109,7 @@
       suffix="%"
       hint="reviewed decisions"
     >
-      <UserCheck slot="icon" class="h-4 w-4 text-emerald-600" />
+      <UserCheck slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi
       label="Auto-Approved"
@@ -117,7 +117,7 @@
       suffix="%"
       hint="{decisionStats.auto}/{decisionStats.total}"
     >
-      <ShieldCheck slot="icon" class="h-4 w-4 text-emerald-600" />
+      <ShieldCheck slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Avg Confidence" value={(decisionStats.avgConfidence * 100).toFixed(1)} suffix="%" hint="fleet-wide">
       <Gauge slot="icon" class="h-4 w-4 text-slate-500" />

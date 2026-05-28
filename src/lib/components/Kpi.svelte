@@ -10,9 +10,9 @@
   $: trendColor = delta === null
     ? 'text-slate-400'
     : delta > 0
-      ? tone === 'bad' ? 'text-rose-600' : 'text-emerald-600'
+      ? tone === 'bad' ? 'text-rose-600' : 'text-violet-600'
       : delta < 0
-        ? tone === 'bad' ? 'text-emerald-600' : 'text-rose-600'
+        ? tone === 'bad' ? 'text-violet-600' : 'text-rose-600'
         : 'text-slate-400';
 </script>
 

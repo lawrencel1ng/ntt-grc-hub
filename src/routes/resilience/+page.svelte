@@ -104,7 +104,7 @@
       case 'critical': return '#e11d48';
       case 'high':     return '#f97316';
       case 'medium':   return '#f59e0b';
-      default:         return '#10b981';
+      default:         return '#8b5cf6';
     }
   }
 
@@ -133,7 +133,7 @@
       const ago = -ms;
       if (ago > 180 * 86_400_000) return 'text-rose-600';
       if (ago > 90 * 86_400_000) return 'text-amber-600';
-      return 'text-emerald-700';
+      return 'text-violet-700';
     } else {
       if (ms < 0) return 'text-rose-600';
       if (ms < 30 * 86_400_000) return 'text-amber-600';
@@ -151,10 +151,10 @@
       <ShieldAlert slot="icon" class="h-4 w-4 text-rose-600" />
     </Kpi>
     <Kpi label="Tested Last Quarter" value={testedPct.toString()} suffix="%" hint="{testedLastQuarter}/{totalIBS} services">
-      <Activity slot="icon" class="h-4 w-4 text-emerald-600" />
+      <Activity slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Within RTO/RPO" value={withinPct.toString()} suffix="%" hint="{withinRtoTargets}/{totalIBS} on-target">
-      <CheckCircle2 slot="icon" class="h-4 w-4 text-emerald-600" />
+      <CheckCircle2 slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Dependencies at Risk" value={depsAtRisk.toString()} tone="bad">
       <Network slot="icon" class="h-4 w-4 text-amber-600" />

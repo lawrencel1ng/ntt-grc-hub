@@ -44,7 +44,7 @@
 
   function basisCls(b: string): string {
     switch (b) {
-      case 'consent':             return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'consent':             return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'contract':            return 'bg-blue-50 text-blue-700 ring-blue-200';
       case 'legal-obligation':    return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'legitimate-interests':return 'bg-amber-50 text-amber-700 ring-amber-200';
@@ -54,7 +54,7 @@
 
   function dpiaStatusCls(s: string): string {
     switch (s) {
-      case 'approved':  return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'approved':  return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'in-review': return 'bg-blue-50 text-blue-700 ring-blue-200';
       case 'draft':     return 'bg-amber-50 text-amber-700 ring-amber-200';
       case 'retired':   return 'bg-slate-100 text-slate-500 ring-slate-200';
@@ -68,7 +68,7 @@
       case 'erasure':       return 'bg-rose-50 text-rose-700 ring-rose-200';
       case 'portability':   return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'objection':     return 'bg-amber-50 text-amber-700 ring-amber-200';
-      case 'rectification': return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'rectification': return 'bg-violet-50 text-violet-700 ring-violet-200';
     }
   }
 
@@ -76,7 +76,7 @@
     switch (s) {
       case 'received':    return 'bg-slate-100 text-slate-700 ring-slate-200';
       case 'in-progress': return 'bg-amber-50 text-amber-700 ring-amber-200';
-      case 'resolved':    return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'resolved':    return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'rejected':    return 'bg-rose-50 text-rose-700 ring-rose-200';
     }
   }
@@ -90,7 +90,7 @@
   function slaColor(pct: number): string {
     if (pct >= 90) return 'bg-rose-500';
     if (pct >= 60) return 'bg-amber-500';
-    return 'bg-emerald-500';
+    return 'bg-violet-500';
   }
 
   function fmtDate(iso?: string): string {
@@ -128,7 +128,7 @@
       <ScrollText slot="icon" class="h-4 w-4 text-grc-primary" />
     </Kpi>
     <Kpi label="Active DPIAs" value={activeDpiasCount.toString()}>
-      <ClipboardCheck slot="icon" class="h-4 w-4 text-emerald-600" />
+      <ClipboardCheck slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Subject Requests (90d)" value={requests90d.toString()}>
       <UsersIcon slot="icon" class="h-4 w-4 text-blue-600" />
@@ -237,7 +237,7 @@
                 <span>Progress</span>
                 <span class="font-mono">{d.status === 'approved' ? 100 : d.status === 'in-review' ? 75 : d.status === 'draft' ? 35 : 100}%</span>
               </div>
-              <ProgressBar value={d.status === 'approved' ? 100 : d.status === 'in-review' ? 75 : d.status === 'draft' ? 35 : 100} color={d.status === 'approved' ? 'bg-emerald-500' : d.status === 'in-review' ? 'bg-blue-500' : 'bg-amber-500'} />
+              <ProgressBar value={d.status === 'approved' ? 100 : d.status === 'in-review' ? 75 : d.status === 'draft' ? 35 : 100} color={d.status === 'approved' ? 'bg-violet-500' : d.status === 'in-review' ? 'bg-blue-500' : 'bg-amber-500'} />
             </div>
             <div class="mt-3 text-xs text-slate-500">
               Conducted by: <span class="font-medium text-slate-700">DPO Office</span>

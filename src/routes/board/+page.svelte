@@ -34,13 +34,13 @@
       case 'critical': return 'bg-rose-50 text-rose-700 ring-rose-200';
       case 'high':     return 'bg-orange-50 text-orange-700 ring-orange-200';
       case 'medium':   return 'bg-amber-50 text-amber-700 ring-amber-200';
-      case 'low':      return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'low':      return 'bg-violet-50 text-violet-700 ring-violet-200';
       default:         return 'bg-slate-100 text-slate-700 ring-slate-200';
     }
   }
   function treatmentCls(t: string): string {
     switch (t) {
-      case 'mitigate': return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'mitigate': return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'transfer': return 'bg-blue-50 text-blue-700 ring-blue-200';
       case 'accept':   return 'bg-amber-50 text-amber-700 ring-amber-200';
       case 'avoid':    return 'bg-violet-50 text-violet-700 ring-violet-200';
@@ -117,7 +117,7 @@
       const v = Math.max(1, c.vendorCount);
       const color = c.exposureSgd >= 8_000_000 ? '#e11d48'
                    : c.exposureSgd >= 3_000_000 ? '#f97316'
-                   : c.exposureSgd >= 1_000_000 ? '#f59e0b' : '#10b981';
+                   : c.exposureSgd >= 1_000_000 ? '#f59e0b' : '#8b5cf6';
       links.push({ source: `dim:${c.dimension}`, target: midId, value: v, color });
       links.push({ source: midId, target: b.id, value: v, color });
     }
@@ -328,7 +328,7 @@
         <div class="rounded-xl bg-slate-50 p-4 ring-1 ring-inset ring-slate-200">
           <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Aggregate Score</div>
           <div class="mt-1 font-mono text-3xl font-bold text-grc-primary">{data.kpis.avgComplianceScore.toFixed(1)}<span class="text-base text-slate-400">/100</span></div>
-          <div class="mt-1 text-xs text-emerald-700">+3.2 vs prior quarter</div>
+          <div class="mt-1 text-xs text-violet-700">+3.2 vs prior quarter</div>
         </div>
         <p class="mt-4 text-sm text-slate-600 leading-relaxed">
           <span class="font-semibold text-slate-800">8 of 35 frameworks tracked closely;</span>
@@ -377,13 +377,13 @@
     </header>
     <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
       <Kpi label="IBS Within RTO" value={withinRtoPct.toString()} suffix="%" hint="{withinRto}/{totalIBS} services">
-        <ShieldCheck slot="icon" class="h-4 w-4 text-emerald-600" />
+        <ShieldCheck slot="icon" class="h-4 w-4 text-violet-600" />
       </Kpi>
       <Kpi label="BCM Tests YTD" value={testsYTD.toString()} hint="all plan kinds">
         <Calendar slot="icon" class="h-4 w-4 text-grc-primary" />
       </Kpi>
       <Kpi label="Drills Passed" value={drillsPassed.toString()} hint="pass-result tests">
-        <Activity slot="icon" class="h-4 w-4 text-emerald-600" />
+        <Activity slot="icon" class="h-4 w-4 text-violet-600" />
       </Kpi>
       <Kpi label="Concentration Risk" value={concentrationPct.toString()} suffix="%" tone="bad" hint="top concentration share">
         <AlertTriangle slot="icon" class="h-4 w-4 text-rose-600" />
@@ -410,7 +410,7 @@
               <td class="td text-xs text-slate-500">{r.plan.lastTestedAt ? formatIsoSgt(r.plan.lastTestedAt).slice(0, 10) : '—'}</td>
               <td class="td">
                 {#if last}
-                  <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset {last.result === 'pass' ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : last.result === 'partial' ? 'bg-amber-50 text-amber-700 ring-amber-200' : 'bg-rose-50 text-rose-700 ring-rose-200'}">
+                  <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset {last.result === 'pass' ? 'bg-violet-50 text-violet-700 ring-violet-200' : last.result === 'partial' ? 'bg-amber-50 text-amber-700 ring-amber-200' : 'bg-rose-50 text-rose-700 ring-rose-200'}">
                     {last.result}
                   </span>
                 {:else}
@@ -437,9 +437,9 @@
         <span class="text-xs text-slate-400">10 named agents · 30-day window</span>
       </header>
       <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <div class="rounded-xl border border-emerald-200/80 bg-white p-4 shadow-card">
+        <div class="rounded-xl border border-violet-200/80 bg-white p-4 shadow-card">
           <div class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Annual Savings</div>
-          <div class="mt-1 font-mono text-3xl font-bold text-emerald-700">
+          <div class="mt-1 font-mono text-3xl font-bold text-violet-700">
             S${(annualSavings / 1_000_000).toFixed(1)}M
           </div>
           <div class="mt-1 text-[11px] text-slate-500">avoided fully-loaded FTE cost</div>
@@ -458,7 +458,7 @@
         </div>
         <div class="rounded-xl border border-slate-200 bg-white p-4 shadow-card">
           <div class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Fleet Uptime</div>
-          <div class="mt-1 font-mono text-3xl font-bold text-emerald-700">99.2%</div>
+          <div class="mt-1 font-mono text-3xl font-bold text-violet-700">99.2%</div>
           <div class="mt-1 text-[11px] text-slate-500">30-day SLA</div>
         </div>
       </div>
@@ -477,7 +477,7 @@
         Risk Quantifier, Incident Investigator, Control Mapper, Board Narrator.</span>
         Run-rate cost of approximately S${Math.round(fleetCostMonthly).toLocaleString()} per month against an avoided
         cost of ~S${Math.round((annualSavings / 12) / 1000).toLocaleString()}K per month — a
-        <span class="font-semibold text-emerald-700">{Math.round((annualSavings / 12) / Math.max(fleetCostMonthly, 1))}× ROI</span>.
+        <span class="font-semibold text-violet-700">{Math.round((annualSavings / 12) / Math.max(fleetCostMonthly, 1))}× ROI</span>.
       </p>
     </div>
   </section>

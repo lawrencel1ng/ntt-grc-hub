@@ -68,7 +68,7 @@ function buildSankey(vendors: Vendor[], fourthParties: FourthParty[]) {
     const share = (destVendorCount.get(destKey)?.size ?? 0) / totalVendorsInPick;
     if (share >= 0.4) return '#e11d48'; // rose
     if (share >= 0.2) return '#f59e0b'; // amber
-    return '#10b981';                   // emerald
+    return '#8b5cf6';                   // violet
   }
 
   const nodes: SankeyNode[] = [];

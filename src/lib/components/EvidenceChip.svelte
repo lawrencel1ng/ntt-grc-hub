@@ -37,7 +37,7 @@
     <span class="truncate">{filename}</span>
   {/if}
   {#if copied}
-    <Check class="h-3 w-3 text-emerald-600" />
+    <Check class="h-3 w-3 text-violet-600" />
   {:else}
     <Copy class="h-3 w-3 text-slate-400" />
   {/if}

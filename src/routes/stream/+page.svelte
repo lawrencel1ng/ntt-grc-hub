@@ -46,7 +46,7 @@
     return 'text-slate-400';
   }
   function statusColor(s: AgentStatus | string): string {
-    if (s === 'success') return 'text-emerald-300';
+    if (s === 'success') return 'text-violet-300';
     if (s === 'failed') return 'text-rose-300';
     if (s === 'awaiting-approval') return 'text-amber-300';
     if (s === 'running') return 'text-blue-300';
@@ -108,9 +108,9 @@
 <PageHeader title="Agent Activity Stream" subtitle="Live SSE feed — every run from every agent, in real time.">
   <svelte:fragment slot="actions">
     <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {sseConnected
-      ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+      ? 'bg-violet-50 text-violet-700 ring-violet-200'
       : 'bg-slate-100 text-slate-600 ring-slate-200'}">
-      <span class="h-1.5 w-1.5 rounded-full {sseConnected ? 'bg-emerald-500' : 'bg-slate-400'}"></span>
+      <span class="h-1.5 w-1.5 rounded-full {sseConnected ? 'bg-violet-500' : 'bg-slate-400'}"></span>
       {sseConnected ? 'SSE connected' : 'connecting…'}
     </span>
     <button class="btn-secondary" on:click={togglePause}>
@@ -167,7 +167,7 @@
     <div class="flex items-center gap-2 border-b border-slate-800 bg-slate-900/70 px-3 py-2 font-mono text-[11px] text-slate-400">
       <span class="h-2.5 w-2.5 rounded-full bg-rose-500/70"></span>
       <span class="h-2.5 w-2.5 rounded-full bg-amber-500/70"></span>
-      <span class="h-2.5 w-2.5 rounded-full bg-emerald-500/70"></span>
+      <span class="h-2.5 w-2.5 rounded-full bg-violet-500/70"></span>
       <span class="ml-2">ntt-grc-hub /agent-stream {paused ? '(paused)' : ''}</span>
     </div>
     <div bind:this={scrollEl} class="h-[64vh] overflow-y-auto px-3 py-2 font-mono text-[12px] leading-relaxed text-slate-200 scrollbar-thin">

@@ -37,7 +37,7 @@
   $: blocks = current ? renderBlocks(current.contentMd) : [];
 
   function statusCls(s?: PolicyVersionStatus): string {
-    if (s === 'approved')  return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+    if (s === 'approved')  return 'bg-violet-50 text-violet-700 ring-violet-200';
     if (s === 'in-review') return 'bg-amber-50 text-amber-700 ring-amber-200';
     if (s === 'draft')     return 'bg-blue-50 text-blue-700 ring-blue-200';
     if (s === 'retired')   return 'bg-slate-100 text-slate-600 ring-slate-200';
@@ -218,7 +218,7 @@
                 <td class="td text-xs text-slate-500 font-mono">{u.email}</td>
                 <td class="td">
                   {#if u.ackedAt}
-                    <span class="font-mono text-xs text-emerald-700">{u.ackedAt}</span>
+                    <span class="font-mono text-xs text-violet-700">{u.ackedAt}</span>
                   {:else}
                     <span class="text-xs text-amber-700">pending</span>
                   {/if}

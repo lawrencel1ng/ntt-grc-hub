@@ -85,7 +85,7 @@
       case 'medium':
         return 'bg-amber-50 text-amber-700 ring-amber-200';
       case 'low':
-        return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+        return 'bg-violet-50 text-violet-700 ring-violet-200';
       default:
         return 'bg-slate-100 text-slate-700 ring-slate-200';
     }
@@ -164,11 +164,11 @@
 
   function regulatorBadgeCls(code: string | undefined): string {
     const c = (code ?? '').toUpperCase();
-    if (c === 'MAS') return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+    if (c === 'MAS') return 'bg-violet-50 text-violet-700 ring-violet-200';
     if (c === 'EU') return 'bg-indigo-50 text-indigo-700 ring-indigo-200';
     if (c === 'APRA') return 'bg-amber-50 text-amber-700 ring-amber-200';
     if (c === 'OJK') return 'bg-rose-50 text-rose-700 ring-rose-200';
-    if (c === 'RBI') return 'bg-teal-50 text-teal-700 ring-teal-200';
+    if (c === 'RBI') return 'bg-violet-50 text-violet-700 ring-violet-200';
     return 'bg-slate-100 text-slate-700 ring-slate-200';
   }
 
@@ -178,7 +178,7 @@
       case 'auto-approved':
         return 'bg-slate-100 text-slate-700 ring-slate-200';
       case 'hitl-approved':
-        return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+        return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'hitl-rejected':
         return 'bg-rose-50 text-rose-700 ring-rose-200';
       default:
@@ -351,7 +351,7 @@
       delta={3}
       hint="8 frameworks"
     >
-      <ShieldCheck slot="icon" class="h-4 w-4 text-emerald-600" />
+      <ShieldCheck slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi
       label="Open Findings"
@@ -442,10 +442,10 @@
         </div>
         <span
           class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset {sseConnected
-            ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+            ? 'bg-violet-50 text-violet-700 ring-violet-200'
             : 'bg-slate-100 text-slate-600 ring-slate-200'}"
         >
-          <span class="h-1.5 w-1.5 rounded-full {sseConnected ? 'bg-emerald-500' : 'bg-slate-400'}"></span>
+          <span class="h-1.5 w-1.5 rounded-full {sseConnected ? 'bg-violet-500' : 'bg-slate-400'}"></span>
           {sseConnected ? 'SSE connected' : 'connecting…'}
         </span>
       </div>

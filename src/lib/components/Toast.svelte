@@ -8,12 +8,12 @@
   {#each $toasts as toast (toast.id)}
     <div
       class="pointer-events-auto flex w-80 items-start gap-3 rounded-xl bg-white p-4 shadow-lg ring-1
-        {toast.kind === 'success' ? 'ring-emerald-200' : toast.kind === 'error' ? 'ring-rose-200' : toast.kind === 'warn' ? 'ring-amber-200' : 'ring-blue-200'}"
+        {toast.kind === 'success' ? 'ring-violet-200' : toast.kind === 'error' ? 'ring-rose-200' : toast.kind === 'warn' ? 'ring-amber-200' : 'ring-blue-200'}"
       in:fly={{ y: 16, duration: 220 }}
       out:fade={{ duration: 160 }}
     >
       <span class="mt-0.5 flex-shrink-0
-        {toast.kind === 'success' ? 'text-emerald-500' : toast.kind === 'error' ? 'text-rose-500' : toast.kind === 'warn' ? 'text-amber-500' : 'text-blue-500'}">
+        {toast.kind === 'success' ? 'text-violet-500' : toast.kind === 'error' ? 'text-rose-500' : toast.kind === 'warn' ? 'text-amber-500' : 'text-blue-500'}">
         {#if toast.kind === 'success'}
           <CheckCircle2 class="h-5 w-5" />
         {:else if toast.kind === 'error'}

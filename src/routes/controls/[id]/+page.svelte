@@ -125,7 +125,7 @@
               <td class="td">
                 <div class="flex items-center gap-2">
                   <div class="h-1.5 w-32 overflow-hidden rounded-full bg-slate-100">
-                    <div class="h-full rounded-full bg-emerald-500" style="width:{m.coverage}%"></div>
+                    <div class="h-full rounded-full bg-violet-500" style="width:{m.coverage}%"></div>
                   </div>
                   <span class="font-mono text-xs text-slate-500">{m.coverage}%</span>
                 </div>

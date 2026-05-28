@@ -45,13 +45,13 @@
       case 'risk-owner':    return 'bg-amber-50 text-amber-700 ring-amber-200';
       case 'control-owner': return 'bg-blue-50 text-blue-700 ring-blue-200';
       case 'auditor':       return 'bg-violet-50 text-violet-700 ring-violet-200';
-      case 'agent-operator': return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'agent-operator': return 'bg-violet-50 text-violet-700 ring-violet-200';
       default:              return 'bg-slate-100 text-slate-700 ring-slate-200';
     }
   }
   function statusCls(s: UserStatus): string {
     switch (s) {
-      case 'active':   return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'active':   return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'invited':  return 'bg-blue-50 text-blue-700 ring-blue-200';
       case 'disabled': return 'bg-slate-100 text-slate-500 ring-slate-200';
       case 'locked':   return 'bg-rose-50 text-rose-700 ring-rose-200';
@@ -88,10 +88,10 @@
       <Users slot="icon" class="h-4 w-4 text-grc-primary" />
     </Kpi>
     <Kpi label="Active" value={activeCount.toString()} hint="logged in last 30d">
-      <ShieldCheck slot="icon" class="h-4 w-4 text-emerald-600" />
+      <ShieldCheck slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="MFA Enabled" value={mfaPct.toString()} suffix="%" hint="{mfaCount}/{total} users">
-      <KeyRound slot="icon" class="h-4 w-4 text-emerald-600" />
+      <KeyRound slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Admin Users" value={adminCount.toString()} hint="elevated privileges" tone="bad">
       <ShieldAlert slot="icon" class="h-4 w-4 text-rose-600" />
@@ -158,7 +158,7 @@
               <td class="td text-xs text-slate-500">{u.lastLoginAt ? formatRelative(u.lastLoginAt) : '—'}</td>
               <td class="td text-center">
                 {#if u.mfaEnabled}
-                  <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700" title="MFA enabled">
+                  <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-violet-100 text-violet-700" title="MFA enabled">
                     <Check class="h-3 w-3" />
                   </span>
                 {:else}
@@ -209,7 +209,7 @@
                 {@const allow = data.rbac[role as Role][cap as keyof typeof data.rbac[Role]]}
                 <td class="td text-center">
                   {#if allow}
-                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-violet-100 text-violet-700">
                       <Check class="h-3.5 w-3.5" />
                     </span>
                   {:else}

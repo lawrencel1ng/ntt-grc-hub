@@ -22,9 +22,9 @@
   .btn-danger { @apply btn bg-grc-critical text-white hover:bg-rose-700 focus:ring-grc-critical/40; }
 
   .tag { @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium; }
-  .tag-emerald { @apply tag bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200; }
+  .tag-emerald { @apply tag bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-200; }
   .tag-blue    { @apply tag bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-200; }
-  .tag-green   { @apply tag bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-200; }
+  .tag-green   { @apply tag bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-200; }
   .tag-amber   { @apply tag bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200; }
   .tag-red     { @apply tag bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-200; }
   .tag-slate   { @apply tag bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-200; }

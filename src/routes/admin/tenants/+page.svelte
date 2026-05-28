@@ -28,7 +28,7 @@
     return 'bg-slate-100 text-slate-700 ring-slate-200';
   }
   function regionCls(region: string): string {
-    if (region === 'SG') return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+    if (region === 'SG') return 'bg-violet-50 text-violet-700 ring-violet-200';
     if (region === 'APAC') return 'bg-blue-50 text-blue-700 ring-blue-200';
     return 'bg-slate-100 text-slate-700 ring-slate-200';
   }
@@ -62,7 +62,7 @@
       <StatusDot slot="icon" status="connected" withLabel={false} />
     </Kpi>
     <Kpi label="Total MRR (S$)" value={(totalMrr / 1000).toFixed(0)} suffix="K">
-      <Calendar slot="icon" class="h-4 w-4 text-emerald-600" />
+      <Calendar slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Sovereign-only" value={sovereign.toString()} hint="classified / sovereign tier">
       <ShieldAlert slot="icon" class="h-4 w-4 text-rose-600" />
@@ -112,7 +112,7 @@
                   {t.slaTier}
                 </span>
               </td>
-              <td class="td text-right font-mono text-emerald-700">{(t.mrrSgd / 1000).toFixed(0)}K</td>
+              <td class="td text-right font-mono text-violet-700">{(t.mrrSgd / 1000).toFixed(0)}K</td>
               <td class="td">
                 {#if t.classified}
                   <span class="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-700 ring-1 ring-inset ring-rose-200">
@@ -143,7 +143,7 @@
                       </div>
                       <div class="mt-1 text-sm font-medium text-slate-800">
                         {row.connectorCount}
-                        <span class="text-xs text-emerald-700">· {row.connectedCount} connected</span>
+                        <span class="text-xs text-violet-700">· {row.connectedCount} connected</span>
                       </div>
                     </div>
                     <div class="rounded-lg bg-white p-3 ring-1 ring-inset ring-slate-200">

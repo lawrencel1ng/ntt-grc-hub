@@ -22,12 +22,12 @@
 
   function regColor(code?: string): string {
     switch (code) {
-      case 'MAS':  return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'MAS':  return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'APRA': return 'bg-blue-50 text-blue-700 ring-blue-200';
       case 'EU':   return 'bg-indigo-50 text-indigo-700 ring-indigo-200';
       case 'OJK':  return 'bg-amber-50 text-amber-700 ring-amber-200';
       case 'RBI':  return 'bg-orange-50 text-orange-700 ring-orange-200';
-      case 'HKMA': return 'bg-cyan-50 text-cyan-700 ring-cyan-200';
+      case 'HKMA': return 'bg-slate-100 text-slate-700 ring-slate-200';
       case 'BNM':  return 'bg-rose-50 text-rose-700 ring-rose-200';
       case 'PDPC': return 'bg-violet-50 text-violet-700 ring-violet-200';
       default:     return 'bg-slate-100 text-slate-700 ring-slate-200';
@@ -43,7 +43,7 @@
     if (i === 'high')   return 'bg-rose-50 text-rose-700 ring-rose-200';
     if (i === 'medium') return 'bg-amber-50 text-amber-700 ring-amber-200';
     if (i === 'low')    return 'bg-slate-100 text-slate-600 ring-slate-200';
-    return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+    return 'bg-violet-50 text-violet-700 ring-violet-200';
   }
 
   function fmtDate(iso?: string): string { return iso ? iso.slice(0, 10) : '—'; }

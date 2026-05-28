@@ -14,10 +14,10 @@
   const sevLabels = ['Info', 'Low', 'Medium', 'High', 'Critical'];
 
   // 5×5 ramp; index by (sev-1)*5 + (lik-1)
-  // green → yellow → amber → orange → rose
+  // violet (safe) → amber (caution) → rose (critical)
   const ramp = [
-    ['#dcfce7', '#dcfce7', '#fef3c7', '#fde68a', '#fed7aa'],
-    ['#dcfce7', '#fef3c7', '#fde68a', '#fed7aa', '#fdba74'],
+    ['#ede9fe', '#ede9fe', '#fef3c7', '#fde68a', '#fed7aa'],
+    ['#ede9fe', '#fef3c7', '#fde68a', '#fed7aa', '#fdba74'],
     ['#fef3c7', '#fde68a', '#fed7aa', '#fdba74', '#fb923c'],
     ['#fde68a', '#fed7aa', '#fdba74', '#fb923c', '#f97316'],
     ['#fed7aa', '#fdba74', '#fb923c', '#f97316', '#e11d48']

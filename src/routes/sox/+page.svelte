@@ -38,7 +38,7 @@
   // ---------- Helpers ----------
   function resultCls(r: ControlTestResult): string {
     switch (r) {
-      case 'pass':    return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'pass':    return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'partial': return 'bg-amber-50 text-amber-700 ring-amber-200';
       case 'fail':    return 'bg-rose-50 text-rose-700 ring-rose-200';
       case 'na':      return 'bg-slate-100 text-slate-500 ring-slate-200';
@@ -55,13 +55,13 @@
     switch (d) {
       case 'Access':     return 'bg-rose-50 text-rose-700 ring-rose-200';
       case 'Change':     return 'bg-blue-50 text-blue-700 ring-blue-200';
-      case 'Operations': return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'Operations': return 'bg-violet-50 text-violet-700 ring-violet-200';
       default:           return 'bg-slate-100 text-slate-600 ring-slate-200';
     }
   }
   function walkStatusCls(s: string): string {
     switch (s) {
-      case 'complete':    return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'complete':    return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'in-progress': return 'bg-amber-50 text-amber-700 ring-amber-200';
       case 'planned':     return 'bg-slate-100 text-slate-700 ring-slate-200';
       default:            return 'bg-slate-100 text-slate-600 ring-slate-200';
@@ -81,7 +81,7 @@
       <ShieldCheck slot="icon" class="h-4 w-4 text-grc-primary" />
     </Kpi>
     <Kpi label="KCAs" value={kcaCount.toString()} hint="key control activities">
-      <Network slot="icon" class="h-4 w-4 text-emerald-600" />
+      <Network slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Walkthroughs Complete" value={walkPct.toString()} suffix="%" hint="{walkComplete}/{data.walkthroughs.length}">
       <ClipboardCheck slot="icon" class="h-4 w-4 text-blue-600" />
@@ -90,7 +90,7 @@
       <AlertTriangle slot="icon" class="h-4 w-4 text-rose-600" />
     </Kpi>
     <Kpi label="Remediation On Track" value={remediationPct.toString()} suffix="%" hint="{remediationOnTrack}/{openDeficiencies}">
-      <TrendingUp slot="icon" class="h-4 w-4 text-emerald-600" />
+      <TrendingUp slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
   </div>
 
@@ -174,7 +174,7 @@
                 <td class="td text-xs text-slate-500">{c.frequency}</td>
                 <td class="td">
                   <div class="flex items-center gap-2">
-                    <ProgressBar value={c.automationPct} color={c.automationPct >= 70 ? 'bg-emerald-500' : c.automationPct >= 40 ? 'bg-amber-500' : 'bg-rose-500'} />
+                    <ProgressBar value={c.automationPct} color={c.automationPct >= 70 ? 'bg-violet-500' : c.automationPct >= 40 ? 'bg-amber-500' : 'bg-rose-500'} />
                     <span class="font-mono text-[10px] text-slate-500 w-8 text-right">{c.automationPct}%</span>
                   </div>
                 </td>
@@ -249,7 +249,7 @@
                 <td class="td font-mono text-xs">{d.targetDate}</td>
                 <td class="td text-center">
                   {#if d.onTrack}
-                    <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">on-track</span>
+                    <span class="inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-700 ring-1 ring-inset ring-violet-200">on-track</span>
                   {:else}
                     <span class="inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-semibold text-rose-700 ring-1 ring-inset ring-rose-200">at-risk</span>
                   {/if}

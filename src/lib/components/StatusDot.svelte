@@ -7,14 +7,14 @@
   const bad = new Set(['disconnected', 'red', 'critical', 'error', 'fail', 'stopped']);
 
   $: color = good.has(status)
-    ? 'bg-emerald-500'
+    ? 'bg-violet-500'
     : warnSet.has(status)
       ? 'bg-amber-500'
       : bad.has(status)
         ? 'bg-rose-500'
         : 'bg-slate-400';
   $: textCls = good.has(status)
-    ? 'text-emerald-700'
+    ? 'text-violet-700'
     : warnSet.has(status)
       ? 'text-amber-700'
       : bad.has(status)

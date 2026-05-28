@@ -106,19 +106,19 @@
       case 'critical': return 'bg-rose-100 text-rose-800 ring-rose-200';
       case 'high':     return 'bg-orange-50 text-orange-700 ring-orange-200';
       case 'medium':   return 'bg-amber-50 text-amber-700 ring-amber-200';
-      case 'low':      return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'low':      return 'bg-violet-50 text-violet-700 ring-violet-200';
     }
   }
   function statusCls(s: VendorStatus): string {
     switch (s) {
-      case 'active':     return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'active':     return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'onboarding': return 'bg-blue-50 text-blue-700 ring-blue-200';
       case 'offboarded': return 'bg-slate-100 text-slate-500 ring-slate-200';
     }
   }
   function qStatusCls(s: string): string {
     switch (s) {
-      case 'complete':    return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'complete':    return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'in-progress': return 'bg-blue-50 text-blue-700 ring-blue-200';
       case 'sent':        return 'bg-amber-50 text-amber-700 ring-amber-200';
       default:            return 'bg-slate-100 text-slate-600 ring-slate-200';
@@ -160,7 +160,7 @@
     if (days < 0) return 'bg-rose-100 text-rose-800 ring-rose-200';
     if (days < 30) return 'bg-rose-50 text-rose-700 ring-rose-200';
     if (days < 90) return 'bg-amber-50 text-amber-700 ring-amber-200';
-    return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+    return 'bg-violet-50 text-violet-700 ring-violet-200';
   }
   function renewalLabel(days: number): string {
     if (days < 0) return `expired ${-days}d ago`;
@@ -201,7 +201,7 @@
       <GitFork slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Contract Value" value={fmtMoney(data.vendor.contractValueSgd ?? 0)}>
-      <DollarSign slot="icon" class="h-4 w-4 text-emerald-600" />
+      <DollarSign slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
   </div>
 
@@ -239,7 +239,7 @@
             <div class="mt-2 rounded-lg border border-slate-100 bg-slate-50/40 p-3">
               <LineChart
                 labels={MONTHS}
-                series={[{ name: 'Questionnaire Score', color: '#0f766e', data: trend, area: true }]}
+                series={[{ name: 'Questionnaire Score', color: '#7c3aed', data: trend, area: true }]}
                 yMin={0}
                 yMax={100}
                 unit=""

@@ -48,7 +48,7 @@
   // ---------- Helpers ----------
   function resultCls(r: AuditLogEntry['result']): string {
     switch (r) {
-      case 'success': return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'success': return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'failure': return 'bg-amber-50 text-amber-700 ring-amber-200';
       case 'denied':  return 'bg-rose-50 text-rose-700 ring-rose-200';
     }
@@ -109,13 +109,13 @@
 
 <div class="space-y-6">
   <!-- Verification banner -->
-  <div class="flex flex-wrap items-center gap-3 rounded-xl border border-emerald-300 bg-gradient-to-r from-emerald-50 via-white to-emerald-50/60 px-4 py-3 ring-1 ring-inset ring-emerald-200">
-    <ShieldCheck class="h-5 w-5 text-emerald-700" />
-    <span class="text-sm font-semibold text-emerald-900">Audit log verified — chain intact</span>
-    <span class="text-emerald-300">·</span>
-    <span class="text-xs text-emerald-800 font-mono">{data.entries.length} of {data.entries.length} entries</span>
-    <span class="text-emerald-300">·</span>
-    <span class="text-xs text-emerald-800">Last verified <span class="font-mono">{verifiedAt}</span></span>
+  <div class="flex flex-wrap items-center gap-3 rounded-xl border border-violet-300 bg-gradient-to-r from-violet-50 via-white to-violet-50/60 px-4 py-3 ring-1 ring-inset ring-violet-200">
+    <ShieldCheck class="h-5 w-5 text-violet-700" />
+    <span class="text-sm font-semibold text-violet-900">Audit log verified — chain intact</span>
+    <span class="text-violet-300">·</span>
+    <span class="text-xs text-violet-800 font-mono">{data.entries.length} of {data.entries.length} entries</span>
+    <span class="text-violet-300">·</span>
+    <span class="text-xs text-violet-800">Last verified <span class="font-mono">{verifiedAt}</span></span>
   </div>
 
   <!-- KPI strip -->

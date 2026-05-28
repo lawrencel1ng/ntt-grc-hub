@@ -76,7 +76,7 @@
   }
 
   $: heroSeries = [
-    { name: 'Scope 1', color: '#10b981', data: emissionSeries('scope1', Math.max(scope1, 600)), area: false },
+    { name: 'Scope 1', color: '#8b5cf6', data: emissionSeries('scope1', Math.max(scope1, 600)), area: false },
     { name: 'Scope 2', color: '#3b82f6', data: emissionSeries('scope2', Math.max(scope2, 1800)), area: false },
     { name: 'Scope 3', color: '#8b5cf6', data: emissionSeries('scope3', Math.max(scope3, 4000)), area: false },
     { name: 'Target',  color: '#ef4444', data: targetLine() }
@@ -93,7 +93,7 @@
 
   function scopeCls(s: string): string {
     switch (s) {
-      case 'scope1': return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'scope1': return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'scope2': return 'bg-blue-50 text-blue-700 ring-blue-200';
       case 'scope3': return 'bg-violet-50 text-violet-700 ring-violet-200';
       default:       return 'bg-slate-100 text-slate-600 ring-slate-200';
@@ -113,7 +113,7 @@
 
   function disclosureStatusCls(s: string): string {
     switch (s) {
-      case 'published': return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'published': return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'in-review': return 'bg-blue-50 text-blue-700 ring-blue-200';
       case 'draft':     return 'bg-amber-50 text-amber-700 ring-amber-200';
       case 'retired':   return 'bg-slate-100 text-slate-500 ring-slate-200';
@@ -128,7 +128,7 @@
   <!-- KPI strip -->
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
     <Kpi label="Scope 1" value={fmtNum(scope1)} suffix="tCO2e">
-      <Factory slot="icon" class="h-4 w-4 text-emerald-600" />
+      <Factory slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Scope 2" value={fmtNum(scope2)} suffix="tCO2e">
       <Cloud slot="icon" class="h-4 w-4 text-blue-600" />
@@ -140,7 +140,7 @@
       <FileText slot="icon" class="h-4 w-4 text-grc-primary" />
     </Kpi>
     <Kpi label="On-Target" value={onTargetPct.toString()} suffix="%" hint="of climate targets">
-      <Target slot="icon" class="h-4 w-4 text-emerald-600" />
+      <Target slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
   </div>
 
@@ -151,7 +151,7 @@
         <div class="section-title">Emissions Trend (last 24 months)</div>
         <p class="mt-1 text-xs text-slate-500">Monthly tCO2e by scope. Dashed red line shows board-approved 2030 glide-path.</p>
       </div>
-      <span class="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
+      <span class="inline-flex items-center gap-1 rounded-md bg-violet-50 px-2 py-0.5 text-xs font-medium text-violet-700 ring-1 ring-inset ring-violet-200">
         <TrendingDown class="h-3 w-3" /> trending down
       </span>
     </div>
@@ -274,7 +274,7 @@
                 <td class="td">
                   <div class="space-y-1">
                     <div class="flex items-center gap-2">
-                      <ProgressBar value={pct} color={track ? 'bg-emerald-500' : 'bg-amber-500'} />
+                      <ProgressBar value={pct} color={track ? 'bg-violet-500' : 'bg-amber-500'} />
                       <span class="font-mono text-[10px] text-slate-500">{Math.round(pct)}%</span>
                     </div>
                     <div class="text-[10px] text-slate-500">current: <span class="font-mono">{cur.toLocaleString()}</span></div>
@@ -282,7 +282,7 @@
                 </td>
                 <td class="td text-center">
                   {#if track}
-                    <span class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">on-track</span>
+                    <span class="inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-700 ring-1 ring-inset ring-violet-200">on-track</span>
                   {:else}
                     <span class="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700 ring-1 ring-inset ring-amber-200">at-risk</span>
                   {/if}

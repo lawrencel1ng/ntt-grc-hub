@@ -19,7 +19,7 @@
 
   function statusCls(s?: WorkflowExecutionStatus): string {
     switch (s) {
-      case 'success':  return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'success':  return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'running':  return 'bg-blue-50 text-blue-700 ring-blue-200';
       case 'failed':   return 'bg-rose-50 text-rose-700 ring-rose-200';
       case 'halted':   return 'bg-amber-50 text-amber-700 ring-amber-200';
@@ -127,7 +127,7 @@
               <td class="td">
                 <div class="flex items-center gap-2">
                   <div class="h-1.5 w-24 overflow-hidden rounded-full bg-slate-100">
-                    <div class="h-full rounded-full bg-emerald-500" style="width: {((w.successRate30d ?? 0) * 100).toFixed(0)}%"></div>
+                    <div class="h-full rounded-full bg-violet-500" style="width: {((w.successRate30d ?? 0) * 100).toFixed(0)}%"></div>
                   </div>
                   <span class="font-mono text-xs text-slate-600">{((w.successRate30d ?? 0) * 100).toFixed(1)}%</span>
                 </div>

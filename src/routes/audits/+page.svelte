@@ -27,7 +27,7 @@
   function typeCls(t: EngagementType): string {
     switch (t) {
       case 'external':   return 'bg-blue-50 text-blue-700 ring-blue-200';
-      case 'internal':   return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'internal':   return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'regulatory': return 'bg-amber-50 text-amber-700 ring-amber-200';
       case 'customer':   return 'bg-violet-50 text-violet-700 ring-violet-200';
     }
@@ -64,7 +64,7 @@
   <!-- KPI strip -->
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
     <Kpi label="Active" value={active.length.toString()}>
-      <ClipboardCheck slot="icon" class="h-4 w-4 text-emerald-600" />
+      <ClipboardCheck slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="In Planning" value={inPlanning.length.toString()} hint="opened <21d">
       <FileBarChart slot="icon" class="h-4 w-4 text-amber-600" />
@@ -80,7 +80,7 @@
   <!-- Kanban -->
   <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
     {#each [
-      { title: 'Active', items: activeOngoing, color: 'border-emerald-200', dot: 'bg-emerald-500' },
+      { title: 'Active', items: activeOngoing, color: 'border-violet-200', dot: 'bg-violet-500' },
       { title: 'In Planning', items: inPlanning, color: 'border-amber-200', dot: 'bg-amber-500' },
       { title: 'Recently Closed', items: closed90d, color: 'border-slate-200', dot: 'bg-slate-400' }
     ] as col}

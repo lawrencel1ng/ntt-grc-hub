@@ -32,21 +32,21 @@
       case 'unacceptable': return 'bg-rose-100 text-rose-900 ring-rose-300';
       case 'high':         return 'bg-rose-50 text-rose-700 ring-rose-200';
       case 'limited':      return 'bg-amber-50 text-amber-700 ring-amber-200';
-      case 'minimal':      return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'minimal':      return 'bg-violet-50 text-violet-700 ring-violet-200';
     }
   }
   function kindCls(k: AIModelKind): string {
     switch (k) {
       case 'llm':         return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'classifier':  return 'bg-blue-50 text-blue-700 ring-blue-200';
-      case 'regression':  return 'bg-cyan-50 text-cyan-700 ring-cyan-200';
-      case 'vision':      return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'regression':  return 'bg-slate-100 text-slate-700 ring-slate-200';
+      case 'vision':      return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'recommender': return 'bg-amber-50 text-amber-700 ring-amber-200';
     }
   }
   function isoCls(s: ISO42001Status): string {
     switch (s) {
-      case 'compliant':     return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'compliant':     return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'in-progress':   return 'bg-amber-50 text-amber-700 ring-amber-200';
       case 'non-compliant': return 'bg-rose-50 text-rose-700 ring-rose-200';
     }
@@ -63,7 +63,7 @@
       case 'bias':           return 'bg-amber-50 text-amber-700 ring-amber-200';
       case 'hallucination':  return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'drift':          return 'bg-blue-50 text-blue-700 ring-blue-200';
-      case 'explainability': return 'bg-cyan-50 text-cyan-700 ring-cyan-200';
+      case 'explainability': return 'bg-slate-100 text-slate-700 ring-slate-200';
       case 'privacy':        return 'bg-rose-50 text-rose-700 ring-rose-200';
     }
   }
@@ -307,10 +307,10 @@
         <div>
           <div class="section-title text-xs">Accuracy (last 30 days)</div>
           <div class="mt-2 rounded-lg border border-slate-200 bg-white p-3">
-            <Sparkline data={accuracySeries.map((v) => v * 100)} height={56} stroke="#10b981" fill="rgba(16,185,129,0.12)" />
+            <Sparkline data={accuracySeries.map((v) => v * 100)} height={56} stroke="#8b5cf6" fill="rgba(16,185,129,0.12)" />
             <div class="mt-2 flex items-center justify-between text-xs">
               <span class="text-slate-500">latest:</span>
-              <span class="font-mono font-semibold text-emerald-700">{(accuracySeries.at(-1)! * 100).toFixed(2)}%</span>
+              <span class="font-mono font-semibold text-violet-700">{(accuracySeries.at(-1)! * 100).toFixed(2)}%</span>
             </div>
           </div>
         </div>

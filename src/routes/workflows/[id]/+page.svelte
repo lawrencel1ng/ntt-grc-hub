@@ -67,7 +67,7 @@
 
   function execStatusCls(s: WorkflowExecutionStatus): string {
     switch (s) {
-      case 'success': return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'success': return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'running': return 'bg-blue-50 text-blue-700 ring-blue-200';
       case 'failed':  return 'bg-rose-50 text-rose-700 ring-rose-200';
       case 'halted':  return 'bg-amber-50 text-amber-700 ring-amber-200';
@@ -109,7 +109,7 @@
       <WorkflowIcon slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Success Rate" value={successRate.toFixed(1)} suffix="%">
-      <CheckCircle2 slot="icon" class="h-4 w-4 text-emerald-600" />
+      <CheckCircle2 slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Avg Duration" value={fmtDuration(avgDurationMs)}>
       <Clock slot="icon" class="h-4 w-4 text-slate-500" />

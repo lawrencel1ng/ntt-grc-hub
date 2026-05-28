@@ -64,9 +64,9 @@ export const actions: Actions = {
     await pool.query(`UPDATE platform.users SET password_hash = $1 WHERE id = $2`, [hash, locals.user.id]);
 
     await pool.query(
-      `INSERT INTO platform.audit_log (tenant_id, actor_id, action, resource_type, resource_id, detail)
-       VALUES ($1, $2, 'password_change', 'user', $2, '{"self": true}')`,
-      [locals.user.tenantId, locals.user.id]
+      `INSERT INTO platform.audit_log (tenant_id, user_id, actor_email, action, target, result, metadata)
+       VALUES ($1, $2, $3, 'password_change', 'user:self', 'success', '{"self": true}')`,
+      [locals.user.tenantId, locals.user.id, locals.user.email]
     ).catch(() => { /* audit log is best-effort */ });
 
     return { pwSuccess: true };

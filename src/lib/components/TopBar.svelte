@@ -27,5 +27,8 @@
       <div class="h-6 w-6 rounded-full bg-gradient-to-br from-violet-500 to-violet-700 text-center font-mono text-xs leading-6 text-white">LK</div>
       <span class="hidden text-slate-700 sm:inline">Lawrence Khoo</span>
     </div>
+    <form method="POST" action="/logout">
+      <button type="submit" class="text-xs text-slate-500 hover:text-slate-900 transition-colors">Log out</button>
+    </form>
   </div>
 </header>

@@ -6,6 +6,7 @@ export const load: LayoutServerLoad = async ({ locals }) => {
   const tenantId = locals.tenantId ?? ALL_TENANTS_ID;
   const isAll = tenantId === ALL_TENANTS_ID;
   return {
+    user: locals.user ?? null,
     tenants: await getTenantSummaries(),
     liveAgents: await getLiveAgentCount(),
     currentTenantId: tenantId,

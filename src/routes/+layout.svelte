@@ -19,7 +19,13 @@
   <div class="flex flex-1 overflow-hidden">
     <Sidebar />
     <div class="flex flex-1 flex-col overflow-hidden">
-      <TopBar tenants={data.tenants} liveAgents={data.liveAgents} />
+      <TopBar
+        user={data.user}
+        tenants={data.tenants}
+        currentTenant={data.currentTenant}
+        currentTenantId={data.currentTenantId}
+        liveAgents={data.liveAgents}
+      />
       <main class="flex-1 overflow-y-auto px-6 py-6">
         <slot />
       </main>

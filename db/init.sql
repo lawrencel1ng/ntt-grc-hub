@@ -394,3 +394,354 @@ CREATE INDEX ON control.exceptions (tenant_id);
 CREATE INDEX ON control.exceptions (control_id);
 
 \echo ' >> platform/risk/control schemas created'
+
+-- =====================================================================
+-- 5. compliance.*
+--
+-- Frameworks and requirements are platform-global (no tenant_id).
+-- Assessments / gaps / attestations are tenant-scoped.
+-- =====================================================================
+CREATE TABLE compliance.frameworks (
+    id                  TEXT PRIMARY KEY,
+    name                TEXT NOT NULL,
+    version             TEXT,
+    regulator           TEXT NOT NULL,
+    region              TEXT NOT NULL,
+    jurisdiction        TEXT,
+    total_requirements  INT NOT NULL DEFAULT 0,
+    tags                JSONB,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON compliance.frameworks (region);
+CREATE INDEX ON compliance.frameworks USING GIN (tags);
+
+CREATE TABLE compliance.requirements (
+    id                      TEXT PRIMARY KEY,
+    framework_id            TEXT NOT NULL REFERENCES compliance.frameworks(id) ON DELETE CASCADE,
+    code                    TEXT NOT NULL,
+    title                   TEXT NOT NULL,
+    description             TEXT,
+    parent_requirement_id   TEXT REFERENCES compliance.requirements(id) ON DELETE SET NULL,
+    weight                  NUMERIC(5,2) NOT NULL DEFAULT 1.0,
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON compliance.requirements (framework_id);
+CREATE INDEX ON compliance.requirements (parent_requirement_id);
+CREATE UNIQUE INDEX ON compliance.requirements (framework_id, code);
+
+-- Now that compliance.frameworks / .requirements exist, add the FKs we
+-- forward-declared on control.mappings.
+ALTER TABLE control.mappings
+    ADD CONSTRAINT control_mappings_framework_fk
+        FOREIGN KEY (framework_id) REFERENCES compliance.frameworks(id) ON DELETE CASCADE,
+    ADD CONSTRAINT control_mappings_requirement_fk
+        FOREIGN KEY (requirement_id) REFERENCES compliance.requirements(id) ON DELETE CASCADE;
+
+CREATE TABLE compliance.assessments (
+    id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id           TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    framework_id        TEXT NOT NULL REFERENCES compliance.frameworks(id) ON DELETE CASCADE,
+    status              compliance.assessment_status NOT NULL DEFAULT 'not-started',
+    score               NUMERIC(5,2),
+    started_at          TIMESTAMPTZ,
+    completed_at        TIMESTAMPTZ,
+    next_due_at         TIMESTAMPTZ,
+    assessor_user_id    UUID REFERENCES platform.users(id) ON DELETE SET NULL,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON compliance.assessments (tenant_id);
+CREATE INDEX ON compliance.assessments (framework_id);
+CREATE INDEX ON compliance.assessments (status);
+
+CREATE TABLE compliance.gaps (
+    id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id           TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    assessment_id       UUID NOT NULL REFERENCES compliance.assessments(id) ON DELETE CASCADE,
+    requirement_id      TEXT NOT NULL REFERENCES compliance.requirements(id) ON DELETE CASCADE,
+    severity            risk.severity NOT NULL,
+    remediation_plan    TEXT,
+    target_date         DATE,
+    owner_user_id       UUID REFERENCES platform.users(id) ON DELETE SET NULL,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON compliance.gaps (tenant_id);
+CREATE INDEX ON compliance.gaps (assessment_id);
+CREATE INDEX ON compliance.gaps (severity);
+
+CREATE TABLE compliance.attestations (
+    id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id           TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    framework_id        TEXT NOT NULL REFERENCES compliance.frameworks(id) ON DELETE CASCADE,
+    signed_by_user_id   UUID REFERENCES platform.users(id) ON DELETE SET NULL,
+    signed_at           TIMESTAMPTZ NOT NULL,
+    valid_until         TIMESTAMPTZ,
+    attestation_text    TEXT NOT NULL,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON compliance.attestations (tenant_id);
+CREATE INDEX ON compliance.attestations (framework_id);
+
+-- =====================================================================
+-- 6. evidence.*
+--
+-- evidence.seals is the hash-chain ledger; one row per evidence.items
+-- row. prev_hash points to the previous seal's row_hash; row_hash =
+-- sha256(prev_hash || canonical_json(evidence.items snapshot)).
+-- =====================================================================
+CREATE TABLE evidence.collectors (
+    id              TEXT PRIMARY KEY,
+    tenant_id       TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    name            TEXT NOT NULL,
+    kind            evidence.collector_kind NOT NULL,
+    schedule_cron   TEXT,
+    last_run_at     TIMESTAMPTZ,
+    enabled         BOOLEAN NOT NULL DEFAULT TRUE,
+    config          JSONB,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON evidence.collectors (tenant_id);
+CREATE INDEX ON evidence.collectors (kind);
+
+CREATE TABLE evidence.items (
+    id              BIGSERIAL PRIMARY KEY,
+    tenant_id       TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    collector_id    TEXT REFERENCES evidence.collectors(id) ON DELETE SET NULL,
+    control_id      TEXT REFERENCES control.library(id) ON DELETE SET NULL,
+    kind            evidence.kind NOT NULL,
+    title           TEXT NOT NULL,
+    source_url      TEXT,
+    blob_url        TEXT,
+    captured_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    agent_run_id    BIGINT,                  -- soft FK → agent.runs.id
+    metadata        JSONB,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON evidence.items (tenant_id, captured_at DESC);
+CREATE INDEX ON evidence.items (collector_id);
+CREATE INDEX ON evidence.items (control_id);
+CREATE INDEX ON evidence.items (kind);
+CREATE INDEX ON evidence.items USING GIN (metadata);
+
+CREATE TABLE evidence.seals (
+    item_id         BIGINT PRIMARY KEY REFERENCES evidence.items(id) ON DELETE CASCADE,
+    prev_hash       TEXT,
+    row_hash        TEXT NOT NULL,
+    sealed_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON evidence.seals (sealed_at);
+
+CREATE TABLE evidence.attachments (
+    id              BIGSERIAL PRIMARY KEY,
+    item_id         BIGINT NOT NULL REFERENCES evidence.items(id) ON DELETE CASCADE,
+    filename        TEXT NOT NULL,
+    mime_type       TEXT NOT NULL,
+    size_bytes      BIGINT NOT NULL,
+    sha256          TEXT NOT NULL,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON evidence.attachments (item_id);
+
+-- =====================================================================
+-- 7. audit.*
+-- =====================================================================
+CREATE TABLE audit.engagements (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id       TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    name            TEXT NOT NULL,
+    type            audit.engagement_type NOT NULL,
+    lead_auditor    TEXT NOT NULL,
+    opened_at       TIMESTAMPTZ NOT NULL,
+    closed_at       TIMESTAMPTZ,
+    scope           TEXT,
+    framework_id    TEXT REFERENCES compliance.frameworks(id) ON DELETE SET NULL,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON audit.engagements (tenant_id);
+CREATE INDEX ON audit.engagements (type);
+
+CREATE TABLE audit.findings (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id       TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    engagement_id   UUID NOT NULL REFERENCES audit.engagements(id) ON DELETE CASCADE,
+    severity        risk.severity NOT NULL,
+    title           TEXT NOT NULL,
+    description     TEXT,
+    control_id      TEXT REFERENCES control.library(id) ON DELETE SET NULL,
+    due_at          TIMESTAMPTZ,
+    status          audit.finding_status NOT NULL DEFAULT 'open',
+    owner_user_id   UUID REFERENCES platform.users(id) ON DELETE SET NULL,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON audit.findings (tenant_id);
+CREATE INDEX ON audit.findings (engagement_id);
+CREATE INDEX ON audit.findings (status);
+CREATE INDEX ON audit.findings (severity);
+
+CREATE TABLE audit.workpapers (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id       TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    engagement_id   UUID NOT NULL REFERENCES audit.engagements(id) ON DELETE CASCADE,
+    title           TEXT NOT NULL,
+    content_md      TEXT NOT NULL,
+    created_by      UUID REFERENCES platform.users(id) ON DELETE SET NULL,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON audit.workpapers (tenant_id);
+CREATE INDEX ON audit.workpapers (engagement_id);
+
+-- =====================================================================
+-- 8. policy.*
+-- =====================================================================
+CREATE TABLE policy.documents (
+    id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id           TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    code                TEXT NOT NULL,
+    title               TEXT NOT NULL,
+    owner_user_id       UUID REFERENCES platform.users(id) ON DELETE SET NULL,
+    jurisdiction        TEXT,
+    current_version_id  UUID,                       -- soft FK → policy.versions.id (cyclic)
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON policy.documents (tenant_id);
+CREATE UNIQUE INDEX ON policy.documents (tenant_id, code);
+
+CREATE TABLE policy.versions (
+    id                      UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id               TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    document_id             UUID NOT NULL REFERENCES policy.documents(id) ON DELETE CASCADE,
+    version_no              TEXT NOT NULL,
+    content_md              TEXT NOT NULL,
+    status                  policy.version_status NOT NULL DEFAULT 'draft',
+    effective_at            TIMESTAMPTZ,
+    drafted_by_agent_id     TEXT,                   -- soft FK → agent.agents.id
+    drafted_by_user_id      UUID REFERENCES platform.users(id) ON DELETE SET NULL,
+    approved_by_user_id     UUID REFERENCES platform.users(id) ON DELETE SET NULL,
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON policy.versions (tenant_id);
+CREATE INDEX ON policy.versions (document_id);
+CREATE INDEX ON policy.versions (status);
+CREATE UNIQUE INDEX ON policy.versions (document_id, version_no);
+
+-- Now close the cyclic reference from documents.current_version_id.
+ALTER TABLE policy.documents
+    ADD CONSTRAINT policy_documents_current_version_fk
+        FOREIGN KEY (current_version_id)
+        REFERENCES policy.versions(id) ON DELETE SET NULL;
+
+CREATE TABLE policy.acknowledgements (
+    id              BIGSERIAL PRIMARY KEY,
+    tenant_id       TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    version_id      UUID NOT NULL REFERENCES policy.versions(id) ON DELETE CASCADE,
+    user_id         UUID NOT NULL REFERENCES platform.users(id) ON DELETE CASCADE,
+    acknowledged_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (version_id, user_id)
+);
+CREATE INDEX ON policy.acknowledgements (tenant_id);
+CREATE INDEX ON policy.acknowledgements (version_id);
+
+CREATE TABLE policy.exceptions (
+    id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id           TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    document_id         UUID NOT NULL REFERENCES policy.documents(id) ON DELETE CASCADE,
+    requester_user_id   UUID REFERENCES platform.users(id) ON DELETE SET NULL,
+    justification       TEXT NOT NULL,
+    granted             BOOLEAN NOT NULL DEFAULT FALSE,
+    granted_by_user_id  UUID REFERENCES platform.users(id) ON DELETE SET NULL,
+    expires_at          TIMESTAMPTZ,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON policy.exceptions (tenant_id);
+CREATE INDEX ON policy.exceptions (document_id);
+
+-- =====================================================================
+-- 9. vendor.*
+-- =====================================================================
+CREATE TABLE vendor.vendors (
+    id                      UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id               TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    name                    TEXT NOT NULL,
+    category                TEXT,
+    tier                    vendor.tier NOT NULL,
+    criticality             vendor.criticality NOT NULL,
+    hq_country              TEXT,
+    primary_contact_email   TEXT,
+    status                  vendor.status NOT NULL DEFAULT 'active',
+    tags                    JSONB,
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON vendor.vendors (tenant_id);
+CREATE INDEX ON vendor.vendors (tier);
+CREATE INDEX ON vendor.vendors (criticality);
+CREATE INDEX ON vendor.vendors (status);
+CREATE INDEX ON vendor.vendors USING GIN (tags);
+
+CREATE TABLE vendor.contracts (
+    id                      UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id               TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    vendor_id               UUID NOT NULL REFERENCES vendor.vendors(id) ON DELETE CASCADE,
+    contract_no             TEXT NOT NULL,
+    value_sgd               NUMERIC(14,2) NOT NULL DEFAULT 0,
+    starts_at               DATE NOT NULL,
+    ends_at                 DATE,
+    renewal_window_days     INT NOT NULL DEFAULT 90,
+    created_at              TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON vendor.contracts (tenant_id);
+CREATE INDEX ON vendor.contracts (vendor_id);
+
+CREATE TABLE vendor.questionnaires (
+    id                          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id                   TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    vendor_id                   UUID NOT NULL REFERENCES vendor.vendors(id) ON DELETE CASCADE,
+    template                    TEXT NOT NULL CHECK (template IN ('SIG','CAIQ','Custom')),
+    status                      vendor.questionnaire_status NOT NULL DEFAULT 'sent',
+    sent_at                     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    completed_at                TIMESTAMPTZ,
+    completed_by_agent_id       TEXT,                   -- soft FK → agent.agents.id
+    score                       NUMERIC(5,2),
+    created_at                  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON vendor.questionnaires (tenant_id);
+CREATE INDEX ON vendor.questionnaires (vendor_id);
+CREATE INDEX ON vendor.questionnaires (status);
+
+CREATE TABLE vendor.responses (
+    id                          BIGSERIAL PRIMARY KEY,
+    tenant_id                   TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    questionnaire_id            UUID NOT NULL REFERENCES vendor.questionnaires(id) ON DELETE CASCADE,
+    question_code               TEXT NOT NULL,
+    response                    TEXT NOT NULL,
+    confidence                  NUMERIC(5,2),
+    source_evidence_item_id     BIGINT REFERENCES evidence.items(id) ON DELETE SET NULL,
+    answered_at                 TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON vendor.responses (tenant_id);
+CREATE INDEX ON vendor.responses (questionnaire_id);
+
+CREATE TABLE vendor.fourth_parties (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id       TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    vendor_id       UUID NOT NULL REFERENCES vendor.vendors(id) ON DELETE CASCADE,
+    name            TEXT NOT NULL,
+    type            TEXT NOT NULL CHECK (type IN ('cloud','saas','processor')),
+    region          TEXT,
+    criticality     vendor.criticality NOT NULL,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON vendor.fourth_parties (tenant_id);
+CREATE INDEX ON vendor.fourth_parties (vendor_id);
+
+CREATE TABLE vendor.concentrations (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id       TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    dimension       TEXT NOT NULL CHECK (dimension IN ('cloud','region','processor')),
+    key             TEXT NOT NULL,
+    vendor_count    INT NOT NULL,
+    exposure_sgd    NUMERIC(14,2) NOT NULL,
+    computed_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON vendor.concentrations (tenant_id);
+CREATE INDEX ON vendor.concentrations (dimension);
+
+\echo ' >> compliance/evidence/audit/policy/vendor schemas created'

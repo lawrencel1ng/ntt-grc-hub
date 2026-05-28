@@ -153,6 +153,8 @@ CREATE TABLE platform.users (
     name            TEXT NOT NULL,
     role            platform.role NOT NULL DEFAULT 'viewer',
     status          platform.user_status NOT NULL DEFAULT 'active',
+    language        TEXT NOT NULL DEFAULT 'en-SG',
+    timezone        TEXT NOT NULL DEFAULT 'Asia/Singapore',
     password_hash   TEXT,
     mfa_enabled     BOOLEAN NOT NULL DEFAULT FALSE,
     last_login_at   TIMESTAMPTZ,

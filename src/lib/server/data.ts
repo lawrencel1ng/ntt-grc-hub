@@ -776,25 +776,67 @@ export async function getConnectors(tenantId: string): Promise<Connector[]> {
   return rows.length ? rows : mock.connectorsForTenant(tenantId);
 }
 
-export async function getAuditLog(tenantId?: string, limit = 50): Promise<AuditLogEntry[]> {
+export async function getAuditLog(tenantId?: string, limit = 200): Promise<AuditLogEntry[]> {
   if (!isPgMode()) {
-    // Synthesize a small audit log feed; in mock mode this is mostly used
-    // by the admin page so we keep it tiny but believable.
-    const actions = ['login','export.report','policy.publish','agent.run','evidence.seal','risk.update'];
+    // Synthesize a believable platform audit feed over the last 30 days using
+    // mulberry32 + the active users list so the actor distribution is realistic.
+    const { getUsersAll } = await import('$lib/data/users');
+    const { mulberry32, hashStringToInt, pick } = await import('$lib/data/rng');
+    const users = getUsersAll().filter((u) => !tenantId || u.tenantId === tenantId);
+    const actions = [
+      'user.login', 'risk.created', 'control.test.run', 'evidence.collected',
+      'policy.acknowledged', 'agent.run.completed', 'tenant.switched',
+      'export.report', 'policy.publish', 'vendor.questionnaire.sent',
+      'audit.finding.closed', 'user.invited', 'mfa.enrolled'
+    ];
+    const targets = [
+      'risk:R-0042', 'control:CT-0211', 'evidence:ev-99182', 'policy:p-info-sec/v3',
+      'agent:ag_evidence/run-44102', 'audit:eng-2026-q2', 'vendor:vnd-stripe',
+      'tenant:t_maybank', 'questionnaire:q-vnd-aws/2026q2', 'finding:F-1024'
+    ];
+    const results: AuditLogEntry['result'][] = [
+      'success', 'success', 'success', 'success', 'success', 'success',
+      'success', 'success', 'failure', 'denied'
+    ];
+    const userAgents = [
+      'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15',
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+      'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+      'curl/8.4.0',
+      'NTTGRCHub-CLI/1.0.0'
+    ];
+    const rng = mulberry32(hashStringToInt(`audit:${tenantId ?? 'all'}`));
+    let prevHash = '0000000000000000';
+    const total = Math.max(limit, 200);
     const out: AuditLogEntry[] = [];
-    for (let i = 0; i < limit; i++) {
+    for (let i = 0; i < total; i++) {
+      const minsAgo = Math.floor(rng() * 30 * 24 * 60); // 30 days
+      const u = users.length ? users[Math.floor(rng() * users.length)] : null;
+      const action = pick(actions, rng);
+      const target = pick(targets, rng);
+      const result = pick(results, rng);
+      const ua = pick(userAgents, rng);
+      const oct = () => Math.floor(rng() * 254) + 1;
+      const ip = `${oct()}.${oct()}.${oct()}.${oct()}`;
+      const rowHash = (Math.floor(rng() * 0xffffffff)).toString(16).padStart(8, '0')
+        + (Math.floor(rng() * 0xffffffff)).toString(16).padStart(8, '0');
       out.push({
         id: i + 1,
-        ts: new Date(Date.now() - i * 17 * 60 * 1000).toISOString(),
-        tenantId: tenantId ?? 't_maybank',
-        actorEmail: 'demo@ntt.com',
-        action: actions[i % actions.length],
-        target: ['cockpit','agent','vendor','policy:v2','risk:R-001'][i % 5],
-        result: 'success',
-        rowHash: `abc${i.toString(16).padStart(6, '0')}`
+        ts: new Date(Date.now() - minsAgo * 60_000).toISOString(),
+        tenantId: u?.tenantId ?? tenantId ?? 't_maybank',
+        actorEmail: u?.email ?? 'system@ntt.com',
+        action,
+        target,
+        result,
+        ipAddress: ip,
+        userAgent: ua,
+        prevHash,
+        rowHash
       });
+      prevHash = rowHash;
     }
-    return out;
+    out.sort((a, b) => new Date(b.ts).getTime() - new Date(a.ts).getTime());
+    return out.slice(0, limit);
   }
   const where = tenantId ? 'WHERE tenant_id = $2' : '';
   const params: unknown[] = [limit];

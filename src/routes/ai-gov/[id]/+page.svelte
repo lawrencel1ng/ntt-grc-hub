@@ -189,7 +189,7 @@
       <ShieldCheck slot="icon" class="h-4 w-4 text-rose-600" />
     </Kpi>
     <Kpi label="ISO 42001 Status" value={data.model.iso42001Status}>
-      <ScrollText slot="icon" class="h-4 w-4 text-emerald-600" />
+      <ScrollText slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Prompts (24h)" value={prompts24h.toLocaleString()}>
       <Activity slot="icon" class="h-4 w-4 text-blue-600" />

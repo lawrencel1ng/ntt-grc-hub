@@ -234,8 +234,8 @@
   </div>
 
   <!-- Footer note -->
-  <div class="rounded-xl bg-gradient-to-r from-emerald-50 via-white to-emerald-50/40 px-5 py-4 text-sm text-slate-600 ring-1 ring-inset ring-emerald-200">
-    <FileBarChart class="-mt-1 mr-1 inline h-4 w-4 text-emerald-700" />
+  <div class="rounded-xl bg-gradient-to-r from-violet-50 via-white to-violet-50/40 px-5 py-4 text-sm text-slate-600 ring-1 ring-inset ring-violet-200">
+    <FileBarChart class="-mt-1 mr-1 inline h-4 w-4 text-violet-700" />
     NTT operates this fleet as a managed GRC service. The 10-agent platform runs across all eight tenants
     and bills via <span class="font-mono text-xs">agent.cost_ledger</span>; per-tenant FTE-savings flow up to MRR justification.
   </div>

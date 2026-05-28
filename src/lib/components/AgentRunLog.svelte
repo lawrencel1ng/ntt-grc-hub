@@ -63,7 +63,7 @@
           {/if}
         </span>
         <span class="flex-shrink-0 text-slate-500">{fmtTs(run.startedAt)}</span>
-        <span class="flex-shrink-0 truncate text-emerald-300">{run.agentName ?? run.agentId}</span>
+        <span class="flex-shrink-0 truncate text-violet-300">{run.agentName ?? run.agentId}</span>
         <span class="truncate text-slate-300">{run.outputSummary || run.inputSummary}</span>
         <span class="ml-auto flex-shrink-0 text-slate-500">{fmtLatency(run.latencyMs)}</span>
       </button>

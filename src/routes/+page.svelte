@@ -107,12 +107,12 @@
   $: radarSeries = [
     {
       name: 'Current',
-      color: '#047857',
+      color: '#6d28d9',
       values: data.frameworks.slice(0, 8).map((f) => f.score ?? 0)
     },
     {
       name: 'Target',
-      color: '#a855f7',
+      color: '#d946ef',
       values: data.frameworks.slice(0, 8).map(() => 90)
     }
   ];
@@ -149,8 +149,8 @@
 
   $: barLabels = costByAgent.map((r) => r.name);
   $: barSeries = [
-    { name: 'Cost (USD)', color: '#047857', data: costByAgent.map((r) => r.costDollars) },
-    { name: 'FTE-hours', color: '#a855f7', data: costByAgent.map((r) => r.fteHours) }
+    { name: 'Cost (USD)', color: '#6d28d9', data: costByAgent.map((r) => r.costDollars) },
+    { name: 'FTE-hours', color: '#d946ef', data: costByAgent.map((r) => r.fteHours) }
   ];
 
   // ---------- Reg horizon formatting ----------
@@ -303,29 +303,29 @@
   <!-- 1. Hero strip                                                 -->
   <!-- ============================================================ -->
   <div
-    class="flex flex-wrap items-center gap-4 rounded-xl bg-gradient-to-r from-emerald-50 via-emerald-100/50 to-emerald-50 px-5 py-4 ring-1 ring-inset ring-emerald-200"
+    class="flex flex-wrap items-center gap-4 rounded-xl bg-gradient-to-r from-violet-50 via-violet-100/50 to-violet-50 px-5 py-4 ring-1 ring-inset ring-violet-200"
   >
     <div class="flex items-center gap-2">
       <span class="relative flex h-2.5 w-2.5">
-        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-        <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-400 opacity-75"></span>
+        <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-violet-500"></span>
       </span>
-      <Bot class="h-4 w-4 text-emerald-700" />
-      <span class="text-sm font-semibold text-emerald-900">{liveAgents} agents online</span>
+      <Bot class="h-4 w-4 text-violet-700" />
+      <span class="text-sm font-semibold text-violet-900">{liveAgents} agents online</span>
     </div>
-    <span class="text-emerald-300">·</span>
-    <span class="text-sm text-emerald-900">
+    <span class="text-violet-300">·</span>
+    <span class="text-sm text-violet-900">
       Last decision <span class="font-mono font-semibold">{lastRunSeconds}s</span> ago
     </span>
-    <span class="text-emerald-300">·</span>
-    <span class="text-sm text-emerald-900">
+    <span class="text-violet-300">·</span>
+    <span class="text-sm text-violet-900">
       <span class="font-mono font-semibold">{fteSaved}</span> FTE replaced
     </span>
-    <span class="text-emerald-300">·</span>
-    <span class="text-sm text-emerald-900">
+    <span class="text-violet-300">·</span>
+    <span class="text-sm text-violet-900">
       <span class="font-mono font-semibold">${(annualSavings / 1_000_000).toFixed(1)}M</span> saved annually
     </span>
-    <div class="ml-auto inline-flex items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-700 ring-1 ring-inset ring-emerald-300">
+    <div class="ml-auto inline-flex items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-violet-700 ring-1 ring-inset ring-violet-300">
       <Cpu class="h-3 w-3" />
       Agentic GRC OS
     </div>
@@ -386,7 +386,7 @@
       delta={6}
       hint={data.evidenceStats.chainOk ? 'hash-chain OK' : 'chain broken'}
     >
-      <DollarSign slot="icon" class="h-4 w-4 text-emerald-600" />
+      <DollarSign slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
   </div>
 
@@ -436,8 +436,8 @@
         <div class="flex items-center gap-2">
           <h2 class="section-title">Live Agent Stream</h2>
           <span class="relative flex h-2 w-2">
-            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-            <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-400 opacity-75"></span>
+            <span class="relative inline-flex h-2 w-2 rounded-full bg-violet-500"></span>
           </span>
         </div>
         <span
@@ -469,7 +469,7 @@
     <div class="card p-5">
       <h2 class="section-title mb-3">Framework Posture</h2>
       <Radar axes={radarAxes} series={radarSeries} maxValue={100} />
-      <p class="mt-2 text-[11px] text-slate-400">Current (emerald) vs Target 90 (violet) across top 8 frameworks.</p>
+      <p class="mt-2 text-[11px] text-slate-400">Current (violet) vs Target 90 (fuchsia) across top 8 frameworks.</p>
     </div>
 
     <div class="card p-5">
@@ -581,7 +581,7 @@
   <!-- ============================================================ -->
   <!-- 6. Board Narrative Preview                                    -->
   <!-- ============================================================ -->
-  <div class="card-elevated relative overflow-hidden bg-gradient-to-br from-emerald-50 via-white to-emerald-50/40 p-6">
+  <div class="card-elevated relative overflow-hidden bg-gradient-to-br from-violet-50 via-white to-violet-50/40 p-6">
     <div class="mb-3 flex items-center gap-2">
       <Sparkles class="h-4 w-4 text-violet-600" />
       <span class="text-xs font-semibold uppercase tracking-wider text-violet-700">

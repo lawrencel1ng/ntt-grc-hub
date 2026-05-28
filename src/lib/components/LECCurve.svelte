@@ -61,6 +61,7 @@
     { label: 'P90', value: percentiles.p90, color: '#f59e0b' },
     { label: 'P99', value: percentiles.p99, color: '#e11d48' }
   ];
+  // P50 marker kept emerald (semantic: low-risk percentile in the red-amber-green scale).
 </script>
 
 <svg viewBox="0 0 {width} {height}" class="w-full" role="img" aria-label="Loss exceedance curve">
@@ -80,8 +81,8 @@
 
   <!-- area + curve -->
   {#if sortedPts.length}
-    <path d={areaPath(sortedPts)} fill="#10b981" opacity="0.12" />
-    <path d={curvePath(sortedPts)} fill="none" stroke="#047857" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    <path d={areaPath(sortedPts)} fill="#8b5cf6" opacity="0.12" />
+    <path d={curvePath(sortedPts)} fill="none" stroke="#6d28d9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
   {/if}
 
   <!-- percentile markers -->

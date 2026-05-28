@@ -5,8 +5,8 @@
   $: cls = type === 'deterministic'
     ? 'bg-slate-100 text-slate-700 ring-slate-200'
     : type === 'ai-powered'
-      ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-      : 'bg-violet-50 text-violet-700 ring-violet-200';
+      ? 'bg-violet-50 text-violet-700 ring-violet-200'
+      : 'bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-200';
 
   $: label = type === 'ai-powered' ? 'AI-Powered' : type === 'intelligent' ? 'Intelligent' : 'Deterministic';
 </script>

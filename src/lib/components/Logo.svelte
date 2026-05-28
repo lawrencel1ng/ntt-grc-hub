@@ -7,8 +7,8 @@
   <svg viewBox="0 0 64 64" class="h-6 w-6">
     <defs>
       <linearGradient id="logoG" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#10b981"/>
-        <stop offset="100%" stop-color="#047857"/>
+        <stop offset="0%" stop-color="#8b5cf6"/>
+        <stop offset="100%" stop-color="#6d28d9"/>
       </linearGradient>
     </defs>
     <path d="M32 4 L56 14 V32 C56 46 44 56 32 60 C20 56 8 46 8 32 V14 Z" fill="url(#logoG)"/>
@@ -19,7 +19,7 @@
   {#if !compact}
     <div class="flex flex-col leading-tight">
       <span class="text-sm font-semibold tracking-tight {variant === 'light' ? 'text-white' : 'text-grc-ink'}">NTT GRC HUB</span>
-      <span class="text-[10px] font-medium uppercase tracking-wider {variant === 'light' ? 'text-emerald-300' : 'text-grc-primary'}">Agentic GRC OS</span>
+      <span class="text-[10px] font-medium uppercase tracking-wider {variant === 'light' ? 'text-violet-300' : 'text-grc-primary'}">Agentic GRC OS</span>
     </div>
   {/if}
 </a>

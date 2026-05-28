@@ -9,15 +9,15 @@ export default {
     extend: {
       colors: {
         grc: {
-          primary: '#047857',
-          'primary-dark': '#065f46',
-          'primary-light': '#10b981',
-          accent: '#34d399',
+          primary: '#6d28d9',
+          'primary-dark': '#5b21b6',
+          'primary-light': '#8b5cf6',
+          accent: '#a78bfa',
           sidebar: '#0f172a',
           'sidebar-2': '#1e293b',
           risk: '#f59e0b',
           critical: '#e11d48',
-          agent: '#a855f7',
+          agent: '#d946ef',
           ink: '#0f172a'
         },
         surface: {
@@ -33,7 +33,7 @@ export default {
       boxShadow: {
         card: '0 1px 2px 0 rgba(15, 23, 42, 0.04), 0 1px 4px 0 rgba(15, 23, 42, 0.04)',
         'card-hover': '0 4px 14px 0 rgba(15, 23, 42, 0.08)',
-        glow: '0 0 24px 0 rgba(16, 185, 129, 0.25)'
+        glow: '0 0 24px 0 rgba(139, 92, 246, 0.25)'
       }
     }
   },

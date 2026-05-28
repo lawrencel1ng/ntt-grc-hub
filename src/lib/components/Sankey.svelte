@@ -72,12 +72,12 @@
       const mx = (x0 + x1) / 2;
       const d = `M ${x0.toFixed(1)} ${sy.toFixed(1)} C ${mx.toFixed(1)} ${sy.toFixed(1)}, ${mx.toFixed(1)} ${ty.toFixed(1)}, ${x1.toFixed(1)} ${ty.toFixed(1)}`;
       const w = Math.max(1, Math.min(srcH, tgtH));
-      return { d, w, color: l.color ?? '#10b981', value: l.value, src: l.source, tgt: l.target };
+      return { d, w, color: l.color ?? '#8b5cf6', value: l.value, src: l.source, tgt: l.target };
     }).filter((x): x is NonNullable<typeof x> => x !== null);
   })();
 
   function nodeColor(col: number): string {
-    return col === 0 ? '#0f766e' : col === 1 ? '#10b981' : '#a855f7';
+    return col === 0 ? '#6d28d9' : col === 1 ? '#8b5cf6' : '#d946ef';
   }
 </script>
 

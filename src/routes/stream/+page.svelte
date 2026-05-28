@@ -41,7 +41,7 @@
 
   function typeColor(type: AgentType | undefined): string {
     if (type === 'deterministic') return 'text-slate-300';
-    if (type === 'ai-powered') return 'text-emerald-300';
+    if (type === 'ai-powered') return 'text-violet-300';
     if (type === 'intelligent') return 'text-violet-300';
     return 'text-slate-400';
   }
@@ -176,7 +176,7 @@
         <div class="flex items-start gap-2 whitespace-pre-wrap py-0.5">
           <span class="text-slate-500">[{fmtTs(r.startedAt)}]</span>
           <span class="rounded bg-slate-800/60 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider {typeColor(agent?.type)}">{agent?.type ?? 'agent'}</span>
-          <span class="text-emerald-300">{r.agentName ?? r.agentId}:</span>
+          <span class="text-violet-300">{r.agentName ?? r.agentId}:</span>
           <span class="flex-1 text-slate-200">{r.outputSummary || r.inputSummary}</span>
           <span class="text-slate-500">({r.latencyMs}ms · {fmtCost(r.costCents)})</span>
           <span class="{statusColor(r.status)}">[{r.status}]</span>

@@ -82,7 +82,7 @@
   <!-- KPI strip -->
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
     <Kpi label="Sources Monitored" value={sourcesCount.toString()}>
-      <Antenna slot="icon" class="h-4 w-4 text-emerald-600" />
+      <Antenna slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Changes (30d)" value={changes30d.toString()} delta={4}>
       <FileText slot="icon" class="h-4 w-4 text-blue-600" />

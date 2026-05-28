@@ -207,7 +207,7 @@
       <ListChecks slot="icon" class="h-4 w-4 text-rose-600" />
     </Kpi>
     <Kpi label="Linked Controls" value={data.linkedControls.length.toString()}>
-      <Layers slot="icon" class="h-4 w-4 text-emerald-600" />
+      <Layers slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="FAIR Scenarios" value={data.scenarios.length.toString()}>
       <Calculator slot="icon" class="h-4 w-4 text-grc-primary" />

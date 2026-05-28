@@ -13,10 +13,10 @@
     <input class="input pl-9" placeholder="Search risks, controls, evidence, agents…  (⌘K)" />
   </div>
   <div class="flex items-center gap-3">
-    <div class="flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200">
+    <div class="flex items-center gap-2 rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700 ring-1 ring-inset ring-violet-200">
       <span class="relative flex h-2 w-2">
-        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-        <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-400 opacity-75"></span>
+        <span class="relative inline-flex h-2 w-2 rounded-full bg-violet-500"></span>
       </span>
       <Bot class="h-3.5 w-3.5" />
       <span>{liveAgents} agents live</span>
@@ -24,7 +24,7 @@
     <button class="btn-ghost p-2"><Bell class="h-4 w-4" /></button>
     <button class="btn-ghost p-2"><Settings class="h-4 w-4" /></button>
     <div class="ml-1 flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-sm">
-      <div class="h-6 w-6 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 text-center font-mono text-xs leading-6 text-white">LK</div>
+      <div class="h-6 w-6 rounded-full bg-gradient-to-br from-violet-500 to-violet-700 text-center font-mono text-xs leading-6 text-white">LK</div>
       <span class="hidden text-slate-700 sm:inline">Lawrence Khoo</span>
     </div>
   </div>

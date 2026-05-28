@@ -106,7 +106,7 @@
   <!-- KPI strip -->
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
     <Kpi label="Total Policies" value={totalPolicies.toString()}>
-      <ScrollText slot="icon" class="h-4 w-4 text-emerald-600" />
+      <ScrollText slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="In Review" value={inReview.toString()} hint="awaiting approver">
       <FileEdit slot="icon" class="h-4 w-4 text-amber-600" />

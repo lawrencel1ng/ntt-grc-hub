@@ -165,10 +165,10 @@
       <h2 class="section-title">Branding</h2>
     </div>
     <div class="flex items-center gap-3">
-      <div class="h-12 w-12 rounded-lg shadow-card ring-1 ring-inset ring-slate-200" style="background:#047857"></div>
+      <div class="h-12 w-12 rounded-lg shadow-card ring-1 ring-inset ring-slate-200" style="background:#6d28d9"></div>
       <div>
         <div class="text-sm font-medium text-grc-ink">Primary colour</div>
-        <div class="font-mono text-xs text-slate-500">#047857 · NTT Emerald</div>
+        <div class="font-mono text-xs text-slate-500">#6d28d9 · NTT Violet</div>
       </div>
       <button class="btn-secondary ml-auto" on:click={() => toast('Branding customiser would open (demo).')}>Customise</button>
     </div>
@@ -176,7 +176,7 @@
   </div>
 
   <!-- Footer -->
-  <div class="lg:col-span-2 rounded-xl bg-gradient-to-r from-slate-50 via-white to-emerald-50/40 px-5 py-4 text-sm text-slate-600 ring-1 ring-inset ring-slate-200">
+  <div class="lg:col-span-2 rounded-xl bg-gradient-to-r from-slate-50 via-white to-violet-50/40 px-5 py-4 text-sm text-slate-600 ring-1 ring-inset ring-slate-200">
     <Cpu class="-mt-1 mr-1 inline h-4 w-4 text-grc-primary" />
     Platform settings sync to <span class="font-mono text-xs">platform.tenants</span> and propagate to the agent fleet within 30 seconds.
   </div>

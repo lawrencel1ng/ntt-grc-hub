@@ -100,7 +100,7 @@
   <!-- Header card -->
   <div class="card p-5">
     <div class="flex items-start gap-3">
-      <div class="rounded-lg bg-emerald-50 p-2 text-emerald-700"><ScrollText class="h-5 w-5" /></div>
+      <div class="rounded-lg bg-violet-50 p-2 text-violet-700"><ScrollText class="h-5 w-5" /></div>
       <div class="grid flex-1 grid-cols-1 gap-4 text-sm md:grid-cols-3">
         <div>
           <div class="section-title text-xs">Code</div>

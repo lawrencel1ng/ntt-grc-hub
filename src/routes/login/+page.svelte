@@ -4,7 +4,7 @@
   let password = '';
 </script>
 
-<div class="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-900 p-6">
+<div class="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-violet-900 p-6">
   <div class="w-full max-w-sm rounded-2xl bg-white p-8 shadow-2xl">
     <div class="mb-6 flex justify-center">
       <Logo variant="dark" />

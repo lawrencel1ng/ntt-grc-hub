@@ -113,7 +113,7 @@
   <!-- KPI strip -->
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
     <Kpi label="Total Controls" value={total.toLocaleString()}>
-      <ShieldCheck slot="icon" class="h-4 w-4 text-emerald-600" />
+      <ShieldCheck slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Automated" value={automatedPct.toFixed(0)} suffix="%" hint="{automatedCount.toLocaleString()} controls">
       <Bot slot="icon" class="h-4 w-4 text-violet-600" />

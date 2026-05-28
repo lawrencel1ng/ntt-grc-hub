@@ -84,7 +84,7 @@
   <!-- Header -->
   <div class="card p-5">
     <div class="flex items-start gap-3">
-      <div class="rounded-lg bg-emerald-50 p-2 text-emerald-700"><ShieldCheck class="h-5 w-5" /></div>
+      <div class="rounded-lg bg-violet-50 p-2 text-violet-700"><ShieldCheck class="h-5 w-5" /></div>
       <div class="flex-1">
         <h2 class="text-lg font-semibold text-grc-ink">{data.control.title}</h2>
         <p class="mt-1 text-sm text-slate-600">{data.control.description}</p>

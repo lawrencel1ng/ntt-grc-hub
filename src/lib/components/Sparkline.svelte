@@ -1,7 +1,7 @@
 <script lang="ts">
   export let data: number[] = [];
-  export let stroke: string = '#047857';
-  export let fill: string = 'rgba(16,185,129,0.12)';
+  export let stroke: string = '#6d28d9';
+  export let fill: string = 'rgba(139,92,246,0.12)';
   export let width: number = 120;
   export let height: number = 36;
 

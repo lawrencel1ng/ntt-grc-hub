@@ -36,11 +36,11 @@
             <li>
               <a href={item.href}
                  class="group relative flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all {active
-                   ? 'bg-gradient-to-r from-emerald-500/15 to-emerald-500/5 font-semibold text-white shadow-sm ring-1 ring-inset ring-emerald-400/30'
+                   ? 'bg-gradient-to-r from-violet-500/15 to-violet-500/5 font-semibold text-white shadow-sm ring-1 ring-inset ring-violet-400/30'
                    : 'font-medium text-white/65 hover:bg-white/10 hover:text-white'}"
                  title={!$sidebarOpen ? item.label : undefined}>
                 {#if active}
-                  <span class="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-grc-accent shadow-[0_0_8px_rgba(52,211,153,0.6)]" aria-hidden="true"></span>
+                  <span class="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-grc-accent shadow-[0_0_8px_rgba(167,139,250,0.6)]" aria-hidden="true"></span>
                 {/if}
                 <svelte:component this={item.icon} class="h-4 w-4 flex-shrink-0 {active ? 'text-grc-accent' : 'text-white/60 group-hover:text-white/90'}" />
                 {#if $sidebarOpen}
@@ -60,7 +60,7 @@
     {#if $sidebarOpen}
       <div class="flex items-center justify-between">
         <span>v1.0.0-demo</span>
-        <span class="rounded bg-emerald-500/15 px-1.5 py-0.5 font-semibold text-emerald-300">LIVE</span>
+        <span class="rounded bg-violet-500/15 px-1.5 py-0.5 font-semibold text-violet-300">LIVE</span>
       </div>
       <div class="mt-1 text-white/30">© 2026 NTT Singapore. Demo build.</div>
     {:else}

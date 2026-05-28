@@ -177,7 +177,7 @@
   <!-- Action mapping suggestions -->
   <div class="card p-5">
     <div class="mb-3 flex items-center gap-2">
-      <Antenna class="h-4 w-4 text-emerald-600" />
+      <Antenna class="h-4 w-4 text-violet-600" />
       <h2 class="section-title">Mapping Suggestions</h2>
     </div>
     <ul class="space-y-2">

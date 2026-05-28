@@ -149,13 +149,13 @@
     <!-- KPI strip (6) -->
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
       <Kpi label="Runs (30d)" value={data.runs30d.toLocaleString()} delta={11}>
-        <Bot slot="icon" class="h-4 w-4 text-emerald-600" />
+        <Bot slot="icon" class="h-4 w-4 text-violet-600" />
       </Kpi>
       <Kpi label="Avg Confidence" value={(avgConfidence * 100).toFixed(1)} suffix="%">
         <Gauge slot="icon" class="h-4 w-4 text-slate-500" />
       </Kpi>
       <Kpi label="Cost (30d)" value={fmtCost(data.costCents30d)}>
-        <DollarSign slot="icon" class="h-4 w-4 text-emerald-600" />
+        <DollarSign slot="icon" class="h-4 w-4 text-violet-600" />
       </Kpi>
       <Kpi label="FTE Hours (30d)" value={data.fteHours30d.toFixed(0)} suffix="hrs">
         <Clock slot="icon" class="h-4 w-4 text-violet-500" />

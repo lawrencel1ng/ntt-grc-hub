@@ -82,23 +82,23 @@
   </div>
 
   <!-- Hero callout — NTT Tsuzumi sovereign LLM story -->
-  <div class="card border-2 border-emerald-200 bg-gradient-to-br from-emerald-50/60 to-white p-5">
+  <div class="card border-2 border-violet-200 bg-gradient-to-br from-violet-50/60 to-white p-5">
     <div class="flex items-start gap-3">
-      <div class="rounded-lg bg-emerald-100 p-2 text-emerald-700">
+      <div class="rounded-lg bg-violet-100 p-2 text-violet-700">
         <Sparkles class="h-5 w-5" />
       </div>
       <div class="flex-1">
-        <div class="text-sm font-semibold text-emerald-900">
+        <div class="text-sm font-semibold text-violet-900">
           All {total} production model{total === 1 ? '' : 's'} risk-classified per EU AI Act.
         </div>
-        <p class="mt-1 text-xs leading-relaxed text-emerald-800">
+        <p class="mt-1 text-xs leading-relaxed text-violet-800">
           <span class="font-semibold">NTT Tsuzumi</span> (sovereign LLM, on-premise, Japanese-origin) covers
           {data.effectiveTenantId === 't_mindef' ? '100%' : 'designated sensitive workloads'} of prompts in the MINDEF tenant —
           air-gapped inference with full audit trail. ISO 42001 controls operational; prompts cryptographically sealed and
           retained for 7 years under MAS Notice 644 and applicable defence-grade data-handling policies.
         </p>
       </div>
-      <a href="/decisions" class="inline-flex items-center gap-1 rounded-md border border-emerald-300 bg-white px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-50">
+      <a href="/decisions" class="inline-flex items-center gap-1 rounded-md border border-violet-300 bg-white px-3 py-1.5 text-xs font-medium text-violet-700 hover:bg-violet-50">
         View decisions <ChevronRight class="h-3 w-3" />
       </a>
     </div>

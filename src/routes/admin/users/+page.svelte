@@ -140,7 +140,7 @@
             <tr class="tr">
               <td class="td">
                 <div class="flex items-center gap-2">
-                  <div class="h-7 w-7 rounded-full bg-gradient-to-br from-emerald-500 to-emerald-700 text-center font-mono text-[11px] font-semibold leading-7 text-white">
+                  <div class="h-7 w-7 rounded-full bg-gradient-to-br from-violet-500 to-violet-700 text-center font-mono text-[11px] font-semibold leading-7 text-white">
                     {initials(u.name)}
                   </div>
                   <span class="font-medium text-grc-ink">{u.name}</span>

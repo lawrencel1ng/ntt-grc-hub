@@ -50,7 +50,7 @@
   }
   function stepColor(kind: WorkflowStepDef['kind']): string {
     switch (kind) {
-      case 'agent':    return 'fill-emerald-50 stroke-emerald-400';
+      case 'agent':    return 'fill-violet-50 stroke-violet-400';
       case 'api':      return 'fill-blue-50 stroke-blue-400';
       case 'manual':   return 'fill-amber-50 stroke-amber-400';
       case 'decision': return 'fill-violet-50 stroke-violet-400';
@@ -58,7 +58,7 @@
   }
   function stepBadge(kind: WorkflowStepDef['kind']): string {
     switch (kind) {
-      case 'agent':    return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'agent':    return 'bg-violet-50 text-violet-700 ring-violet-200';
       case 'api':      return 'bg-blue-50 text-blue-700 ring-blue-200';
       case 'manual':   return 'bg-amber-50 text-amber-700 ring-amber-200';
       case 'decision': return 'bg-violet-50 text-violet-700 ring-violet-200';
@@ -106,7 +106,7 @@
   <!-- KPI strip -->
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
     <Kpi label="Executions (30d)" value={total30d.toLocaleString()}>
-      <WorkflowIcon slot="icon" class="h-4 w-4 text-emerald-600" />
+      <WorkflowIcon slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Success Rate" value={successRate.toFixed(1)} suffix="%">
       <CheckCircle2 slot="icon" class="h-4 w-4 text-emerald-600" />

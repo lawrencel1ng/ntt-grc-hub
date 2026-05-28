@@ -95,10 +95,10 @@
   <!-- ============================================================== -->
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
     <Kpi label="Total Runs (30d)" value={totalRuns30d.toLocaleString()} delta={14} hint="across fleet">
-      <Bot slot="icon" class="h-4 w-4 text-emerald-600" />
+      <Bot slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Total Cost (30d)" value={fmtMoney(totalCostCents30d / 100)} delta={6} hint="run rate">
-      <DollarSign slot="icon" class="h-4 w-4 text-emerald-600" />
+      <DollarSign slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="FTE Hours (30d)" value={totalFteHours30d.toFixed(0)} delta={22} hint="≈ {totalFte} FTE">
       <Clock slot="icon" class="h-4 w-4 text-violet-500" />
@@ -186,18 +186,18 @@
   <!-- ROI banner                                                      -->
   <!-- ============================================================== -->
   <div
-    class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 via-emerald-600 to-emerald-700 p-6 text-white shadow-lg"
+    class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-500 via-violet-600 to-violet-700 p-6 text-white shadow-lg"
   >
     <div class="absolute -right-8 -top-8 opacity-10">
       <Cpu class="h-48 w-48" />
     </div>
     <div class="relative">
       <div class="mb-1 flex items-center gap-2">
-        <Sparkles class="h-5 w-5 text-emerald-100" />
-        <span class="text-xs font-semibold uppercase tracking-wider text-emerald-100">Agent Fleet ROI</span>
+        <Sparkles class="h-5 w-5 text-violet-100" />
+        <span class="text-xs font-semibold uppercase tracking-wider text-violet-100">Agent Fleet ROI</span>
       </div>
       <div class="text-3xl font-bold leading-tight">{fmtMoney(annualSavings)} saved annually</div>
-      <div class="mt-1 max-w-2xl text-sm text-emerald-50">
+      <div class="mt-1 max-w-2xl text-sm text-violet-50">
         10 agents replaced <span class="font-semibold">{totalFte} FTE</span> across the
         fleet — equivalent to <span class="font-semibold">{totalFteHours30d.toFixed(0)} analyst hours</span>
         of work in the last 30 days.
@@ -205,15 +205,15 @@
 
       <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div class="rounded-xl bg-white/10 p-4 backdrop-blur-sm ring-1 ring-inset ring-white/20">
-          <div class="text-[11px] font-semibold uppercase tracking-wider text-emerald-100">Fleet cost</div>
-          <div class="mt-1 font-mono text-2xl font-bold">{fmtMoney(fleetMonthlyCost)}<span class="text-sm font-medium text-emerald-100">/mo</span></div>
+          <div class="text-[11px] font-semibold uppercase tracking-wider text-violet-100">Fleet cost</div>
+          <div class="mt-1 font-mono text-2xl font-bold">{fmtMoney(fleetMonthlyCost)}<span class="text-sm font-medium text-violet-100">/mo</span></div>
           <div class="mt-3 h-2 overflow-hidden rounded-full bg-white/20">
-            <div class="h-full rounded-full bg-emerald-200" style="width: {Math.max(1, Math.min(100, (fleetMonthlyCost / Math.max(1, humanMonthlyEquivalent)) * 100))}%"></div>
+            <div class="h-full rounded-full bg-violet-200" style="width: {Math.max(1, Math.min(100, (fleetMonthlyCost / Math.max(1, humanMonthlyEquivalent)) * 100))}%"></div>
           </div>
         </div>
         <div class="rounded-xl bg-white/10 p-4 backdrop-blur-sm ring-1 ring-inset ring-white/20">
-          <div class="text-[11px] font-semibold uppercase tracking-wider text-emerald-100">Human equivalent</div>
-          <div class="mt-1 font-mono text-2xl font-bold">{fmtMoney(humanMonthlyEquivalent)}<span class="text-sm font-medium text-emerald-100">/mo</span></div>
+          <div class="text-[11px] font-semibold uppercase tracking-wider text-violet-100">Human equivalent</div>
+          <div class="mt-1 font-mono text-2xl font-bold">{fmtMoney(humanMonthlyEquivalent)}<span class="text-sm font-medium text-violet-100">/mo</span></div>
           <div class="mt-3 h-2 overflow-hidden rounded-full bg-white/20">
             <div class="h-full rounded-full bg-white" style="width: 100%"></div>
           </div>

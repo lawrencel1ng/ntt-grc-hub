@@ -245,6 +245,18 @@ export async function getFairRun(scenarioOrRiskId: string): Promise<FAIRRun | nu
   return mock.fairRunForRisk(scenarioOrRiskId);
 }
 
+export async function getFairScenarios(tenantId: string) {
+  return mock.fairScenariosForTenant(tenantId);
+}
+
+export async function getFairScenariosForRisk(riskId: string) {
+  const parts = riskId.split('_');
+  if (parts.length < 3) return [];
+  const tenantId = `${parts[1]}_${parts[2]}`;
+  const all = await getFairScenarios(tenantId);
+  return all.filter((s) => s.riskId === riskId);
+}
+
 export async function getAppetiteStatements(tenantId: string): Promise<AppetiteStatement[]> {
   if (!isPgMode()) return mock.appetiteStatementsForTenant(tenantId);
   return mock.appetiteStatementsForTenant(tenantId);
@@ -676,6 +688,14 @@ export async function getIssues(tenantId: string): Promise<Issue[]> {
      FROM issue.issues WHERE tenant_id = $1 ORDER BY due_at`, [tenantId]
   );
   return rows.length ? rows : mock.issuesForTenant(tenantId);
+}
+
+export async function getIssue(id: string): Promise<Issue | undefined> {
+  const parts = id.split('_');
+  if (parts.length < 3) return undefined;
+  const tenantId = `${parts[1]}_${parts[2]}`;
+  const all = await getIssues(tenantId);
+  return all.find((i) => i.id === id);
 }
 
 export async function getIssueActions(issueId: string): Promise<IssueAction[]> {

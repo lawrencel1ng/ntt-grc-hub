@@ -41,13 +41,14 @@ INSERT INTO platform.tenants (id, name, industry, region, classified, sla_tier, 
 -- =====================================================================
 -- 2. platform.users (5 per tenant — admin/risk-owner/control-owner/auditor/operator)
 -- =====================================================================
-INSERT INTO platform.users (tenant_id, email, name, role, status, mfa_enabled, last_login_at)
+INSERT INTO platform.users (tenant_id, email, name, role, status, password_hash, mfa_enabled, last_login_at)
 SELECT
   t.id,
   lower(replace(t.name, ' ', '.')) || '.' || u.role_slug || '@example.sg',
   u.name_prefix || ' ' || initcap(split_part(t.name, ' ', 1)),
   u.role::platform.role,
   'active'::platform.user_status,
+  '$2b$12$kN35cLnfRicoSwHBw.nTV.Gam3GPStPksqgLnUXna5m6Ksi4gS5U6',
   true,
   now() - (random() * interval '6 hours')
 FROM platform.tenants t

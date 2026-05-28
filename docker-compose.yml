@@ -1,0 +1,54 @@
+name: ntt-grc-hub
+
+# One-command bring-up for the demo:
+#   docker compose up -d --build
+# App listens on host port 5182. Postgres listens on host port 5433
+# to avoid clashing with any default 5432 install or the 5434 used by
+# ntt-cloud-control's sibling stack.
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ntt-grc-hub-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ntt_grc_hub
+      POSTGRES_USER: ntt_grc
+      POSTGRES_PASSWORD: ${PGPASSWORD:-please-change-me}
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Run init + seed on first boot. Files in /docker-entrypoint-initdb.d
+      # execute in alphabetical order, so the prefix keeps init.sql first.
+      - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - ./db/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ntt_grc -d ntt_grc_hub"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ntt-grc-hub-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 5182
+      HOST: 0.0.0.0
+      DATA_MODE: ${DATA_MODE:-mock}
+      DATABASE_URL: postgres://ntt_grc:${PGPASSWORD:-please-change-me}@db:5432/ntt_grc_hub
+      SESSION_SECRET: ${SESSION_SECRET:-demo-secret-rotate-in-prod}
+      TSUZUMI_ENDPOINT: ${TSUZUMI_ENDPOINT:-stub}
+    ports:
+      - "5182:5182"
+
+volumes:
+  pgdata:
+    name: ntt-grc-hub-pgdata

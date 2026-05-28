@@ -3,7 +3,7 @@ import {
   AlertTriangle, Grid3x3, ListChecks, ShieldAlert,
   Library, ShieldCheck, FileLock2, ClipboardCheck, Antenna, ScrollText,
   Building, FileQuestion, GitFork,
-  UserLock, Leaf, BrainCircuit, Calculator, LifeBuoy,
+  Lock, Leaf, BrainCircuit, Calculator, LifeBuoy,
   Bot, History, Workflow, Plug,
   Users, KeyRound, FileSearch, Settings,
   type Icon
@@ -53,7 +53,7 @@ export const navSections: NavSection[] = [
   {
     title: 'Specialized',
     items: [
-      { label: 'Privacy', href: '/privacy', icon: UserLock },
+      { label: 'Privacy', href: '/privacy', icon: Lock },
       { label: 'ESG', href: '/esg', icon: Leaf },
       { label: 'AI Governance', href: '/ai-gov', icon: BrainCircuit, badge: 'ISO 42001' },
       { label: 'SOX', href: '/sox', icon: Calculator },

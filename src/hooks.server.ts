@@ -14,15 +14,21 @@ export const handle: Handle = async ({ event, resolve }) => {
   const tenantId = tenantCookie && tenantCookie.length > 0 ? tenantCookie : ALL_TENANTS_ID;
   event.locals.tenantId = tenantId;
 
-  // In mock mode keep demo autologin so the app works without Postgres
+  // In mock mode keep demo autologin so the app works without Postgres —
+  // but skip auto-attach on public auth pages so /login and /forgot actually
+  // render (otherwise +page.server.ts would 303 back to '/').
   if (!isPgMode()) {
-    event.locals.user = {
-      id: 'u_demo',
-      email: 'demo@ntt.com',
-      name: 'Lawrence Khoo',
-      role: 'admin',
-      tenantId
-    };
+    const path = event.url.pathname;
+    const isPublic = PUBLIC_PATHS.some((p) => path.startsWith(p));
+    if (!isPublic) {
+      event.locals.user = {
+        id: 'u_demo',
+        email: 'demo@ntt.com',
+        name: 'Lawrence Khoo',
+        role: 'admin',
+        tenantId
+      };
+    }
     return resolve(event);
   }
 

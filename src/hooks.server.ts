@@ -7,7 +7,7 @@ import { isPgMode } from '$lib/server/pg';
 const TENANT_COOKIE = 'grc_tenant';
 const ALL_TENANTS_ID = '__all__';
 
-const PUBLIC_PATHS = ['/login', '/logout'];
+const PUBLIC_PATHS = ['/login', '/logout', '/forgot'];
 
 export const handle: Handle = async ({ event, resolve }) => {
   const tenantCookie = event.cookies.get(TENANT_COOKIE);

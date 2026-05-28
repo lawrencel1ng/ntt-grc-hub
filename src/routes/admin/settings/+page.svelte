@@ -7,6 +7,10 @@
   } from 'lucide-svelte';
 
   export let data;
+  export let form;
+
+  $: if (form?.profileSuccess) addToast('success', 'Profile updated.');
+  $: if (form?.pwSuccess) addToast('success', 'Password changed successfully.');
 
   // ---------- Tenant settings local state ----------
   // Default the AI provider to NTT Tsuzumi (sovereign) for MINDEF.
@@ -32,29 +36,73 @@
       <User class="h-4 w-4 text-grc-primary" />
       <h2 class="section-title">Profile</h2>
     </div>
-    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <form method="POST" action="?/updateProfile" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <label class="block">
         <span class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Name</span>
-        <input value="Lawrence Khoo" readonly class="input bg-slate-50" />
+        <input name="name" value={data.user?.name ?? ''} required class="input" />
       </label>
       <label class="block">
         <span class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Email</span>
-        <input value="demogowhere@gmail.com" readonly class="input bg-slate-50" />
+        <input value={data.user?.email ?? ''} readonly class="input bg-slate-50" />
       </label>
       <label class="block">
         <span class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Role</span>
-        <input value="admin" readonly class="input bg-slate-50" />
+        <input value={data.user?.role ?? ''} readonly class="input bg-slate-50" />
       </label>
       <label class="block">
         <span class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Language</span>
-        <input value="English (en-SG)" readonly class="input bg-slate-50" />
+        <select name="language" class="input">
+          <option value="en-SG">English (en-SG)</option>
+          <option value="en-US">English (en-US)</option>
+          <option value="ja-JP">Japanese (ja-JP)</option>
+          <option value="zh-SG">Chinese (zh-SG)</option>
+        </select>
       </label>
       <label class="block sm:col-span-2">
         <span class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Timezone</span>
-        <input value="Asia/Singapore (SGT, UTC+8)" readonly class="input bg-slate-50" />
+        <select name="timezone" class="input">
+          <option value="Asia/Singapore">Asia/Singapore (SGT, UTC+8)</option>
+          <option value="Asia/Tokyo">Asia/Tokyo (JST, UTC+9)</option>
+          <option value="Australia/Sydney">Australia/Sydney (AEST, UTC+10)</option>
+          <option value="Europe/London">Europe/London (GMT, UTC+0)</option>
+          <option value="America/New_York">America/New_York (ET, UTC-5)</option>
+        </select>
       </label>
+      {#if form?.profileError}
+        <p class="sm:col-span-2 text-xs text-red-600">{form.profileError}</p>
+      {/if}
+      <div class="sm:col-span-2 flex justify-end">
+        <button type="submit" class="btn-primary">Save Profile</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Change Password -->
+  <div class="card p-6">
+    <div class="mb-4 flex items-center gap-2">
+      <Lock class="h-4 w-4 text-grc-primary" />
+      <h2 class="section-title">Change Password</h2>
     </div>
-    <p class="mt-3 text-[11px] text-slate-400">Profile fields are managed by the corporate identity provider; contact your admin to change them.</p>
+    <form method="POST" action="?/changePassword" class="grid grid-cols-1 gap-3">
+      <label class="block">
+        <span class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Current Password</span>
+        <input type="password" name="currentPassword" required class="input" autocomplete="current-password" />
+      </label>
+      <label class="block">
+        <span class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">New Password</span>
+        <input type="password" name="newPassword" required minlength="8" class="input" autocomplete="new-password" />
+      </label>
+      <label class="block">
+        <span class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Confirm New Password</span>
+        <input type="password" name="confirmPassword" required minlength="8" class="input" autocomplete="new-password" />
+      </label>
+      {#if form?.pwError}
+        <p class="text-xs text-red-600">{form.pwError}</p>
+      {/if}
+      <div class="flex justify-end">
+        <button type="submit" class="btn-primary">Change Password</button>
+      </div>
+    </form>
   </div>
 
   <!-- Tenant Settings -->

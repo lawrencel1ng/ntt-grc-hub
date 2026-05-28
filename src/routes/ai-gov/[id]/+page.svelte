@@ -306,7 +306,7 @@
       <div class="grid grid-cols-1 gap-6 p-5 lg:grid-cols-2">
         <div>
           <div class="section-title text-xs">Accuracy (last 30 days)</div>
-          <div class="mt-2 rounded-lg border border-slate-200 bg-white p-3">
+          <div class="mt-2 rounded-lg bg-white ring-1 ring-inset ring-slate-200/70 p-3">
             <Sparkline data={accuracySeries.map((v) => v * 100)} height={56} stroke="#8b5cf6" fill="rgba(16,185,129,0.12)" />
             <div class="mt-2 flex items-center justify-between text-xs">
               <span class="text-slate-500">latest:</span>
@@ -316,7 +316,7 @@
         </div>
         <div>
           <div class="section-title text-xs">Confidence Trend (30 days)</div>
-          <div class="mt-2 rounded-lg border border-slate-200 bg-white p-3">
+          <div class="mt-2 rounded-lg bg-white ring-1 ring-inset ring-slate-200/70 p-3">
             <LineChart
               labels={DAYS_30}
               series={[{ name: 'Confidence', color: '#8b5cf6', data: confidenceSeries.map((v) => +(v * 100).toFixed(2)), area: true }]}

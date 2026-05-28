@@ -180,7 +180,7 @@
           <div class="section-title text-xs">Escalation Contacts</div>
           <div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
             {#each ESCALATION_CONTACTS as c}
-              <div class="rounded-lg border border-slate-200 bg-white p-3 text-xs">
+              <div class="rounded-lg bg-white ring-1 ring-inset ring-slate-200/70 p-3 text-xs">
                 <div class="flex items-center justify-between">
                   <span class="font-semibold text-grc-ink">{c.name}</span>
                   <span class="tag tag-slate">{c.role}</span>

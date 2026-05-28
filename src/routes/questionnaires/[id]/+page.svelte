@@ -100,16 +100,16 @@
 
   <!-- Agent attribution banner -->
   {#if isAgent}
-    <div class="card flex items-start gap-3 border-2 border-violet-300 bg-gradient-to-br from-violet-50 to-white p-5">
-      <div class="rounded-lg bg-violet-100 p-2 text-violet-700">
+    <div class="card flex items-start gap-3 bg-white p-5 ring-1 ring-inset ring-violet-200">
+      <div class="rounded-md bg-violet-50 p-2 text-violet-700">
         <Bot class="h-5 w-5" />
       </div>
       <div class="flex-1">
-        <div class="flex items-center gap-2 text-sm font-semibold text-violet-900">
+        <div class="flex items-center gap-2 text-sm font-semibold text-slate-800">
           Auto-filled by Vendor Risk Analyst agent
           <AgentTypeBadge type="intelligent" />
         </div>
-        <div class="mt-1 text-xs text-violet-700">
+        <div class="mt-1 text-xs text-slate-600">
           Completed {fmtDateTime(data.questionnaire.completedAt)} ·
           Avg confidence <span class="font-mono font-semibold">{data.avgConfidence}%</span> ·
           Source: <span class="font-mono font-semibold">{sourcedCount}</span> evidence items

@@ -171,14 +171,14 @@
   <div class="card p-5">
     <h2 class="section-title mb-3">Related Items</h2>
     <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-      <a href="/risk/{linkedRiskId}" class="card-hover flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-3">
+      <a href="/risk/{linkedRiskId}" class="card-hover flex items-center gap-3 rounded-lg px-3 py-3 ring-1 ring-inset ring-slate-200/70">
         <div class="rounded-lg bg-rose-50 p-2 text-rose-700"><AlertTriangle class="h-4 w-4" /></div>
         <div>
           <div class="text-[11px] uppercase tracking-wider text-slate-500">Linked Risk</div>
           <div class="text-sm font-mono">{linkedRiskId.slice(0, 24)}…</div>
         </div>
       </a>
-      <a href="/controls/{linkedControlId}" class="card-hover flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-3">
+      <a href="/controls/{linkedControlId}" class="card-hover flex items-center gap-3 rounded-lg px-3 py-3 ring-1 ring-inset ring-slate-200/70">
         <div class="rounded-lg bg-violet-50 p-2 text-violet-700"><ShieldCheck class="h-4 w-4" /></div>
         <div>
           <div class="text-[11px] uppercase tracking-wider text-slate-500">Linked Control</div>
@@ -186,7 +186,7 @@
         </div>
       </a>
       {#if linkedFindingId}
-        <a href="/audits" class="card-hover flex items-center gap-3 rounded-lg border border-slate-200 px-3 py-3">
+        <a href="/audits" class="card-hover flex items-center gap-3 rounded-lg px-3 py-3 ring-1 ring-inset ring-slate-200/70">
           <div class="rounded-lg bg-blue-50 p-2 text-blue-700"><ClipboardCheck class="h-4 w-4" /></div>
           <div>
             <div class="text-[11px] uppercase tracking-wider text-slate-500">Audit Finding</div>

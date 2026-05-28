@@ -223,14 +223,14 @@
                   <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
                     <div class="lg:col-span-2">
                       <div class="section-title mb-2 text-xs">Dependency Map (Service → Tech → Vendor)</div>
-                      <div class="rounded-lg border border-slate-200 bg-white p-3">
+                      <div class="rounded-lg bg-white ring-1 ring-inset ring-slate-200/70 p-3">
                         <Sankey nodes={sk.nodes} links={sk.links} height={260} />
                       </div>
                     </div>
                     <div class="space-y-3">
                       <div>
                         <div class="section-title mb-1 text-xs">Recent Test Results</div>
-                        <div class="rounded-lg border border-slate-200 bg-white p-3">
+                        <div class="rounded-lg bg-white ring-1 ring-inset ring-slate-200/70 p-3">
                           {#if r.tests.length > 0}
                             <Sparkline data={testTrend(r.tests)} height={48} />
                             <ul class="mt-2 space-y-1 text-xs text-slate-600">

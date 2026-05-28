@@ -11,9 +11,9 @@
 }
 
 @layer components {
-  .card { @apply rounded-xl border border-slate-200 bg-white shadow-card; }
-  .card-hover { @apply transition-shadow hover:shadow-card-hover; }
-  .card-elevated { @apply rounded-xl border border-slate-200 bg-white shadow-card-hover; }
+  .card { @apply rounded-xl bg-white ring-1 ring-inset ring-slate-200/70 shadow-none; }
+  .card-hover { @apply transition-all hover:ring-slate-300/70; }
+  .card-elevated { @apply rounded-xl bg-white ring-1 ring-inset ring-slate-200/70 shadow-card; }
 
   .btn { @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1; }
   .btn-primary { @apply btn bg-grc-primary text-white hover:bg-grc-primary-dark focus:ring-grc-primary/40; }
@@ -21,30 +21,32 @@
   .btn-ghost { @apply btn text-slate-600 hover:bg-slate-100; }
   .btn-danger { @apply btn bg-grc-critical text-white hover:bg-rose-700 focus:ring-grc-critical/40; }
 
-  .tag { @apply inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium; }
-  .tag-emerald { @apply tag bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-200; }
-  .tag-blue    { @apply tag bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-200; }
-  .tag-green   { @apply tag bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-200; }
-  .tag-amber   { @apply tag bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-200; }
-  .tag-red     { @apply tag bg-rose-50 text-rose-700 ring-1 ring-inset ring-rose-200; }
-  .tag-slate   { @apply tag bg-slate-100 text-slate-700 ring-1 ring-inset ring-slate-200; }
-  .tag-violet  { @apply tag bg-violet-50 text-violet-700 ring-1 ring-inset ring-violet-200; }
+  .tag { @apply inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-tight; }
+  .tag-emerald { @apply tag bg-violet-50 text-violet-800 ring-1 ring-inset ring-violet-200/80; }
+  .tag-blue    { @apply tag bg-slate-50 text-slate-700 ring-1 ring-inset ring-slate-200/80; }
+  .tag-green   { @apply tag bg-violet-50 text-violet-800 ring-1 ring-inset ring-violet-200/80; }
+  .tag-amber   { @apply tag bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-200/80; }
+  .tag-red     { @apply tag bg-rose-50 text-rose-800 ring-1 ring-inset ring-rose-200/80; }
+  .tag-slate   { @apply tag bg-slate-50 text-slate-700 ring-1 ring-inset ring-slate-200/80; }
+  .tag-violet  { @apply tag bg-violet-50 text-violet-800 ring-1 ring-inset ring-violet-200/80; }
 
-  .kpi-num { @apply font-mono text-2xl font-semibold tracking-tight text-grc-ink; }
+  .kpi-num { @apply font-mono text-[22px] font-semibold tracking-tight text-grc-ink; }
   .section-title { @apply text-sm font-semibold uppercase tracking-wider text-slate-500; }
+  .h-page { @apply text-[20px] font-semibold tracking-tight text-grc-ink; }
+  .h-card { @apply text-sm font-semibold text-grc-ink; }
+  .subtle { @apply text-[12px] text-slate-500; }
   .input { @apply block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm placeholder:text-slate-400 focus:border-grc-primary focus:ring-1 focus:ring-grc-primary; }
   .thead { @apply bg-surface-muted text-xs font-semibold uppercase tracking-wider text-slate-500; }
   .td { @apply whitespace-nowrap px-4 py-3 text-sm text-slate-700; }
   .tr { @apply border-t border-slate-100 hover:bg-slate-50/60; }
 
   .agent-card {
-    @apply card relative overflow-hidden;
-    background: linear-gradient(135deg, #ffffff 0%, #ffffff 60%, rgba(139,92,246,0.04) 100%);
+    @apply card relative overflow-hidden bg-white;
   }
   .agent-card::before {
     content: '';
-    position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
-    background: linear-gradient(180deg, #6d28d9 0%, #d946ef 100%);
+    position: absolute; left: 0; top: 0; bottom: 0; width: 2px;
+    background: #6d28d9;
   }
   .evidence-chip { @apply inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-[11px] text-slate-700; }
 }

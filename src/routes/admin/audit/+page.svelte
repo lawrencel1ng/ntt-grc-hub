@@ -109,11 +109,11 @@
 
 <div class="space-y-6">
   <!-- Verification banner -->
-  <div class="flex flex-wrap items-center gap-3 rounded-xl border border-violet-300 bg-gradient-to-r from-violet-50 via-white to-violet-50/60 px-4 py-3 ring-1 ring-inset ring-violet-200">
+  <div class="flex flex-wrap items-center gap-3 rounded-xl bg-white px-4 py-3 ring-1 ring-inset ring-violet-200">
     <ShieldCheck class="h-5 w-5 text-violet-700" />
-    <span class="text-sm font-semibold text-violet-900">Audit log verified — chain intact</span>
-    <span class="text-violet-300">·</span>
-    <span class="text-xs text-violet-800 font-mono">{data.entries.length} of {data.entries.length} entries</span>
+    <span class="text-sm font-semibold text-slate-800">Audit log verified — chain intact</span>
+    <span class="text-slate-300">·</span>
+    <span class="text-xs text-slate-600 font-mono">{data.entries.length} of {data.entries.length} entries</span>
     <span class="text-violet-300">·</span>
     <span class="text-xs text-violet-800">Last verified <span class="font-mono">{verifiedAt}</span></span>
   </div>

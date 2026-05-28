@@ -303,29 +303,26 @@
   <!-- 1. Hero strip                                                 -->
   <!-- ============================================================ -->
   <div
-    class="flex flex-wrap items-center gap-4 rounded-xl bg-gradient-to-r from-violet-50 via-violet-100/50 to-violet-50 px-5 py-4 ring-1 ring-inset ring-violet-200"
+    class="flex flex-wrap items-center gap-4 rounded-xl bg-white px-5 py-3 ring-1 ring-inset ring-slate-200"
   >
     <div class="flex items-center gap-2">
-      <span class="relative flex h-2.5 w-2.5">
-        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-400 opacity-75"></span>
-        <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-violet-500"></span>
-      </span>
-      <Bot class="h-4 w-4 text-violet-700" />
-      <span class="text-sm font-semibold text-violet-900">{liveAgents} agents online</span>
+      <span class="h-1.5 w-1.5 rounded-full bg-violet-500"></span>
+      <Bot class="h-4 w-4 text-slate-500" />
+      <span class="text-sm font-semibold text-slate-800">{liveAgents} agents online</span>
     </div>
-    <span class="text-violet-300">·</span>
-    <span class="text-sm text-violet-900">
-      Last decision <span class="font-mono font-semibold">{lastRunSeconds}s</span> ago
+    <span class="text-slate-300">·</span>
+    <span class="text-sm text-slate-600">
+      Last decision <span class="font-mono font-semibold text-slate-800">{lastRunSeconds}s</span> ago
     </span>
-    <span class="text-violet-300">·</span>
-    <span class="text-sm text-violet-900">
-      <span class="font-mono font-semibold">{fteSaved}</span> FTE replaced
+    <span class="text-slate-300">·</span>
+    <span class="text-sm text-slate-600">
+      <span class="font-mono font-semibold text-slate-800">{fteSaved}</span> FTE replaced
     </span>
-    <span class="text-violet-300">·</span>
-    <span class="text-sm text-violet-900">
-      <span class="font-mono font-semibold">${(annualSavings / 1_000_000).toFixed(1)}M</span> saved annually
+    <span class="text-slate-300">·</span>
+    <span class="text-sm text-slate-600">
+      <span class="font-mono font-semibold text-slate-800">${(annualSavings / 1_000_000).toFixed(1)}M</span> saved annually
     </span>
-    <div class="ml-auto inline-flex items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-violet-700 ring-1 ring-inset ring-violet-300">
+    <div class="ml-auto inline-flex items-center gap-1.5 rounded-md bg-slate-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-600 ring-1 ring-inset ring-slate-200">
       <Cpu class="h-3 w-3" />
       Agentic GRC OS
     </div>
@@ -435,10 +432,7 @@
       <div class="mb-3 flex items-center justify-between">
         <div class="flex items-center gap-2">
           <h2 class="section-title">Live Agent Stream</h2>
-          <span class="relative flex h-2 w-2">
-            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-400 opacity-75"></span>
-            <span class="relative inline-flex h-2 w-2 rounded-full bg-violet-500"></span>
-          </span>
+          <span class="h-1.5 w-1.5 rounded-full bg-violet-500"></span>
         </div>
         <span
           class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset {sseConnected
@@ -581,7 +575,7 @@
   <!-- ============================================================ -->
   <!-- 6. Board Narrative Preview                                    -->
   <!-- ============================================================ -->
-  <div class="card-elevated relative overflow-hidden bg-gradient-to-br from-violet-50 via-white to-violet-50/40 p-6">
+  <div class="card-elevated relative overflow-hidden bg-white p-6">
     <div class="mb-3 flex items-center gap-2">
       <Sparkles class="h-4 w-4 text-violet-600" />
       <span class="text-xs font-semibold uppercase tracking-wider text-violet-700">

@@ -82,16 +82,16 @@
   </div>
 
   <!-- Hero callout — NTT Tsuzumi sovereign LLM story -->
-  <div class="card border-2 border-violet-200 bg-gradient-to-br from-violet-50/60 to-white p-5">
+  <div class="card bg-white p-5 ring-1 ring-inset ring-violet-200">
     <div class="flex items-start gap-3">
-      <div class="rounded-lg bg-violet-100 p-2 text-violet-700">
+      <div class="rounded-md bg-violet-50 p-2 text-violet-700">
         <Sparkles class="h-5 w-5" />
       </div>
       <div class="flex-1">
-        <div class="text-sm font-semibold text-violet-900">
+        <div class="text-sm font-semibold text-slate-800">
           All {total} production model{total === 1 ? '' : 's'} risk-classified per EU AI Act.
         </div>
-        <p class="mt-1 text-xs leading-relaxed text-violet-800">
+        <p class="mt-1 text-xs leading-relaxed text-slate-600">
           <span class="font-semibold">NTT Tsuzumi</span> (sovereign LLM, on-premise, Japanese-origin) covers
           {data.effectiveTenantId === 't_mindef' ? '100%' : 'designated sensitive workloads'} of prompts in the MINDEF tenant —
           air-gapped inference with full audit trail. ISO 42001 controls operational; prompts cryptographically sealed and

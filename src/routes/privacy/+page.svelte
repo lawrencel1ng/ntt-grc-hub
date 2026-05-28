@@ -220,7 +220,7 @@
     {:else if tab === 'dpias'}
       <div class="grid grid-cols-1 gap-4 p-5 md:grid-cols-2 lg:grid-cols-3">
         {#each dpiasSorted as d (d.id)}
-          <div class="rounded-lg border border-slate-200 bg-white p-4">
+          <div class="rounded-lg bg-white ring-1 ring-inset ring-slate-200/70 p-4">
             <div class="flex items-start justify-between gap-2">
               <div class="min-w-0">
                 <div class="truncate font-semibold text-grc-ink">{d.activityName ?? '(unknown activity)'}</div>

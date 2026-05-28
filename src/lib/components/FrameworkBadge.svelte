@@ -10,7 +10,7 @@
     if (key.includes('eu') || key === 'europe') return 'bg-slate-100 text-slate-700 ring-slate-200';
     if (key.includes('americas') || key.includes('us')) return 'bg-slate-100 text-slate-700 ring-slate-200';
     if (key.includes('singapore') || key === 'sg') return 'bg-violet-50 text-violet-700 ring-violet-200';
-    if (key.includes('apac') || key.includes('asia')) return 'bg-violet-100 text-violet-800 ring-violet-300';
+    if (key.includes('apac') || key.includes('asia')) return 'bg-violet-50 text-violet-800 ring-violet-200';
     if (key.includes('esg')) return 'bg-amber-50 text-amber-700 ring-amber-200';
     return 'bg-blue-50 text-blue-700 ring-blue-200'; // Global default
   }

@@ -422,7 +422,7 @@
         <div class="text-xs text-slate-500">Vendor-specific evidence: SOC 2 reports, ISO certifications, third-party attestations.</div>
         <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
           {#each data.vendorEvidence as e (e.id)}
-            <div class="rounded-lg border border-slate-200 bg-white p-3 text-xs">
+            <div class="rounded-lg bg-white ring-1 ring-inset ring-slate-200/70 p-3 text-xs">
               <div class="truncate font-medium text-slate-800">{e.title}</div>
               <div class="mt-1 flex items-center justify-between gap-2">
                 <span class="text-slate-500">{e.kind}</span>

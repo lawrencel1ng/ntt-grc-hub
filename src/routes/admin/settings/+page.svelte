@@ -224,7 +224,7 @@
   </div>
 
   <!-- Footer -->
-  <div class="lg:col-span-2 rounded-xl bg-gradient-to-r from-slate-50 via-white to-violet-50/40 px-5 py-4 text-sm text-slate-600 ring-1 ring-inset ring-slate-200">
+  <div class="lg:col-span-2 rounded-xl bg-white px-5 py-4 text-sm text-slate-600 ring-1 ring-inset ring-slate-200">
     <Cpu class="-mt-1 mr-1 inline h-4 w-4 text-grc-primary" />
     Platform settings sync to <span class="font-mono text-xs">platform.tenants</span> and propagate to the agent fleet within 30 seconds.
   </div>

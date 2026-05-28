@@ -3,7 +3,7 @@
   import Kpi from '$lib/components/Kpi.svelte';
   import AgentCard from '$lib/components/AgentCard.svelte';
   import type { Agent, AgentType, AgentStatus } from '$lib/data/types';
-  import { Bot, DollarSign, Clock, ShieldCheck, UserCheck, Gauge, Search, Sparkles, Cpu } from 'lucide-svelte';
+  import { Bot, DollarSign, Clock, ShieldCheck, UserCheck, Gauge, Search, Sparkles } from 'lucide-svelte';
 
   export let data;
 
@@ -185,43 +185,39 @@
   <!-- ============================================================== -->
   <!-- ROI banner                                                      -->
   <!-- ============================================================== -->
-  <div
-    class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-violet-500 via-violet-600 to-violet-700 p-6 text-white shadow-lg"
-  >
-    <div class="absolute -right-8 -top-8 opacity-10">
-      <Cpu class="h-48 w-48" />
-    </div>
-    <div class="relative">
+  <div class="relative overflow-hidden rounded-xl bg-white p-6 ring-1 ring-inset ring-slate-200">
+    <span class="absolute inset-y-0 left-0 w-1 bg-violet-600" aria-hidden="true"></span>
+    <div class="relative pl-4">
       <div class="mb-1 flex items-center gap-2">
-        <Sparkles class="h-5 w-5 text-violet-100" />
-        <span class="text-xs font-semibold uppercase tracking-wider text-violet-100">Agent Fleet ROI</span>
+        <Sparkles class="h-4 w-4 text-violet-600" />
+        <span class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Agent Fleet ROI</span>
       </div>
-      <div class="text-3xl font-bold leading-tight">{fmtMoney(annualSavings)} saved annually</div>
-      <div class="mt-1 max-w-2xl text-sm text-violet-50">
-        10 agents replaced <span class="font-semibold">{totalFte} FTE</span> across the
-        fleet — equivalent to <span class="font-semibold">{totalFteHours30d.toFixed(0)} analyst hours</span>
+      <div class="font-mono text-[28px] font-semibold tracking-tight text-grc-ink">{fmtMoney(annualSavings)} <span class="text-sm font-medium text-slate-500">saved annually</span></div>
+      <div class="mt-1 max-w-2xl text-sm text-slate-600">
+        10 agents replaced <span class="font-semibold text-slate-800">{totalFte} FTE</span> across the
+        fleet — equivalent to <span class="font-semibold text-slate-800">{totalFteHours30d.toFixed(0)} analyst hours</span>
         of work in the last 30 days.
       </div>
 
       <div class="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div class="rounded-xl bg-white/10 p-4 backdrop-blur-sm ring-1 ring-inset ring-white/20">
-          <div class="text-[11px] font-semibold uppercase tracking-wider text-violet-100">Fleet cost</div>
-          <div class="mt-1 font-mono text-2xl font-bold">{fmtMoney(fleetMonthlyCost)}<span class="text-sm font-medium text-violet-100">/mo</span></div>
-          <div class="mt-3 h-2 overflow-hidden rounded-full bg-white/20">
-            <div class="h-full rounded-full bg-violet-200" style="width: {Math.max(1, Math.min(100, (fleetMonthlyCost / Math.max(1, humanMonthlyEquivalent)) * 100))}%"></div>
+        <div class="rounded-lg bg-slate-50 p-4 ring-1 ring-inset ring-slate-200/70">
+          <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Fleet cost</div>
+          <div class="mt-1 font-mono text-xl font-semibold text-slate-800">{fmtMoney(fleetMonthlyCost)}<span class="text-xs font-medium text-slate-500">/mo</span></div>
+          <div class="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
+            <div class="h-full rounded-full bg-violet-600" style="width: {Math.max(1, Math.min(100, (fleetMonthlyCost / Math.max(1, humanMonthlyEquivalent)) * 100))}%"></div>
           </div>
         </div>
-        <div class="rounded-xl bg-white/10 p-4 backdrop-blur-sm ring-1 ring-inset ring-white/20">
-          <div class="text-[11px] font-semibold uppercase tracking-wider text-violet-100">Human equivalent</div>
-          <div class="mt-1 font-mono text-2xl font-bold">{fmtMoney(humanMonthlyEquivalent)}<span class="text-sm font-medium text-violet-100">/mo</span></div>
-          <div class="mt-3 h-2 overflow-hidden rounded-full bg-white/20">
-            <div class="h-full rounded-full bg-white" style="width: 100%"></div>
+        <div class="rounded-lg bg-slate-50 p-4 ring-1 ring-inset ring-slate-200/70">
+          <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Human equivalent</div>
+          <div class="mt-1 font-mono text-xl font-semibold text-slate-800">{fmtMoney(humanMonthlyEquivalent)}<span class="text-xs font-medium text-slate-500">/mo</span></div>
+          <div class="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
+            <div class="h-full rounded-full bg-slate-500" style="width: 100%"></div>
           </div>
         </div>
       </div>
 
-      <div class="mt-4 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold ring-1 ring-inset ring-white/30">
-        <Sparkles class="h-3 w-3" />
+      <div class="mt-4 inline-flex items-center gap-1.5 rounded-md bg-slate-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-slate-600 ring-1 ring-inset ring-slate-200">
+        <Sparkles class="h-3 w-3 text-violet-600" />
         {(humanMonthlyEquivalent / Math.max(1, fleetMonthlyCost)).toFixed(0)}× ROI · zero-headcount scaling
       </div>
     </div>

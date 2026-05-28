@@ -25,24 +25,27 @@
     </button>
   </div>
   <nav class="sidebar-scroll flex-1 space-y-5 overflow-y-auto px-2 py-4">
-    {#each navSections as section}
+    {#each navSections as section, sIdx}
       <div>
         {#if $sidebarOpen}
-          <div class="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-white/40">{section.title}</div>
+          {#if sIdx > 0}
+            <div class="mb-2 mt-1 border-t border-slate-700/60"></div>
+          {/if}
+          <div class="mb-1.5 px-3 text-[10px] font-semibold uppercase tracking-wider text-white/35">{section.title}</div>
         {/if}
         <ul class="space-y-0.5">
           {#each section.items as item}
             {@const active = isActive(item.href, pathname)}
             <li>
               <a href={item.href}
-                 class="group relative flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all {active
-                   ? 'bg-gradient-to-r from-violet-500/15 to-violet-500/5 font-semibold text-white shadow-sm ring-1 ring-inset ring-violet-400/30'
-                   : 'font-medium text-white/65 hover:bg-white/10 hover:text-white'}"
+                 class="group relative flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors {active
+                   ? 'bg-white/[0.04] font-semibold text-white'
+                   : 'font-medium text-white/55 hover:bg-white/10 hover:text-white'}"
                  title={!$sidebarOpen ? item.label : undefined}>
                 {#if active}
-                  <span class="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-grc-accent shadow-[0_0_8px_rgba(167,139,250,0.6)]" aria-hidden="true"></span>
+                  <span class="absolute left-0 top-1/2 h-6 w-[2px] -translate-y-1/2 rounded-r-full bg-violet-400" aria-hidden="true"></span>
                 {/if}
-                <svelte:component this={item.icon} class="h-4 w-4 flex-shrink-0 {active ? 'text-grc-accent' : 'text-white/60 group-hover:text-white/90'}" />
+                <svelte:component this={item.icon} class="h-4 w-4 flex-shrink-0 {active ? 'text-grc-accent' : 'text-white/55 group-hover:text-white/90'}" />
                 {#if $sidebarOpen}
                   <span class="flex-1 truncate">{item.label}</span>
                   {#if item.badge}
@@ -60,7 +63,7 @@
     {#if $sidebarOpen}
       <div class="flex items-center justify-between">
         <span>v1.0.0-demo</span>
-        <span class="rounded bg-violet-500/15 px-1.5 py-0.5 font-semibold text-violet-300">LIVE</span>
+        <span class="text-[9px] uppercase text-white/30">demo</span>
       </div>
       <div class="mt-1 text-white/30">© 2026 NTT Singapore. Demo build.</div>
     {:else}

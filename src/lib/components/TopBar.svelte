@@ -13,12 +13,9 @@
     <input class="input pl-9" placeholder="Search risks, controls, evidence, agents…  (⌘K)" />
   </div>
   <div class="flex items-center gap-3">
-    <div class="flex items-center gap-2 rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700 ring-1 ring-inset ring-violet-200">
-      <span class="relative flex h-2 w-2">
-        <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-violet-400 opacity-75"></span>
-        <span class="relative inline-flex h-2 w-2 rounded-full bg-violet-500"></span>
-      </span>
-      <Bot class="h-3.5 w-3.5" />
+    <div class="flex items-center gap-2 rounded-md bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 ring-1 ring-inset ring-slate-200">
+      <span class="h-1.5 w-1.5 rounded-full bg-violet-500"></span>
+      <Bot class="h-3.5 w-3.5 text-slate-500" />
       <span>{liveAgents} agents live</span>
     </div>
     <button class="btn-ghost p-2"><Bell class="h-4 w-4" /></button>

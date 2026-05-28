@@ -158,11 +158,11 @@
               <td class="td text-xs text-slate-500">{u.lastLoginAt ? formatRelative(u.lastLoginAt) : '—'}</td>
               <td class="td text-center">
                 {#if u.mfaEnabled}
-                  <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-violet-100 text-violet-700" title="MFA enabled">
+                  <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-violet-50 text-violet-700" title="MFA enabled">
                     <Check class="h-3 w-3" />
                   </span>
                 {:else}
-                  <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-rose-100 text-rose-700" title="MFA not enabled">
+                  <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-rose-50 text-rose-700" title="MFA not enabled">
                     <X class="h-3 w-3" />
                   </span>
                 {/if}
@@ -209,7 +209,7 @@
                 {@const allow = data.rbac[role as Role][cap as keyof typeof data.rbac[Role]]}
                 <td class="td text-center">
                   {#if allow}
-                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-violet-100 text-violet-700">
+                    <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-violet-50 text-violet-700">
                       <Check class="h-3.5 w-3.5" />
                     </span>
                   {:else}

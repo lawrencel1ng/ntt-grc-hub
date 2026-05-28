@@ -1,5 +1,7 @@
 <script lang="ts">
   import Logo from '$lib/components/Logo.svelte';
+  export let data: { next: string };
+  export let form: { error?: string } | null = null;
   let email = 'demo@ntt.com';
   let password = '';
 </script>
@@ -10,8 +12,11 @@
       <Logo variant="dark" />
     </div>
     <h1 class="mb-1 text-center text-lg font-semibold text-grc-ink">Sign in</h1>
-    <p class="mb-6 text-center text-xs text-slate-500">Demo build — any credentials are accepted.</p>
+    {#if form?.error}
+      <p class="text-sm text-red-600 text-center">{form.error}</p>
+    {/if}
     <form method="POST" class="space-y-3">
+      <input type="hidden" name="next" value={data.next ?? '/'} />
       <label class="block text-sm">
         <span class="mb-1 block text-slate-600">Email</span>
         <input class="input" type="email" name="email" autocomplete="email" bind:value={email} required />

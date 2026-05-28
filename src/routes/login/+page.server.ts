@@ -1,12 +1,45 @@
-import type { Actions } from './$types';
-import { redirect } from '@sveltejs/kit';
+// src/routes/login/+page.server.ts
+import type { Actions, PageServerLoad } from './$types';
+import { redirect, fail } from '@sveltejs/kit';
+import { verifyCredentials, createSession, SESSION_COOKIE, SESSION_TTL_DAYS } from '$lib/server/auth';
+import { isPgMode } from '$lib/server/pg';
 
-/**
- * Demo login: accepts any credentials and redirects to the cockpit.
- * Real OIDC/SAML wiring goes here in a production deploy.
- */
+export const load: PageServerLoad = async ({ locals, url }) => {
+  // Already logged in — skip login page
+  if (locals.user) throw redirect(303, url.searchParams.get('next') ?? '/');
+  return { next: url.searchParams.get('next') ?? '/' };
+};
+
 export const actions: Actions = {
-  default: async () => {
-    throw redirect(303, '/');
+  default: async ({ request, cookies, getClientAddress }) => {
+    // Demo mode: accept any credentials
+    if (!isPgMode()) throw redirect(303, '/');
+
+    const data = await request.formData();
+    const email = String(data.get('email') ?? '');
+    const password = String(data.get('password') ?? '');
+
+    if (!email || !password) {
+      return fail(400, { error: 'Email and password are required.' });
+    }
+
+    const user = await verifyCredentials(email, password);
+    if (!user) {
+      return fail(401, { error: 'Invalid email or password.' });
+    }
+
+    const ua = request.headers.get('user-agent') ?? '';
+    const ip = getClientAddress();
+    const token = await createSession(user.id, ip, ua);
+
+    cookies.set(SESSION_COOKIE, token, {
+      path: '/',
+      httpOnly: true,
+      sameSite: 'lax',
+      maxAge: SESSION_TTL_DAYS * 86_400,
+      secure: process.env.NODE_ENV === 'production'
+    });
+
+    throw redirect(303, String(data.get('next') ?? '/'));
   }
 };

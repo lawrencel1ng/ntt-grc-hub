@@ -3,9 +3,217 @@ import type {
   ESGMetric, ESGDisclosure, ESGTarget,
   AIModel, ModelRisk, PromptAuditEntry,
   RiskSeverity, AIModelKind, AIRiskTier, ISO42001Status,
-  SubjectRequestKind, SubjectRequestStatus
+  SubjectRequestKind, SubjectRequestStatus,
+  ControlTestResult
 } from './types';
 import { hashStringToInt, mulberry32 } from './rng';
+
+// =====================================================================
+// SOX (synthesised — no seed source; deterministic via mulberry32)
+// =====================================================================
+
+export interface SOXItgc {
+  id: string;
+  tenantId: string;
+  code: string;
+  name: string;
+  domain: 'Access' | 'Change' | 'Operations';
+  owner: string;
+  lastTestedAt: string;
+  result: ControlTestResult;
+  frequency: 'monthly' | 'quarterly' | 'annually' | 'continuous';
+}
+
+export interface SOXKca {
+  id: string;
+  tenantId: string;
+  code: string;
+  name: string;
+  process: string;
+  owner: string;
+  frequency: 'daily' | 'monthly' | 'quarterly';
+  automationPct: number;
+  lastTestedAt: string;
+  result: ControlTestResult;
+}
+
+export interface SOXWalkthrough {
+  id: string;
+  tenantId: string;
+  process: string;
+  year: number;
+  status: 'planned' | 'in-progress' | 'complete';
+  conductedBy: string;
+  conductedAt: string;
+}
+
+export interface SOXDeficiency {
+  id: string;
+  tenantId: string;
+  severity: RiskSeverity;
+  description: string;
+  rootCause: string;
+  remediation: string;
+  targetDate: string;
+  onTrack: boolean;
+}
+
+const ITGC_DOMAINS: SOXItgc['domain'][] = ['Access', 'Change', 'Operations'];
+const ITGC_NAMES_BY_DOMAIN: Record<SOXItgc['domain'], string[]> = {
+  Access: [
+    'Privileged access requires approval',
+    'Joiners/movers/leavers reviewed monthly',
+    'Service accounts rotated quarterly',
+    'MFA enforced on production',
+    'Segregation of duties enforced',
+    'Database privileged access logged',
+    'Emergency-access procedure documented',
+    'Vendor access tokens reviewed',
+    'Production read-only by default',
+    'PAM session recording active'
+  ],
+  Change: [
+    'Production change requires CAB approval',
+    'Code reviewed before merge to main',
+    'Release notes captured in ticket',
+    'Database schema changes peer-reviewed',
+    'Hotfix process documented',
+    'Failed deploys auto-rollback',
+    'CI/CD pipeline tamper-protected',
+    'Production deploy windows restricted',
+    'Emergency change post-review',
+    'Test environments mirror production'
+  ],
+  Operations: [
+    'Backups verified weekly',
+    'Job failures alerted within 5 min',
+    'Capacity reviewed monthly',
+    'DR-rehearsal annual',
+    'Incident bridge < 15 min',
+    'Patch cadence < 30 days',
+    'Vulnerability scan weekly',
+    'Log retention 1+ year',
+    'Disk-encryption at rest enforced',
+    'Network egress monitored'
+  ]
+};
+const ITGC_RESULTS: ControlTestResult[] = ['pass', 'pass', 'pass', 'pass', 'partial', 'pass', 'pass', 'fail', 'pass', 'pass'];
+const ITGC_FREQS: SOXItgc['frequency'][] = ['monthly', 'quarterly', 'continuous', 'annually'];
+
+export function soxItgcsForTenant(tenantId: string): SOXItgc[] {
+  if (!['t_maybank', 't_grab'].includes(tenantId)) return [];
+  const rng = mulberry32(hashStringToInt(`itgc:${tenantId}`));
+  const prefix = tenantId.substring(2, 6).toUpperCase();
+  const total = tenantId === 't_maybank' ? 40 : 24;
+  const out: SOXItgc[] = [];
+  for (let g = 1; g <= total; g++) {
+    const domain = ITGC_DOMAINS[g % ITGC_DOMAINS.length];
+    const names = ITGC_NAMES_BY_DOMAIN[domain];
+    const r = rng();
+    out.push({
+      id: `itgc_${tenantId}_${g}`,
+      tenantId,
+      code: `${prefix}-ITGC-${String(g).padStart(3, '0')}`,
+      name: names[g % names.length],
+      domain,
+      owner: ['CIO Office', 'CISO Office', 'IT Risk', 'Internal Audit'][g % 4],
+      lastTestedAt: new Date(Date.now() - Math.floor(r * 120) * 86_400_000).toISOString(),
+      result: ITGC_RESULTS[g % ITGC_RESULTS.length],
+      frequency: ITGC_FREQS[g % ITGC_FREQS.length]
+    });
+  }
+  return out;
+}
+
+const KCA_PROCESSES = [
+  'Revenue Recognition', 'Procure-to-Pay', 'Order-to-Cash', 'Record-to-Report',
+  'Payroll', 'Treasury', 'Tax Provision', 'Inventory', 'Capex', 'Fixed Assets'
+];
+const KCA_NAME_TEMPLATES = [
+  'Three-way match enforced',
+  'Journal entries above threshold dual-approved',
+  'Reconciliations completed within 5 BD',
+  'Quarter-end accruals signed off by Controller',
+  'Cut-off testing performed monthly',
+  'Vendor master-file changes reviewed',
+  'Customer credit limits reviewed quarterly',
+  'Bank reconciliations independently reviewed',
+  'Payroll changes reviewed by HR & Finance',
+  'Inventory counts variance investigation'
+];
+const KCA_FREQS: SOXKca['frequency'][] = ['daily', 'monthly', 'monthly', 'quarterly'];
+const KCA_RESULTS: ControlTestResult[] = ['pass', 'pass', 'pass', 'partial', 'pass', 'pass', 'pass', 'pass', 'fail', 'pass'];
+
+export function soxKcasForTenant(tenantId: string): SOXKca[] {
+  if (!['t_maybank', 't_grab'].includes(tenantId)) return [];
+  const rng = mulberry32(hashStringToInt(`kca:${tenantId}`));
+  const prefix = tenantId.substring(2, 6).toUpperCase();
+  const total = tenantId === 't_maybank' ? 80 : 48;
+  const out: SOXKca[] = [];
+  for (let g = 1; g <= total; g++) {
+    const r = rng();
+    out.push({
+      id: `kca_${tenantId}_${g}`,
+      tenantId,
+      code: `${prefix}-KCA-${String(g).padStart(3, '0')}`,
+      name: KCA_NAME_TEMPLATES[g % KCA_NAME_TEMPLATES.length],
+      process: KCA_PROCESSES[g % KCA_PROCESSES.length],
+      owner: ['Controller', 'Treasury', 'FP&A', 'Internal Audit'][g % 4],
+      frequency: KCA_FREQS[g % KCA_FREQS.length],
+      automationPct: Math.round(20 + r * 75),
+      lastTestedAt: new Date(Date.now() - Math.floor(r * 90) * 86_400_000).toISOString(),
+      result: KCA_RESULTS[g % KCA_RESULTS.length]
+    });
+  }
+  return out;
+}
+
+const WALKTHROUGH_STATUSES: SOXWalkthrough['status'][] = ['complete', 'complete', 'in-progress', 'planned'];
+
+export function soxWalkthroughsForTenant(tenantId: string): SOXWalkthrough[] {
+  if (!['t_maybank', 't_grab'].includes(tenantId)) return [];
+  const total = tenantId === 't_maybank' ? 12 : 8;
+  return Array.from({ length: total }).map((_, i) => {
+    const g = i + 1;
+    return {
+      id: `wkt_${tenantId}_${g}`,
+      tenantId,
+      process: KCA_PROCESSES[g % KCA_PROCESSES.length],
+      year: 2026,
+      status: WALKTHROUGH_STATUSES[g % WALKTHROUGH_STATUSES.length],
+      conductedBy: ['Internal Audit', 'KPMG', 'EY', 'Deloitte'][g % 4],
+      conductedAt: new Date(Date.now() - g * 20 * 86_400_000).toISOString()
+    };
+  });
+}
+
+const DEFICIENCY_DESCRIPTIONS = [
+  { d: 'Privileged production access not reviewed in Q1', r: 'Reviewer left mid-quarter; no backup', m: 'Assign primary + backup reviewers; quarterly cadence' },
+  { d: 'Journal-entry approval bypassed in 3 instances', r: 'Workflow misconfigured', m: 'Reconfigure ERP approval matrix; re-perform Q' },
+  { d: 'Database privileged-access logs incomplete', r: 'Splunk forwarder restarted without persistence', m: 'Enable persistent queue; alert on gaps' },
+  { d: 'Vendor master-file change without dual approval', r: 'Emergency change waived approval', m: 'Tighten emergency-change criteria; mandatory PR' }
+];
+const DEF_SEVS: RiskSeverity[] = ['medium', 'high', 'low', 'medium'];
+
+export function soxDeficienciesForTenant(tenantId: string): SOXDeficiency[] {
+  if (!['t_maybank', 't_grab'].includes(tenantId)) return [];
+  const rng = mulberry32(hashStringToInt(`def:${tenantId}`));
+  const total = tenantId === 't_maybank' ? 6 : 3;
+  return Array.from({ length: total }).map((_, i) => {
+    const g = i + 1;
+    const def = DEFICIENCY_DESCRIPTIONS[g % DEFICIENCY_DESCRIPTIONS.length];
+    return {
+      id: `def_${tenantId}_${g}`,
+      tenantId,
+      severity: DEF_SEVS[g % DEF_SEVS.length],
+      description: def.d,
+      rootCause: def.r,
+      remediation: def.m,
+      targetDate: new Date(Date.now() + Math.floor(15 + rng() * 90) * 86_400_000).toISOString().slice(0, 10),
+      onTrack: rng() > 0.25
+    };
+  });
+}
 
 // =====================================================================
 // Privacy

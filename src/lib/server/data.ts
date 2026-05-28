@@ -648,6 +648,26 @@ export async function getPromptsAudit(tenantId: string, limit?: number): Promise
 }
 
 // =====================================================================
+// SOX (synthesised — never PG)
+// =====================================================================
+
+export async function getSOXItgcs(tenantId: string) {
+  return mock.soxItgcsForTenant(tenantId);
+}
+
+export async function getSOXKcas(tenantId: string) {
+  return mock.soxKcasForTenant(tenantId);
+}
+
+export async function getSOXWalkthroughs(tenantId: string) {
+  return mock.soxWalkthroughsForTenant(tenantId);
+}
+
+export async function getSOXDeficiencies(tenantId: string) {
+  return mock.soxDeficienciesForTenant(tenantId);
+}
+
+// =====================================================================
 // Incidents / Issues / BCM
 // =====================================================================
 

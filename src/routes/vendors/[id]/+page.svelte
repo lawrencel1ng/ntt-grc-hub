@@ -1,0 +1,439 @@
+<script lang="ts">
+  import PageHeader from '$lib/components/PageHeader.svelte';
+  import Kpi from '$lib/components/Kpi.svelte';
+  import Gauge from '$lib/components/Gauge.svelte';
+  import LineChart from '$lib/components/LineChart.svelte';
+  import EvidenceChip from '$lib/components/EvidenceChip.svelte';
+  import AgentTypeBadge from '$lib/components/AgentTypeBadge.svelte';
+  import { addToast } from '$lib/stores/toast';
+  import {
+    Send, BookOpen, FileText, FileQuestion,
+    GitFork, AlertTriangle, ShieldCheck, Mail, Tag as TagIcon, Layers, DollarSign
+  } from 'lucide-svelte';
+  import type { Vendor, VendorTier, VendorCriticality, VendorStatus, Questionnaire } from '$lib/data/types';
+  import { hashStringToInt, mulberry32 } from '$lib/data/rng';
+
+  export let data;
+
+  // ---------- Computed ----------
+  function residualScore(v: Vendor): number {
+    const q = v.lastQuestionnaireScore ?? 70;
+    const tierWeight = { '1': 1.0, '2': 0.85, '3': 0.7, '4': 0.55 }[v.tier];
+    return Math.round((100 - q) * tierWeight + 25);
+  }
+  $: residual = residualScore(data.vendor);
+
+  // 12-month synthesised risk score history.
+  function history12mo(v: Vendor): number[] {
+    const rng = mulberry32(hashStringToInt(`hist:${v.id}`));
+    const last = v.lastQuestionnaireScore ?? 70;
+    const out: number[] = [last];
+    for (let i = 1; i < 12; i++) {
+      const drift = (rng() - 0.5) * 8;
+      out.push(Math.max(40, Math.min(100, out[out.length - 1] - drift)));
+    }
+    return out.reverse().map((n) => Math.round(n));
+  }
+  $: trend = history12mo(data.vendor);
+  const MONTHS = (() => {
+    const out: string[] = [];
+    const d = new Date();
+    for (let i = 11; i >= 0; i--) {
+      const m = new Date(d.getFullYear(), d.getMonth() - i, 1);
+      out.push(m.toLocaleString('en', { month: 'short' }));
+    }
+    return out;
+  })();
+
+  // Synthesised facts panel.
+  $: facts = (() => {
+    const rng = mulberry32(hashStringToInt(`facts:${data.vendor.id}`));
+    return {
+      industry: data.vendor.category === 'cloud' ? 'Hyperscale Cloud' :
+                data.vendor.category === 'saas' ? 'SaaS / Platform' :
+                data.vendor.category === 'consulting' ? 'Professional Services' :
+                data.vendor.category === 'security' ? 'Cyber Security' : 'Technology',
+      region: data.vendor.hqCountry === 'SG' ? 'APAC' : data.vendor.hqCountry === 'US' ? 'Americas' : 'EMEA',
+      employees: Math.round(50 + rng() * 50_000),
+      tags: ['SOC 2', 'ISO 27001', data.vendor.tier === '1' ? 'critical-path' : 'monitored'].slice(0, 3)
+    };
+  })();
+
+  // Synthesised contracts (stable per vendor).
+  $: contracts = (() => {
+    const rng = mulberry32(hashStringToInt(`contracts:${data.vendor.id}`));
+    const n = data.vendor.tier === '1' ? 3 : 2;
+    const out: { id: string; contractNo: string; value: number; startsAt: string; endsAt: string }[] = [];
+    for (let i = 0; i < n; i++) {
+      const startDays = Math.floor(rng() * 720) + 180; // 180–900d ago
+      const lenDays = 365 * (1 + Math.floor(rng() * 3));
+      const start = new Date(Date.now() - startDays * 86_400_000);
+      const end = new Date(start.getTime() + lenDays * 86_400_000);
+      out.push({
+        id: `cnt_${data.vendor.id}_${i}`,
+        contractNo: `MSA-${String(hashStringToInt(`cn:${data.vendor.id}:${i}`) % 100000).padStart(5, '0')}`,
+        value: Math.round(((data.vendor.contractValueSgd ?? 250_000) / n) * (0.8 + rng() * 0.4)),
+        startsAt: start.toISOString().slice(0, 10),
+        endsAt: end.toISOString().slice(0, 10)
+      });
+    }
+    return out;
+  })();
+
+  // ---------- Tabs ----------
+  type Tab = 'overview' | 'contracts' | 'questionnaires' | 'fourth' | 'risks' | 'evidence';
+  let tab: Tab = 'overview';
+  const TABS: { id: Tab; label: string; icon: typeof BookOpen }[] = [
+    { id: 'overview',       label: 'Overview',         icon: BookOpen },
+    { id: 'contracts',      label: 'Contracts',        icon: FileText },
+    { id: 'questionnaires', label: 'Questionnaires',   icon: FileQuestion },
+    { id: 'fourth',         label: '4th Parties',      icon: GitFork },
+    { id: 'risks',          label: 'Risk Findings',    icon: AlertTriangle },
+    { id: 'evidence',       label: 'Evidence',         icon: ShieldCheck }
+  ];
+
+  // ---------- Helpers ----------
+  function tierCls(t: VendorTier): string {
+    switch (t) {
+      case '1': return 'bg-rose-100 text-rose-800 ring-rose-200';
+      case '2': return 'bg-orange-50 text-orange-700 ring-orange-200';
+      case '3': return 'bg-amber-50 text-amber-700 ring-amber-200';
+      case '4': return 'bg-slate-100 text-slate-600 ring-slate-200';
+    }
+  }
+  function critCls(c: VendorCriticality): string {
+    switch (c) {
+      case 'critical': return 'bg-rose-100 text-rose-800 ring-rose-200';
+      case 'high':     return 'bg-orange-50 text-orange-700 ring-orange-200';
+      case 'medium':   return 'bg-amber-50 text-amber-700 ring-amber-200';
+      case 'low':      return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+    }
+  }
+  function statusCls(s: VendorStatus): string {
+    switch (s) {
+      case 'active':     return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'onboarding': return 'bg-blue-50 text-blue-700 ring-blue-200';
+      case 'offboarded': return 'bg-slate-100 text-slate-500 ring-slate-200';
+    }
+  }
+  function qStatusCls(s: string): string {
+    switch (s) {
+      case 'complete':    return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+      case 'in-progress': return 'bg-blue-50 text-blue-700 ring-blue-200';
+      case 'sent':        return 'bg-amber-50 text-amber-700 ring-amber-200';
+      default:            return 'bg-slate-100 text-slate-600 ring-slate-200';
+    }
+  }
+  function templateCls(t: 'SIG' | 'CAIQ' | 'Custom'): string {
+    switch (t) {
+      case 'SIG':    return 'bg-blue-50 text-blue-700 ring-blue-200';
+      case 'CAIQ':   return 'bg-violet-50 text-violet-700 ring-violet-200';
+      case 'Custom': return 'bg-slate-100 text-slate-600 ring-slate-200';
+    }
+  }
+  function sevCls(s: string): string {
+    if (s === 'critical') return 'bg-rose-100 text-rose-800 ring-rose-200';
+    if (s === 'high')     return 'bg-orange-50 text-orange-700 ring-orange-200';
+    if (s === 'medium')   return 'bg-amber-50 text-amber-700 ring-amber-200';
+    return 'bg-slate-100 text-slate-600 ring-slate-200';
+  }
+  function fpTypeCls(t: 'cloud' | 'saas' | 'processor'): string {
+    switch (t) {
+      case 'cloud':     return 'bg-violet-50 text-violet-700 ring-violet-200';
+      case 'saas':      return 'bg-blue-50 text-blue-700 ring-blue-200';
+      case 'processor': return 'bg-amber-50 text-amber-700 ring-amber-200';
+    }
+  }
+
+  function fmtMoney(n: number): string {
+    if (n >= 1e6) return `S$${(n / 1e6).toFixed(2)}M`;
+    if (n >= 1e3) return `S$${(n / 1e3).toFixed(0)}K`;
+    return `S$${n}`;
+  }
+  function fmtDate(iso?: string): string {
+    return iso ? iso.slice(0, 10) : '—';
+  }
+  function daysUntil(iso: string): number {
+    return Math.round((new Date(iso).getTime() - Date.now()) / 86_400_000);
+  }
+  function renewalCls(days: number): string {
+    if (days < 0) return 'bg-rose-100 text-rose-800 ring-rose-200';
+    if (days < 30) return 'bg-rose-50 text-rose-700 ring-rose-200';
+    if (days < 90) return 'bg-amber-50 text-amber-700 ring-amber-200';
+    return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+  }
+  function renewalLabel(days: number): string {
+    if (days < 0) return `expired ${-days}d ago`;
+    return `renews in ${days}d`;
+  }
+
+  function sendQuestionnaire() {
+    addToast('success', `SIG questionnaire queued for ${data.vendor.name}. Vendor Risk Analyst will pre-fill responses.`);
+  }
+</script>
+
+<PageHeader
+  title={data.vendor.name}
+  breadcrumbs={[{ label: 'Vendors', href: '/vendors' }, { label: data.vendor.name }]}
+>
+  <svelte:fragment slot="actions">
+    <span class="tag tag-slate">{data.vendor.category}</span>
+    <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset {tierCls(data.vendor.tier)}">Tier {data.vendor.tier}</span>
+    <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset {critCls(data.vendor.criticality)}">{data.vendor.criticality}</span>
+    <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset {statusCls(data.vendor.status)}">{data.vendor.status}</span>
+    <button class="btn-primary" on:click={sendQuestionnaire}>
+      <Send class="h-4 w-4" />
+      <span>Send Questionnaire</span>
+    </button>
+  </svelte:fragment>
+</PageHeader>
+
+<div class="space-y-6">
+  <!-- KPI strip -->
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+    <Kpi label="Residual Risk Score" value={residual.toString()} suffix="/ 100" hint="lower is better" tone={residual > 60 ? 'bad' : 'default'}>
+      <AlertTriangle slot="icon" class="h-4 w-4 text-rose-600" />
+    </Kpi>
+    <Kpi label="Tier" value={`Tier ${data.vendor.tier}`}>
+      <Layers slot="icon" class="h-4 w-4 text-grc-primary" />
+    </Kpi>
+    <Kpi label="4th-Parties" value={data.fourthParties.length.toString()}>
+      <GitFork slot="icon" class="h-4 w-4 text-violet-600" />
+    </Kpi>
+    <Kpi label="Contract Value" value={fmtMoney(data.vendor.contractValueSgd ?? 0)}>
+      <DollarSign slot="icon" class="h-4 w-4 text-emerald-600" />
+    </Kpi>
+  </div>
+
+  <!-- Tabs -->
+  <div class="card overflow-hidden">
+    <div class="flex flex-wrap border-b border-slate-100 px-2">
+      {#each TABS as t}
+        {@const Icon = t.icon}
+        <button type="button"
+          class="-mb-px flex items-center gap-1.5 border-b-2 px-4 py-3 text-sm font-medium transition-colors {tab === t.id
+            ? 'border-grc-primary text-grc-primary'
+            : 'border-transparent text-slate-500 hover:text-slate-700'}"
+          on:click={() => (tab = t.id)}>
+          <Icon class="h-4 w-4" />
+          {t.label}
+        </button>
+      {/each}
+    </div>
+
+    <!-- Overview -->
+    {#if tab === 'overview'}
+      <div class="grid grid-cols-1 gap-6 p-5 text-sm lg:grid-cols-3">
+        <div class="space-y-4 lg:col-span-2">
+          <div>
+            <div class="section-title text-xs">Description</div>
+            <p class="mt-1 text-slate-700">
+              {data.vendor.name} is a Tier {data.vendor.tier} {facts.industry.toLowerCase()} provider supporting our
+              {data.vendor.category} workloads. Headquartered in {data.vendor.hqCountry}, the vendor is classified
+              <span class="font-semibold">{data.vendor.criticality}</span> for business impact and is currently
+              <span class="font-semibold">{data.vendor.status}</span>.
+            </p>
+          </div>
+          <div>
+            <div class="section-title text-xs">Risk score history (12 months)</div>
+            <div class="mt-2 rounded-lg border border-slate-100 bg-slate-50/40 p-3">
+              <LineChart
+                labels={MONTHS}
+                series={[{ name: 'Questionnaire Score', color: '#0f766e', data: trend, area: true }]}
+                yMin={0}
+                yMax={100}
+                unit=""
+              />
+            </div>
+          </div>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <div class="section-title text-xs">HQ Country</div>
+              <div class="mt-1 font-medium text-slate-800">{data.vendor.hqCountry}</div>
+            </div>
+            <div>
+              <div class="section-title text-xs">Primary Contact</div>
+              <div class="mt-1 flex items-center gap-1.5 text-slate-700">
+                <Mail class="h-3.5 w-3.5 text-slate-400" />
+                <a class="text-grc-primary hover:underline" href="mailto:{data.vendor.primaryContactEmail}">{data.vendor.primaryContactEmail}</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="space-y-4">
+          <div class="card p-4">
+            <div class="section-title text-xs">Key facts</div>
+            <dl class="mt-2 space-y-2 text-sm">
+              <div class="flex justify-between"><dt class="text-slate-500">Industry</dt><dd class="font-medium">{facts.industry}</dd></div>
+              <div class="flex justify-between"><dt class="text-slate-500">Region</dt><dd class="font-medium">{facts.region}</dd></div>
+              <div class="flex justify-between"><dt class="text-slate-500">Employees</dt><dd class="font-mono">{facts.employees.toLocaleString()}</dd></div>
+            </dl>
+          </div>
+          <div>
+            <div class="section-title text-xs">Tags</div>
+            <div class="mt-2 flex flex-wrap gap-1.5">
+              {#each facts.tags as t}
+                <span class="tag tag-emerald inline-flex items-center gap-1"><TagIcon class="h-3 w-3" />{t}</span>
+              {/each}
+            </div>
+          </div>
+        </div>
+      </div>
+
+    <!-- Contracts -->
+    {:else if tab === 'contracts'}
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-100 text-sm">
+          <thead class="thead">
+            <tr>
+              <th class="px-4 py-2 text-left">Contract No.</th>
+              <th class="px-4 py-2 text-right">Value</th>
+              <th class="px-4 py-2 text-left">Starts</th>
+              <th class="px-4 py-2 text-left">Ends</th>
+              <th class="px-4 py-2 text-left">Renewal Window</th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each contracts as c (c.id)}
+              {@const d = daysUntil(c.endsAt)}
+              <tr class="tr">
+                <td class="td font-mono text-xs">{c.contractNo}</td>
+                <td class="td text-right font-mono">{fmtMoney(c.value)}</td>
+                <td class="td font-mono text-xs">{c.startsAt}</td>
+                <td class="td font-mono text-xs">{c.endsAt}</td>
+                <td class="td">
+                  <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {renewalCls(d)}">{renewalLabel(d)}</span>
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+
+    <!-- Questionnaires -->
+    {:else if tab === 'questionnaires'}
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-100 text-sm">
+          <thead class="thead">
+            <tr>
+              <th class="px-4 py-2 text-left">Template</th>
+              <th class="px-4 py-2 text-left">Status</th>
+              <th class="px-4 py-2 text-left">Sent</th>
+              <th class="px-4 py-2 text-left">Completed</th>
+              <th class="px-4 py-2 text-left">Score</th>
+              <th class="px-4 py-2 text-left">Completed By</th>
+              <th class="w-8 px-2 py-2"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each data.questionnaires as q (q.id)}
+              <tr class="tr">
+                <td class="td">
+                  <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {templateCls(q.template)}">{q.template}</span>
+                </td>
+                <td class="td">
+                  <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {qStatusCls(q.status)}">{q.status}</span>
+                </td>
+                <td class="td font-mono text-xs text-slate-500">{fmtDate(q.sentAt)}</td>
+                <td class="td font-mono text-xs text-slate-500">{fmtDate(q.completedAt)}</td>
+                <td class="td">
+                  {#if q.score !== undefined}
+                    <div class="w-24"><Gauge value={q.score} width={120} height={70} /></div>
+                  {:else}
+                    <span class="text-slate-400">—</span>
+                  {/if}
+                </td>
+                <td class="td">
+                  {#if q.completedByAgentId}
+                    <div class="flex items-center gap-1.5">
+                      <AgentTypeBadge type="intelligent" />
+                      <span class="text-xs text-slate-500">Vendor Risk Analyst</span>
+                    </div>
+                  {:else if q.status === 'complete'}
+                    <span class="text-xs text-slate-600">Risk Analyst (human)</span>
+                  {:else}
+                    <span class="text-xs text-slate-400">—</span>
+                  {/if}
+                </td>
+                <td class="td">
+                  <a href="/questionnaires/{q.id}" class="text-slate-400 hover:text-grc-primary">→</a>
+                </td>
+              </tr>
+            {:else}
+              <tr><td colspan="7" class="px-4 py-8 text-center text-sm text-slate-500">No questionnaires sent yet.</td></tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+
+    <!-- 4th Parties -->
+    {:else if tab === 'fourth'}
+      <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-slate-100 text-sm">
+          <thead class="thead">
+            <tr>
+              <th class="px-4 py-2 text-left">4th-Party Name</th>
+              <th class="px-4 py-2 text-left">Type</th>
+              <th class="px-4 py-2 text-left">Region</th>
+              <th class="px-4 py-2 text-left">Criticality</th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each data.fourthParties as fp (fp.id)}
+              <tr class="tr">
+                <td class="td font-medium">{fp.name}</td>
+                <td class="td">
+                  <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {fpTypeCls(fp.type)}">{fp.type}</span>
+                </td>
+                <td class="td font-mono text-xs">{fp.region}</td>
+                <td class="td">
+                  <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {critCls(fp.criticality)}">{fp.criticality}</span>
+                </td>
+              </tr>
+            {:else}
+              <tr><td colspan="4" class="px-4 py-8 text-center text-sm text-slate-500">No 4th parties declared.</td></tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+
+    <!-- Risk Findings -->
+    {:else if tab === 'risks'}
+      <div class="divide-y divide-slate-100">
+        {#each data.riskFindings as f (f.id)}
+          <div class="flex items-start justify-between px-5 py-4">
+            <div class="flex-1">
+              <div class="flex items-center gap-2">
+                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {sevCls(f.severity)}">{f.severity}</span>
+                <a href="/issues/{f.id}" class="font-semibold text-grc-ink hover:underline">{f.title}</a>
+              </div>
+              <div class="mt-1 text-xs text-slate-500">Source: {f.source} · Due {fmtDate(f.dueAt)}</div>
+            </div>
+            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset bg-rose-50 text-rose-700 ring-rose-200">{f.status}</span>
+          </div>
+        {:else}
+          <div class="px-5 py-8 text-center text-sm text-slate-500">No risk findings raised against this vendor.</div>
+        {/each}
+      </div>
+
+    <!-- Evidence -->
+    {:else if tab === 'evidence'}
+      <div class="space-y-4 p-5">
+        <div class="text-xs text-slate-500">Vendor-specific evidence: SOC 2 reports, ISO certifications, third-party attestations.</div>
+        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+          {#each data.vendorEvidence as e (e.id)}
+            <div class="rounded-lg border border-slate-200 bg-white p-3 text-xs">
+              <div class="truncate font-medium text-slate-800">{e.title}</div>
+              <div class="mt-1 flex items-center justify-between gap-2">
+                <span class="text-slate-500">{e.kind}</span>
+                <EvidenceChip hash={e.rowHash ?? ''} />
+              </div>
+            </div>
+          {:else}
+            <div class="col-span-full py-8 text-center text-sm text-slate-500">No vendor evidence on file.</div>
+          {/each}
+        </div>
+      </div>
+    {/if}
+  </div>
+</div>

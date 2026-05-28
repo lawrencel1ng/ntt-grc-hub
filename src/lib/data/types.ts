@@ -1,0 +1,772 @@
+// =====================================================================
+//  NTT GRC Hub — TypeScript types mirroring the Postgres schema.
+//  Column names are camelCase; enums are string literal unions.
+//  See db/init.sql for the source-of-truth shapes.
+// =====================================================================
+
+// -------------------- Enums --------------------
+
+export type Role = 'admin' | 'risk-owner' | 'control-owner' | 'auditor' | 'agent-operator' | 'viewer';
+export type UserStatus = 'active' | 'disabled' | 'invited' | 'locked';
+
+export type RiskSeverity = 'critical' | 'high' | 'medium' | 'low' | 'info';
+export type RiskLikelihood = 'rare' | 'unlikely' | 'possible' | 'likely' | 'almost-certain';
+export type RiskTreatmentStrategy = 'accept' | 'mitigate' | 'transfer' | 'avoid';
+export type RiskStatus = 'identified' | 'assessed' | 'treated' | 'monitoring' | 'closed';
+
+export type ControlMaturity = 'initial' | 'developing' | 'defined' | 'managed' | 'optimised';
+export type ControlTestResult = 'pass' | 'fail' | 'partial' | 'na';
+export type ControlType = 'technical' | 'process' | 'admin';
+export type ControlTestKind = 'manual' | 'automated';
+
+export type AssessmentStatus = 'not-started' | 'in-progress' | 'complete' | 'expired';
+
+export type EvidenceKind = 'screenshot' | 'log' | 'config' | 'attestation' | 'document' | 'scan-result' | 'api-response';
+export type EvidenceCollectorKind = 'aws' | 'azure' | 'gcp' | 'okta' | 'jira' | 'm365' | 'github' | 'servicenow' | 'slack' | 'manual';
+
+export type EngagementType = 'internal' | 'external' | 'regulatory' | 'customer';
+export type FindingStatus = 'open' | 'closed' | 'accepted-risk';
+
+export type PolicyVersionStatus = 'draft' | 'in-review' | 'approved' | 'retired';
+
+export type VendorTier = '1' | '2' | '3' | '4';
+export type VendorCriticality = 'critical' | 'high' | 'medium' | 'low';
+export type VendorStatus = 'active' | 'onboarding' | 'offboarded';
+export type QuestionnaireStatus = 'sent' | 'in-progress' | 'complete';
+
+export type SubjectRequestKind = 'access' | 'erasure' | 'portability' | 'objection' | 'rectification';
+export type SubjectRequestStatus = 'received' | 'in-progress' | 'resolved' | 'rejected';
+
+export type AIRiskTier = 'minimal' | 'limited' | 'high' | 'unacceptable';
+export type ISO42001Status = 'compliant' | 'in-progress' | 'non-compliant';
+export type AIModelKind = 'classifier' | 'llm' | 'regression' | 'vision' | 'recommender';
+export type ModelRiskType = 'bias' | 'hallucination' | 'drift' | 'explainability' | 'privacy';
+
+export type IncidentSeverity = 'sev1' | 'sev2' | 'sev3' | 'sev4';
+export type IncidentStatus = 'open' | 'contained' | 'resolved' | 'postmortem-done';
+
+export type IssueStatus = 'open' | 'in-progress' | 'resolved' | 'accepted-risk';
+export type IssueSource = 'audit' | 'risk-treatment' | 'incident' | 'control-test' | 'regulatory';
+export type ActionStatus = 'not-started' | 'in-progress' | 'done';
+
+export type BCMTestResult = 'pass' | 'partial' | 'fail';
+export type BCMTestKind = 'tabletop' | 'walkthrough' | 'simulation' | 'full-failover';
+export type BCMDependencyKind = 'people' | 'tech' | 'site' | 'vendor';
+
+export type RegImpact = 'none' | 'low' | 'medium' | 'high';
+
+export type AgentType = 'deterministic' | 'ai-powered' | 'intelligent';
+export type AgentStatus = 'idle' | 'running' | 'paused' | 'error';
+export type AgentRunStatus = 'queued' | 'running' | 'success' | 'failed' | 'halted' | 'awaiting-approval';
+export type AgentDecisionOutcome = 'auto-approved' | 'awaiting-hitl' | 'hitl-approved' | 'hitl-rejected';
+export type AgentRunTrigger = 'cron' | 'manual' | 'event';
+
+export type WorkflowExecutionStatus = 'running' | 'success' | 'failed' | 'halted';
+export type WorkflowStepKind = 'agent' | 'api' | 'manual' | 'decision';
+
+export type IntegrationStatus = 'connected' | 'degraded' | 'disconnected';
+export type IntegrationKind = 'aws' | 'azure' | 'gcp' | 'okta' | 'jira' | 'm365' | 'github' | 'servicenow' | 'slack' | 'splunk' | 'datadog' | 'pagerduty' | 'teams';
+
+// -------------------- Platform --------------------
+
+export interface Tenant {
+  id: string;
+  name: string;
+  industry: string;
+  region: string;
+  classified: boolean;
+  slaTier: 'standard' | 'gold' | 'platinum' | 'sovereign';
+  primaryFramework: string;
+  headquarteredIn: string;
+  mrrSgd: number;
+  createdAt: string;
+}
+
+export interface User {
+  id: string;
+  tenantId: string;
+  email: string;
+  name: string;
+  role: Role;
+  status: UserStatus;
+  mfaEnabled: boolean;
+  lastLoginAt?: string;
+}
+
+export interface AuditLogEntry {
+  id: number;
+  ts: string;
+  tenantId?: string;
+  actorEmail: string;
+  action: string;
+  target: string;
+  result: 'success' | 'failure' | 'denied';
+  ipAddress?: string;
+  userAgent?: string;
+  prevHash?: string;
+  rowHash: string;
+}
+
+// -------------------- Risk --------------------
+
+export interface Risk {
+  id: string;
+  tenantId: string;
+  registerId?: string;
+  code: string;
+  title: string;
+  description?: string;
+  category: string;
+  ownerUserId?: string;
+  inherentSeverity: RiskSeverity;
+  inherentLikelihood: RiskLikelihood;
+  residualSeverity: RiskSeverity;
+  residualLikelihood: RiskLikelihood;
+  status: RiskStatus;
+  treatmentStrategy: RiskTreatmentStrategy;
+  lastAssessedAt?: string;
+  nextReviewAt?: string;
+  businessService?: string;
+  tags?: Record<string, unknown>;
+}
+
+export interface FAIRRun {
+  id: string;
+  tenantId: string;
+  scenarioId: string;
+  trials: number;
+  lecPercentiles: { p10: number; p25: number; p50: number; p75: number; p90: number; p95: number; p99: number };
+  aleSgd: number;
+  aro: number;
+  runAt: string;
+}
+
+export interface FAIRScenario {
+  id: string;
+  tenantId: string;
+  riskId?: string;
+  name: string;
+  description?: string;
+  frequencyDist: { kind: string; min?: number; mode?: number; max?: number; mean?: number; stdev?: number };
+  magnitudeDist: { kind: string; min?: number; mode?: number; max?: number; mean?: number; stdev?: number };
+}
+
+export interface AppetiteStatement {
+  id: string;
+  tenantId: string;
+  category: string;
+  statement: string;
+  thresholdSgd: number;
+  severityCap: RiskSeverity;
+}
+
+export interface HeatmapCell {
+  sev: RiskSeverity;
+  lik: RiskLikelihood;
+  n: number;
+}
+
+// -------------------- Control --------------------
+
+export interface Control {
+  id: string;
+  tenantId: string;
+  code: string;
+  title: string;
+  description?: string;
+  type: ControlType;
+  family: string[];
+  ownerUserId?: string;
+  frequency: string;
+  automated: boolean;
+  maturity: ControlMaturity;
+}
+
+export interface ControlMapping {
+  id: number;
+  controlId: string;
+  frameworkId: string;
+  requirementId?: string;
+  coveragePct: number;
+  notes?: string;
+}
+
+export interface ControlTest {
+  id: string;
+  tenantId: string;
+  controlId: string;
+  name: string;
+  kind: ControlTestKind;
+  scheduleCron?: string;
+  procedureMd?: string;
+}
+
+export interface ControlTestRun {
+  id: number;
+  tenantId: string;
+  controlId: string;
+  controlCode?: string;
+  controlTitle?: string;
+  testId?: string;
+  ranAt: string;
+  result: ControlTestResult;
+  evidenceItemId?: number;
+  agentRunId?: number;
+  notes?: string;
+  durationMs?: number;
+}
+
+// -------------------- Compliance --------------------
+
+export interface Framework {
+  id: string;
+  name: string;
+  version: string;
+  regulator: string;
+  region: string;
+  jurisdiction: string;
+  totalRequirements: number;
+  tags: string[];
+}
+
+export interface Requirement {
+  id: string;
+  frameworkId: string;
+  code: string;
+  title: string;
+  description?: string;
+  parentRequirementId?: string;
+  weight: number;
+}
+
+export interface Assessment {
+  id: string;
+  tenantId: string;
+  frameworkId: string;
+  status: AssessmentStatus;
+  score?: number;
+  startedAt?: string;
+  completedAt?: string;
+  nextDueAt?: string;
+}
+
+export interface FrameworkScore {
+  tenantId: string;
+  frameworkId: string;
+  name: string;
+  version: string;
+  region: string;
+  status: AssessmentStatus;
+  score: number;
+  nextDueAt?: string;
+}
+
+// -------------------- Evidence --------------------
+
+export interface EvidenceCollector {
+  id: string;
+  tenantId: string;
+  name: string;
+  kind: EvidenceCollectorKind;
+  scheduleCron?: string;
+  lastRunAt?: string;
+  enabled: boolean;
+}
+
+export interface EvidenceItem {
+  id: number;
+  tenantId: string;
+  collectorId?: string;
+  controlId?: string;
+  kind: EvidenceKind;
+  title: string;
+  sourceUrl?: string;
+  blobUrl?: string;
+  capturedAt: string;
+  agentRunId?: number;
+  metadata?: Record<string, unknown>;
+  rowHash?: string;
+  prevHash?: string;
+}
+
+// -------------------- Audit --------------------
+
+export interface AuditEngagement {
+  id: string;
+  tenantId: string;
+  name: string;
+  type: EngagementType;
+  leadAuditor: string;
+  openedAt: string;
+  closedAt?: string;
+  scope?: string;
+  frameworkId?: string;
+}
+
+export interface AuditFinding {
+  id: string;
+  tenantId: string;
+  engagementId: string;
+  severity: RiskSeverity;
+  title: string;
+  description?: string;
+  controlId?: string;
+  dueAt?: string;
+  status: FindingStatus;
+}
+
+// -------------------- Policy --------------------
+
+export interface Policy {
+  id: string;
+  tenantId: string;
+  code: string;
+  title: string;
+  jurisdiction: string;
+  currentVersionId?: string;
+  status?: PolicyVersionStatus;
+}
+
+export interface PolicyVersion {
+  id: string;
+  tenantId: string;
+  documentId: string;
+  versionNo: string;
+  contentMd: string;
+  status: PolicyVersionStatus;
+  effectiveAt?: string;
+  draftedByAgentId?: string;
+}
+
+// -------------------- Vendor --------------------
+
+export interface Vendor {
+  id: string;
+  tenantId: string;
+  name: string;
+  category: string;
+  tier: VendorTier;
+  criticality: VendorCriticality;
+  hqCountry: string;
+  primaryContactEmail: string;
+  status: VendorStatus;
+  contractValueSgd?: number;
+  lastQuestionnaireScore?: number;
+}
+
+export interface Questionnaire {
+  id: string;
+  tenantId: string;
+  vendorId: string;
+  vendorName?: string;
+  template: 'SIG' | 'CAIQ' | 'Custom';
+  status: QuestionnaireStatus;
+  sentAt: string;
+  completedAt?: string;
+  completedByAgentId?: string;
+  score?: number;
+}
+
+export interface QuestionnaireResponse {
+  id: number;
+  questionnaireId: string;
+  questionCode: string;
+  response: string;
+  confidence: number;
+  sourceEvidenceItemId?: number;
+}
+
+export interface FourthParty {
+  id: string;
+  tenantId: string;
+  vendorId: string;
+  vendorName?: string;
+  name: string;
+  type: 'cloud' | 'saas' | 'processor';
+  region: string;
+  criticality: VendorCriticality;
+}
+
+export interface Concentration {
+  id: string;
+  tenantId: string;
+  dimension: 'cloud' | 'region' | 'processor';
+  key: string;
+  vendorCount: number;
+  exposureSgd: number;
+}
+
+// -------------------- Privacy --------------------
+
+export interface PrivacyActivity {
+  id: string;
+  tenantId: string;
+  code: string;
+  name: string;
+  controller: string;
+  processor?: string;
+  purpose: string;
+  lawfulBasis: string;
+  dataCategories: string[];
+  retentionPeriod: string;
+  crossBorder: boolean;
+  jurisdictions: string[];
+}
+
+export interface DPIA {
+  id: string;
+  tenantId: string;
+  activityId: string;
+  activityName?: string;
+  status: 'draft' | 'in-review' | 'approved' | 'retired';
+  residualRiskSeverity: RiskSeverity;
+  conductedAt?: string;
+}
+
+export interface SubjectRequest {
+  id: string;
+  tenantId: string;
+  kind: SubjectRequestKind;
+  requesterEmail: string;
+  receivedAt: string;
+  dueAt: string;
+  status: SubjectRequestStatus;
+  resolvedAt?: string;
+}
+
+export interface Breach {
+  id: string;
+  tenantId: string;
+  code: string;
+  severity: RiskSeverity;
+  occurredAt: string;
+  detectedAt: string;
+  reportedAt?: string;
+  affectedSubjects: number;
+  regulatorNotified: boolean;
+  rootCause: string;
+}
+
+// -------------------- ESG --------------------
+
+export interface ESGMetric {
+  id: number;
+  tenantId: string;
+  period: string;
+  scope: 'scope1' | 'scope2' | 'scope3';
+  category: string;
+  metric: string;
+  value: number;
+  unit: string;
+  framework: 'CSRD' | 'ISSB' | 'GHG' | 'TCFD';
+}
+
+export interface ESGDisclosure {
+  id: string;
+  tenantId: string;
+  framework: string;
+  period: string;
+  status: 'draft' | 'in-review' | 'published' | 'retired';
+  publishedAt?: string;
+}
+
+export interface ESGTarget {
+  id: string;
+  tenantId: string;
+  framework: string;
+  metric: string;
+  baselineValue: number;
+  baselinePeriod: string;
+  targetValue: number;
+  targetPeriod: string;
+}
+
+// -------------------- AI Governance --------------------
+
+export interface AIModel {
+  id: string;
+  tenantId: string;
+  name: string;
+  kind: AIModelKind;
+  riskTier: AIRiskTier;
+  jurisdiction: string;
+  euAiActClass: string;
+  iso42001Status: ISO42001Status;
+}
+
+export interface ModelRisk {
+  id: string;
+  tenantId: string;
+  modelId: string;
+  riskType: ModelRiskType;
+  severity: RiskSeverity;
+  mitigation: string;
+}
+
+export interface PromptAuditEntry {
+  id: number;
+  tenantId: string;
+  modelId: string;
+  agentRunId?: number;
+  promptRedacted: string;
+  responseRedacted: string;
+  tokensIn: number;
+  tokensOut: number;
+  costCents: number;
+  capturedAt: string;
+}
+
+// -------------------- Incidents --------------------
+
+export interface Incident {
+  id: string;
+  tenantId: string;
+  code: string;
+  severity: IncidentSeverity;
+  title: string;
+  status: IncidentStatus;
+  openedAt: string;
+  containedAt?: string;
+  resolvedAt?: string;
+}
+
+export interface TimelineEvent {
+  id: number;
+  tenantId: string;
+  incidentId: string;
+  ts: string;
+  actor: string;
+  event: string;
+  source: 'agent' | 'human' | 'system';
+}
+
+export interface Postmortem {
+  id: string;
+  tenantId: string;
+  incidentId: string;
+  rootCauseMd: string;
+  correctiveActionsMd: string;
+  draftedByAgentId?: string;
+  signedOffAt?: string;
+}
+
+// -------------------- Issues --------------------
+
+export interface Issue {
+  id: string;
+  tenantId: string;
+  source: IssueSource;
+  sourceId: string;
+  title: string;
+  severity: RiskSeverity;
+  status: IssueStatus;
+  ownerUserId?: string;
+  dueAt?: string;
+}
+
+export interface IssueAction {
+  id: string;
+  tenantId: string;
+  issueId: string;
+  description: string;
+  dueAt?: string;
+  status: ActionStatus;
+}
+
+// -------------------- BCM --------------------
+
+export interface BCMPlan {
+  id: string;
+  tenantId: string;
+  name: string;
+  businessService: string;
+  rtoMinutes: number;
+  rpoMinutes: number;
+  lastTestedAt?: string;
+  nextTestAt?: string;
+}
+
+export interface BCMDependency {
+  id: string;
+  tenantId: string;
+  planId: string;
+  dependencyKind: BCMDependencyKind;
+  name: string;
+  criticality: VendorCriticality;
+  downtimeToleranceHours: number;
+}
+
+export interface BCMTest {
+  id: string;
+  tenantId: string;
+  planId: string;
+  kind: BCMTestKind;
+  conductedAt: string;
+  result: BCMTestResult;
+  lessonsMd: string;
+}
+
+// -------------------- Regwatch --------------------
+
+export interface RegSource {
+  id: string;
+  regulatorCode: string;
+  name: string;
+  sourceUrl: string;
+  jurisdiction: string;
+  lastScannedAt?: string;
+  enabled: boolean;
+}
+
+export interface RegChange {
+  id: string;
+  sourceId: string;
+  sourceName?: string;
+  regulatorCode?: string;
+  title: string;
+  summary?: string;
+  publishedAt: string;
+  effectiveAt?: string;
+  severity: RiskSeverity;
+  detectedByAgentId?: string;
+}
+
+export interface ImpactAssessment {
+  id: string;
+  tenantId: string;
+  changeId: string;
+  frameworkId?: string;
+  impact: RegImpact;
+  gapsOpened: number;
+  assessedByAgentId?: string;
+  assessedAt: string;
+  notes?: string;
+}
+
+// -------------------- Agent --------------------
+
+export interface Agent {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  type: AgentType;
+  status: AgentStatus;
+  ownerTeam: string;
+  costPerRunCents: number;
+  costMonthlyEstimateCents: number;
+  fteEquivalent: number;
+}
+
+export interface AgentTool {
+  agentId: string;
+  toolName: string;
+  toolKind: 'api' | 'db' | 'llm' | 'search' | 'script';
+  description: string;
+}
+
+export interface AgentRun {
+  id: number;
+  tenantId?: string;
+  agentId: string;
+  agentName?: string;
+  trigger: AgentRunTrigger;
+  startedAt: string;
+  endedAt?: string;
+  status: AgentRunStatus;
+  inputSummary: string;
+  outputSummary: string;
+  toolsCalled: string[];
+  costCents: number;
+  latencyMs: number;
+}
+
+export interface AgentDecision {
+  id: number;
+  tenantId?: string;
+  agentId: string;
+  agentName?: string;
+  runId: number;
+  decisionType: string;
+  input?: Record<string, unknown>;
+  output?: Record<string, unknown>;
+  confidence: number;
+  outcome: AgentDecisionOutcome;
+  approverUserId?: string;
+  decidedAt: string;
+}
+
+export interface CostLedgerEntry {
+  id?: number;
+  tenantId: string;
+  agentId: string;
+  ts: string;
+  runs: number;
+  costCents: number;
+  fteSavedHours: number;
+}
+
+export interface AgentFleetSummary {
+  id: string;
+  name: string;
+  type: AgentType;
+  status: AgentStatus;
+  runs30d: number;
+  costCents30d: number;
+  fteHours30d: number;
+}
+
+// -------------------- Workflow --------------------
+
+export interface WorkflowStepDef {
+  kind: 'agent' | 'api' | 'manual' | 'decision';
+  ref?: string;
+  label: string;
+  requiresApproval?: boolean;
+}
+
+export interface Workflow {
+  id: string;
+  tenantId: string;
+  name: string;
+  description: string;
+  steps: WorkflowStepDef[];
+  version: number;
+  enabled: boolean;
+  lastExecutionStatus?: WorkflowExecutionStatus;
+  successRate30d?: number;
+}
+
+export interface WorkflowExecution {
+  id: number;
+  tenantId: string;
+  workflowId: string;
+  workflowName?: string;
+  trigger: string;
+  startedAt: string;
+  endedAt?: string;
+  status: WorkflowExecutionStatus;
+}
+
+// -------------------- Integration --------------------
+
+export interface Connector {
+  id: string;
+  tenantId: string;
+  kind: string;
+  name: string;
+  status: IntegrationStatus;
+  lastSyncAt?: string;
+  recordsIngested24h?: number;
+}
+
+// -------------------- KPI snapshots --------------------
+
+export interface KpiSnapshot {
+  openCriticalRisks: number;
+  avgComplianceScore: number;
+  openFindings: number;
+  vendorRiskIndex: number;
+  agentFteSaved30d: number;
+  evidenceItems30d: number;
+}

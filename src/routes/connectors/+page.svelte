@@ -2,6 +2,7 @@
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Kpi from '$lib/components/Kpi.svelte';
   import StatusDot from '$lib/components/StatusDot.svelte';
+  import { addToast } from '$lib/stores/toast';
   import { getConnectorSpecs, type ConnectorCategory } from '$lib/data/workflows';
   import type { Connector } from '$lib/data/types';
   import {
@@ -12,6 +13,45 @@
   } from 'lucide-svelte';
 
   export let data;
+
+  // Local mutable copy so demo actions (sync) produce visible changes.
+  let connectors: Connector[] = data.connectors.map((c) => ({ ...c }));
+  let syncing = false;
+  let openMenu: string | null = null;
+
+  async function syncAll() {
+    if (syncing) return;
+    syncing = true;
+    addToast('info', `Syncing ${connectors.length} connectors…`);
+    await new Promise((r) => setTimeout(r, 700));
+    const now = new Date().toISOString();
+    connectors = connectors.map((c) =>
+      c.status === 'disconnected' ? c : { ...c, lastSyncAt: now }
+    );
+    syncing = false;
+    const synced = connectors.filter((c) => c.status !== 'disconnected').length;
+    addToast('success', `Synced ${synced} connectors · ${connectors.length - synced} skipped (disconnected).`);
+  }
+
+  function syncOne(c: Connector) {
+    openMenu = null;
+    if (c.status === 'disconnected') {
+      addToast('error', `${c.name} is disconnected — reauth required before sync.`);
+      return;
+    }
+    const now = new Date().toISOString();
+    connectors = connectors.map((x) => (x.id === c.id ? { ...x, lastSyncAt: now } : x));
+    addToast('success', `${c.name} synced.`);
+  }
+
+  function reconnect(c: Connector) {
+    openMenu = null;
+    const now = new Date().toISOString();
+    connectors = connectors.map((x) =>
+      x.id === c.id ? { ...x, status: 'connected', lastSyncAt: now } : x
+    );
+    addToast('success', `${c.name} reconnected.`);
+  }
 
   // ---------- Catalog lookup ----------
   const SPECS = getConnectorSpecs();
@@ -92,12 +132,12 @@
   }
 
   // ---------- KPI roll-ups ----------
-  $: total = data.connectors.length;
-  $: connected = data.connectors.filter((c) => c.status === 'connected').length;
-  $: degraded = data.connectors.filter((c) => c.status === 'degraded').length;
-  $: disconnected = data.connectors.filter((c) => c.status === 'disconnected').length;
+  $: total = connectors.length;
+  $: connected = connectors.filter((c) => c.status === 'connected').length;
+  $: degraded = connectors.filter((c) => c.status === 'degraded').length;
+  $: disconnected = connectors.filter((c) => c.status === 'disconnected').length;
   $: mostRecentSync = (() => {
-    const ts = data.connectors
+    const ts = connectors
       .map((c) => c.lastSyncAt)
       .filter((x): x is string => !!x)
       .sort((a, b) => (a < b ? 1 : -1))[0];
@@ -108,7 +148,7 @@
   $: grouped = (() => {
     const out = new Map<ConnectorCategory, Connector[]>();
     for (const cat of CATEGORIES) out.set(cat, []);
-    for (const c of data.connectors) {
+    for (const c of connectors) {
       const cat = KIND_TO_CAT[c.kind] ?? 'Custom';
       out.get(cat)!.push(c);
     }
@@ -116,14 +156,16 @@
   })();
 </script>
 
+<svelte:window on:click={() => (openMenu = null)} />
+
 <PageHeader
   title="Connectors"
   subtitle="40+ integrations across Cloud, Identity, ITSM, Comms, SaaS, Security and Custom"
 >
   <svelte:fragment slot="actions">
-    <button class="btn-secondary">
-      <RefreshCw class="h-4 w-4" />
-      Sync All
+    <button class="btn-secondary" on:click={syncAll} disabled={syncing}>
+      <RefreshCw class="h-4 w-4 {syncing ? 'animate-spin' : ''}" />
+      {syncing ? 'Syncing…' : 'Sync All'}
     </button>
   </svelte:fragment>
 </PageHeader>
@@ -168,9 +210,21 @@
                 <div class="min-w-0 flex-1">
                   <div class="flex items-center justify-between gap-2">
                     <h3 class="truncate text-sm font-semibold text-slate-800">{c.name}</h3>
-                    <button class="btn-ghost p-1" title="More">
-                      <MoreHorizontal class="h-4 w-4" />
-                    </button>
+                    <div class="relative flex-shrink-0">
+                      <button
+                        class="btn-ghost p-1"
+                        title="More"
+                        on:click|stopPropagation={() => (openMenu = openMenu === c.id ? null : c.id)}
+                      >
+                        <MoreHorizontal class="h-4 w-4" />
+                      </button>
+                      {#if openMenu === c.id}
+                        <div class="absolute right-0 z-20 mt-1 w-40 rounded-lg border border-slate-200 bg-white py-1 text-sm shadow-lg">
+                          <button class="block w-full px-3 py-1.5 text-left hover:bg-slate-50" on:click={() => syncOne(c)}>Sync now</button>
+                          <button class="block w-full px-3 py-1.5 text-left hover:bg-slate-50" on:click={() => reconnect(c)}>Reconnect</button>
+                        </div>
+                      {/if}
+                    </div>
                   </div>
                   <div class="mt-1 flex items-center gap-2">
                     <StatusDot status={c.status} withLabel={false} />

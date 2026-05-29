@@ -18,9 +18,9 @@
         {/each}
       </nav>
     {/if}
-    <h1 class="text-2xl font-semibold text-grc-ink">{title}</h1>
+    <h1 class="h-page">{title}</h1>
     {#if subtitle}
-      <p class="mt-1 max-w-3xl text-sm text-slate-500">{subtitle}</p>
+      <p class="subtle mt-1 max-w-3xl">{subtitle}</p>
     {/if}
   </div>
   <div class="flex items-center gap-2">

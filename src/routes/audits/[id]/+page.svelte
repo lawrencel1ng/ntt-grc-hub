@@ -3,6 +3,7 @@
   import EvidenceChip from '$lib/components/EvidenceChip.svelte';
   import AgentTypeBadge from '$lib/components/AgentTypeBadge.svelte';
   import { addToast } from '$lib/stores/toast';
+  import { downloadCsv } from '$lib/utils/csv';
   import { Download, FileBarChart, FileText, Package, Zap, ClipboardCheck } from 'lucide-svelte';
   import type { EngagementType, AuditFinding } from '$lib/data/types';
 
@@ -41,8 +42,7 @@
     const headers = ['severity','title','description','status','due_at'];
     const rows: string[][] = data.findings.map((f) => [f.severity, f.title, f.description ?? '', f.status, f.dueAt ?? '']);
     const csv = [headers.join(','), ...rows.map((r) => r.map(escapeCsv).join(','))].join('\n');
-    // eslint-disable-next-line no-console
-    console.log('[audit] findings CSV:\n', csv);
+    downloadCsv(`audit-${data.audit.id}-findings-${new Date().toISOString().slice(0, 10)}.csv`, csv);
     addToast('success', `Findings CSV exported (${rows.length} rows).`);
   }
   function escapeCsv(s: string): string {
@@ -54,8 +54,7 @@
     const headers = ['id','title','kind','captured_at','hash'];
     const rows: string[][] = data.evidence.map((e) => [String(e.id), e.title, e.kind, e.capturedAt, e.rowHash ?? '']);
     const csv = [headers.join(','), ...rows.map((r) => r.map(escapeCsv).join(','))].join('\n');
-    // eslint-disable-next-line no-console
-    console.log(`[audit] evidence-pack CSV (${rows.length} items):\n`, csv);
+    downloadCsv(`audit-${data.audit.id}-evidence-pack-${new Date().toISOString().slice(0, 10)}.csv`, csv);
     addToast('success', `Evidence pack downloaded — ${rows.length} items, 8s assembly via Audit Companion.`);
   }
 

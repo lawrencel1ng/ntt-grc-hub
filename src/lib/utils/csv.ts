@@ -20,3 +20,19 @@ export function toCsv<T extends Record<string, unknown>>(
   const body = rows.map((r) => cols.map((c) => escape(r[c])).join(',')).join('\n');
   return `${header}\n${body}`;
 }
+
+/**
+ * Trigger a client-side download of a CSV string. No-op during SSR.
+ */
+export function downloadCsv(filename: string, csv: string): void {
+  if (typeof document === 'undefined') return;
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}

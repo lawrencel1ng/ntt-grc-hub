@@ -39,18 +39,24 @@
     return out;
   })();
 
-  function typeColor(type: AgentType | undefined): string {
-    if (type === 'deterministic') return 'text-slate-300';
-    if (type === 'ai-powered') return 'text-violet-300';
-    if (type === 'intelligent') return 'text-violet-300';
-    return 'text-slate-400';
+  function typeBadgeCls(type: AgentType | undefined): string {
+    if (type === 'deterministic') return 'bg-slate-100 text-slate-600 ring-slate-200';
+    if (type === 'ai-powered') return 'bg-violet-50 text-violet-700 ring-violet-200';
+    if (type === 'intelligent') return 'bg-fuchsia-50 text-fuchsia-700 ring-fuchsia-200';
+    return 'bg-slate-100 text-slate-500 ring-slate-200';
   }
-  function statusColor(s: AgentStatus | string): string {
-    if (s === 'success') return 'text-violet-300';
-    if (s === 'failed') return 'text-rose-300';
-    if (s === 'awaiting-approval') return 'text-amber-300';
-    if (s === 'running') return 'text-blue-300';
-    return 'text-slate-400';
+  function typeLabel(type: AgentType | undefined): string {
+    if (type === 'ai-powered') return 'AI';
+    if (type === 'intelligent') return 'INT';
+    if (type === 'deterministic') return 'DET';
+    return 'AGT';
+  }
+  function statusCls(s: AgentStatus | string): string {
+    if (s === 'success') return 'bg-violet-50 text-violet-700 ring-violet-200';
+    if (s === 'failed') return 'bg-rose-50 text-rose-700 ring-rose-200';
+    if (s === 'awaiting-approval') return 'bg-amber-50 text-amber-700 ring-amber-200';
+    if (s === 'running') return 'bg-slate-100 text-slate-600 ring-slate-200';
+    return 'bg-slate-100 text-slate-500 ring-slate-200';
   }
   function fmtTs(ts: string): string {
     return new Date(ts).toISOString().slice(11, 19);
@@ -107,11 +113,9 @@
 
 <PageHeader title="Agent Activity Stream" subtitle="Live SSE feed — every run from every agent, in real time.">
   <svelte:fragment slot="actions">
-    <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {sseConnected
-      ? 'bg-violet-50 text-violet-700 ring-violet-200'
-      : 'bg-slate-100 text-slate-600 ring-slate-200'}">
-      <span class="h-1.5 w-1.5 rounded-full {sseConnected ? 'bg-violet-500' : 'bg-slate-400'}"></span>
-      {sseConnected ? 'SSE connected' : 'connecting…'}
+    <span class="inline-flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wider text-slate-400">
+      <span class="h-1 w-1 rounded-full {sseConnected ? 'bg-violet-500' : 'bg-slate-300'}"></span>
+      {sseConnected ? 'live' : 'connecting'}
     </span>
     <button class="btn-secondary" on:click={togglePause}>
       {#if paused}
@@ -162,27 +166,25 @@
     </span>
   </div>
 
-  <!-- Terminal -->
-  <div class="overflow-hidden rounded-xl border border-slate-800 bg-slate-950 shadow-lg">
-    <div class="flex items-center gap-2 border-b border-slate-800 bg-slate-900/70 px-3 py-2 font-mono text-[11px] text-slate-400">
-      <span class="h-2.5 w-2.5 rounded-full bg-rose-500/70"></span>
-      <span class="h-2.5 w-2.5 rounded-full bg-amber-500/70"></span>
-      <span class="h-2.5 w-2.5 rounded-full bg-violet-500/70"></span>
-      <span class="ml-2">ntt-grc-hub /agent-stream {paused ? '(paused)' : ''}</span>
+  <!-- Activity log -->
+  <div class="card overflow-hidden">
+    <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/60 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+      <span>Agent Activity {paused ? '· paused' : ''}</span>
+      <span class="font-mono tabular-nums normal-case text-slate-400">{visible.length} / {buffer.length}</span>
     </div>
-    <div bind:this={scrollEl} class="h-[64vh] overflow-y-auto px-3 py-2 font-mono text-[12px] leading-relaxed text-slate-200 scrollbar-thin">
+    <div bind:this={scrollEl} class="h-[64vh] overflow-y-auto scrollbar-thin">
       {#each visible as r (r.id)}
         {@const agent = agentsById.get(r.agentId)}
-        <div class="flex items-start gap-2 whitespace-pre-wrap py-0.5">
-          <span class="text-slate-500">[{fmtTs(r.startedAt)}]</span>
-          <span class="rounded bg-slate-800/60 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider {typeColor(agent?.type)}">{agent?.type ?? 'agent'}</span>
-          <span class="text-violet-300">{r.agentName ?? r.agentId}:</span>
-          <span class="flex-1 text-slate-200">{r.outputSummary || r.inputSummary}</span>
-          <span class="text-slate-500">({r.latencyMs}ms · {fmtCost(r.costCents)})</span>
-          <span class="{statusColor(r.status)}">[{r.status}]</span>
+        <div class="flex items-center gap-3 border-b border-slate-100 px-3 py-2 text-[13px] last:border-b-0 hover:bg-slate-50/60">
+          <span class="flex-shrink-0 font-mono text-[11px] tabular-nums text-slate-500">{fmtTs(r.startedAt)}</span>
+          <span class="flex-shrink-0 inline-flex items-center rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider ring-1 ring-inset {typeBadgeCls(agent?.type)}">{typeLabel(agent?.type)}</span>
+          <span class="flex-shrink-0 truncate font-medium text-slate-700">{r.agentName ?? r.agentId}</span>
+          <span class="flex-1 truncate text-slate-600">{r.outputSummary || r.inputSummary}</span>
+          <span class="flex-shrink-0 font-mono text-[11px] tabular-nums text-slate-400">{r.latencyMs}ms · {fmtCost(r.costCents)}</span>
+          <span class="flex-shrink-0 inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset {statusCls(r.status)}">{r.status}</span>
         </div>
       {:else}
-        <div class="py-6 text-center text-slate-500">No events match the active filters.</div>
+        <div class="py-6 text-center text-xs text-slate-400">No events match the active filters.</div>
       {/each}
     </div>
   </div>

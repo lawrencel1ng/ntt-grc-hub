@@ -2,6 +2,7 @@
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Kpi from '$lib/components/Kpi.svelte';
   import { addToast } from '$lib/stores/toast';
+  import { downloadCsv } from '$lib/utils/csv';
   import { ListChecks, AlertTriangle, CheckCircle2, Clock, Search, ChevronRight, Download, User as UserIcon } from 'lucide-svelte';
   import type { Issue, IssueSource, RiskSeverity, IssueStatus } from '$lib/data/types';
 
@@ -114,8 +115,7 @@
     const headers = ['id','source','source_id','title','severity','status','owner','due_at'];
     const rows = filtered.map((i) => [i.id, i.source, i.sourceId, i.title, i.severity, i.status, i.ownerUserId ?? '', i.dueAt ?? '']);
     const csv = [headers.join(','), ...rows.map((r) => r.map(escapeCsv).join(','))].join('\n');
-    // eslint-disable-next-line no-console
-    console.log(`[issues] CSV (${rows.length} rows):\n`, csv);
+    downloadCsv(`issues-${new Date().toISOString().slice(0, 10)}.csv`, csv);
     addToast('success', `Issues CSV exported (${rows.length} rows).`);
   }
 </script>

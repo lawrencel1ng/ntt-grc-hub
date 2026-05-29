@@ -19,12 +19,12 @@
   }
 
   function scoreCellColor(score: number): string {
-    // 0..25 ramp aligned to the heatmap palette.
-    if (score >= 20) return 'bg-rose-200 text-rose-900';
-    if (score >= 15) return 'bg-orange-200 text-orange-900';
-    if (score >= 10) return 'bg-amber-200 text-amber-900';
-    if (score >= 5)  return 'bg-yellow-100 text-yellow-900';
-    return 'bg-violet-100 text-violet-900';
+    // 0..25 single-hue amber → rose ramp; matches Heatmap5x5 palette.
+    if (score >= 20) return 'bg-rose-600 text-white';
+    if (score >= 15) return 'bg-orange-500 text-white';
+    if (score >= 10) return 'bg-amber-300 text-amber-900';
+    if (score >= 5)  return 'bg-amber-100 text-amber-900';
+    return 'bg-amber-50 text-amber-900';
   }
 
   // ---------- KPIs ----------
@@ -250,7 +250,7 @@
             {@const inh = inherentScore(r)}
             {@const res = residualScore(r)}
             <tr class="tr">
-              <td class="td font-mono text-xs">
+              <td class="td num text-xs">
                 <a href="/risk/{r.id}" class="text-grc-primary hover:underline">{r.code}</a>
               </td>
               <td class="td max-w-md truncate">
@@ -270,14 +270,14 @@
               </td>
               <td class="td">
                 <div class="flex items-center gap-1.5">
-                  <span class="inline-flex h-6 w-6 items-center justify-center rounded font-mono text-[11px] font-semibold {scoreCellColor(inh)}">{inh}</span>
+                  <span class="num inline-flex h-6 w-6 items-center justify-center rounded text-[11px] font-semibold {scoreCellColor(inh)}">{inh}</span>
                   <span class="text-[10px] text-slate-400">{r.inherentSeverity[0].toUpperCase()}/{r.inherentLikelihood[0].toUpperCase()}</span>
                 </div>
               </td>
               <td class="td text-center text-slate-300">→</td>
               <td class="td">
                 <div class="flex items-center gap-1.5">
-                  <span class="inline-flex h-6 w-6 items-center justify-center rounded font-mono text-[11px] font-semibold {scoreCellColor(res)}">{res}</span>
+                  <span class="num inline-flex h-6 w-6 items-center justify-center rounded text-[11px] font-semibold {scoreCellColor(res)}">{res}</span>
                   <span class="text-[10px] text-slate-400">{r.residualSeverity[0].toUpperCase()}/{r.residualLikelihood[0].toUpperCase()}</span>
                 </div>
               </td>
@@ -302,7 +302,7 @@
         <span>Showing {(page - 1) * PAGE + 1}–{Math.min(page * PAGE, sorted.length)} of {sorted.length.toLocaleString()}</span>
         <div class="flex items-center gap-2">
           <button class="btn-ghost py-1 text-xs" on:click={() => page = Math.max(1, page - 1)} disabled={page === 1}>Prev</button>
-          <span class="font-mono">{page} / {pageCount}</span>
+          <span class="num">{page} / {pageCount}</span>
           <button class="btn-ghost py-1 text-xs" on:click={() => page = Math.min(pageCount, page + 1)} disabled={page === pageCount}>Next</button>
         </div>
       </div>

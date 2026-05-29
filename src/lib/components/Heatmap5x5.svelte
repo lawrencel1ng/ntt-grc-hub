@@ -13,15 +13,18 @@
   const likLabels = ['Rare', 'Unlikely', 'Possible', 'Likely', 'Almost Certain'];
   const sevLabels = ['Info', 'Low', 'Medium', 'High', 'Critical'];
 
-  // 5×5 ramp; index by (sev-1)*5 + (lik-1)
-  // violet (safe) → amber (caution) → rose (critical)
+  // 5×5 single-hue warm ramp; index by (sev-1) row, (lik-1) col
+  // amber-50 → amber-100 → amber-300 → orange-400 → rose-500 → rose-600
+  // Premium GRC/BI uses single-hue gradients for sophistication.
   const ramp = [
-    ['#ede9fe', '#ede9fe', '#fef3c7', '#fde68a', '#fed7aa'],
-    ['#ede9fe', '#fef3c7', '#fde68a', '#fed7aa', '#fdba74'],
-    ['#fef3c7', '#fde68a', '#fed7aa', '#fdba74', '#fb923c'],
-    ['#fde68a', '#fed7aa', '#fdba74', '#fb923c', '#f97316'],
-    ['#fed7aa', '#fdba74', '#fb923c', '#f97316', '#e11d48']
+    ['#fffbeb', '#fffbeb', '#fef3c7', '#fde68a', '#fcd34d'],
+    ['#fffbeb', '#fef3c7', '#fde68a', '#fcd34d', '#fb923c'],
+    ['#fef3c7', '#fde68a', '#fcd34d', '#fb923c', '#f97316'],
+    ['#fde68a', '#fcd34d', '#fb923c', '#f97316', '#f43f5e'],
+    ['#fcd34d', '#fb923c', '#f97316', '#f43f5e', '#e11d48']
   ];
+  // Dark cells (orange-500+, rose-500+) need white text
+  const darkCells = new Set(['#f97316', '#f43f5e', '#e11d48']);
 
   $: cellMap = new Map<string, number>(cells.map((c) => [`${c.sev}:${c.lik}`, c.n]));
 
@@ -90,6 +93,8 @@
       {@const sev = 5 - row}
       {@const lik = col + 1}
       {@const n = cellCount(sev, lik)}
+      {@const bg = cellColor(sev, lik)}
+      {@const isDark = darkCells.has(bg)}
       <g
         class="cursor-pointer"
         on:click={() => handleClick(sev, lik)}
@@ -104,7 +109,7 @@
           width={cellW - 2}
           height={cellH - 2}
           rx="3"
-          fill={cellColor(sev, lik)}
+          fill={bg}
           stroke="#fff"
           stroke-width="1"
         />
@@ -114,7 +119,7 @@
           text-anchor="middle"
           font-size="13"
           font-weight="600"
-          fill={n > 0 ? '#0f172a' : '#94a3b8'}
+          fill={n === 0 ? '#94a3b8' : isDark ? '#ffffff' : '#0f172a'}
         >{n}</text>
       </g>
     {/each}

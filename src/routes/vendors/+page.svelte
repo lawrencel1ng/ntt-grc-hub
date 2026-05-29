@@ -283,15 +283,15 @@
                 <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {critCls(v.criticality)}">{v.criticality}</span>
               </td>
               <td class="td">
-                <span class="inline-flex items-center gap-1 font-mono text-xs">{flag(v.hqCountry)} {v.hqCountry}</span>
+                <span class="num inline-flex items-center gap-1 text-xs">{flag(v.hqCountry)} {v.hqCountry}</span>
               </td>
-              <td class="td text-right font-mono text-xs">{fmtMoney(v.contractValueSgd)}</td>
+              <td class="td num text-right text-xs">{fmtMoney(v.contractValueSgd)}</td>
               <td class="td">
                 <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {statusCls(v.status)}">{v.status}</span>
               </td>
               <td class="td">
                 <div class="flex items-center gap-2">
-                  <span class="font-mono text-sm font-semibold {scoreCls(v.lastQuestionnaireScore)}">{v.lastQuestionnaireScore ?? '—'}</span>
+                  <span class="num text-sm font-semibold {scoreCls(v.lastQuestionnaireScore)}">{v.lastQuestionnaireScore ?? '—'}</span>
                   <div class="w-20">
                     <Sparkline data={trendFor(v)} stroke={v.lastQuestionnaireScore && v.lastQuestionnaireScore >= 80 ? '#6d28d9' : v.lastQuestionnaireScore && v.lastQuestionnaireScore >= 60 ? '#d97706' : '#e11d48'} />
                   </div>
@@ -314,7 +314,7 @@
         <span>Showing {(page - 1) * PAGE + 1}–{Math.min(page * PAGE, sorted.length)} of {sorted.length.toLocaleString()}</span>
         <div class="flex items-center gap-2">
           <button class="btn-ghost py-1 text-xs" on:click={() => page = Math.max(1, page - 1)} disabled={page === 1}>Prev</button>
-          <span class="font-mono">{page} / {pageCount}</span>
+          <span class="num">{page} / {pageCount}</span>
           <button class="btn-ghost py-1 text-xs" on:click={() => page = Math.min(pageCount, page + 1)} disabled={page === pageCount}>Next</button>
         </div>
       </div>

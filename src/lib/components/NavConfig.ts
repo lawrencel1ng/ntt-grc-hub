@@ -18,8 +18,8 @@ export const navSections: NavSection[] = [
     items: [
       { label: 'Risk Cockpit', href: '/', icon: LayoutDashboard },
       { label: 'Board Pack', href: '/board', icon: FileBarChart },
-      { label: 'Agent Stream', href: '/stream', icon: Radio, badge: 'LIVE' },
-      { label: 'Tenant Compare', href: '/tenants-compare', icon: Building2, badge: 'MSSP' }
+      { label: 'Agent Stream', href: '/stream', icon: Radio },
+      { label: 'Tenant Compare', href: '/tenants-compare', icon: Building2 }
     ]
   },
   {
@@ -28,7 +28,7 @@ export const navSections: NavSection[] = [
       { label: 'ERM Register', href: '/risk', icon: AlertTriangle },
       { label: 'Heatmap & FAIR', href: '/heatmap', icon: Grid3x3 },
       { label: 'Issues & Incidents', href: '/issues', icon: ListChecks },
-      { label: 'Op Resilience', href: '/resilience', icon: ShieldAlert, badge: 'DORA' }
+      { label: 'Op Resilience', href: '/resilience', icon: ShieldAlert }
     ]
   },
   {
@@ -38,7 +38,7 @@ export const navSections: NavSection[] = [
       { label: 'Controls', href: '/controls', icon: ShieldCheck },
       { label: 'Evidence Vault', href: '/evidence', icon: FileLock2 },
       { label: 'Audit Mgmt', href: '/audits', icon: ClipboardCheck },
-      { label: 'Reg Horizon', href: '/regwatch', icon: Antenna, badge: 'AI' },
+      { label: 'Reg Horizon', href: '/regwatch', icon: Antenna },
       { label: 'Policy Mgmt', href: '/policies', icon: ScrollText }
     ]
   },

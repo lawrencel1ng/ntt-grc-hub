@@ -30,7 +30,7 @@
   .tag-slate   { @apply tag bg-slate-50 text-slate-700 ring-1 ring-inset ring-slate-200/80; }
   .tag-violet  { @apply tag bg-violet-50 text-violet-800 ring-1 ring-inset ring-violet-200/80; }
 
-  .kpi-num { @apply font-mono text-[22px] font-semibold tracking-tight text-grc-ink; }
+  .kpi-num { @apply font-mono tabular-nums text-[22px] font-semibold tracking-tight text-grc-ink; }
   .section-title { @apply text-sm font-semibold uppercase tracking-wider text-slate-500; }
   .h-page { @apply text-[20px] font-semibold tracking-tight text-grc-ink; }
   .h-card { @apply text-sm font-semibold text-grc-ink; }
@@ -49,6 +49,7 @@
     background: #6d28d9;
   }
   .evidence-chip { @apply inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-mono text-[11px] text-slate-700; }
+  .num { @apply font-mono tabular-nums; }
 }
 
 @layer utilities {

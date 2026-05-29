@@ -22,11 +22,12 @@
   $: pctReduction = inh > 0 ? Math.round((delta / inh) * 100) : 0;
 
   function scoreCellColor(score: number): string {
-    if (score >= 20) return 'bg-rose-200 text-rose-900 border-rose-300';
-    if (score >= 15) return 'bg-orange-200 text-orange-900 border-orange-300';
-    if (score >= 10) return 'bg-amber-200 text-amber-900 border-amber-300';
-    if (score >= 5)  return 'bg-yellow-100 text-yellow-900 border-yellow-200';
-    return 'bg-violet-100 text-violet-900 border-violet-200';
+    // Single-hue amber → rose ramp; matches Heatmap5x5 palette.
+    if (score >= 20) return 'bg-rose-600 text-white border-rose-700';
+    if (score >= 15) return 'bg-orange-500 text-white border-orange-600';
+    if (score >= 10) return 'bg-amber-300 text-amber-900 border-amber-400';
+    if (score >= 5)  return 'bg-amber-100 text-amber-900 border-amber-200';
+    return 'bg-amber-50 text-amber-900 border-amber-100';
   }
 
   function statusCls(s: string): string {

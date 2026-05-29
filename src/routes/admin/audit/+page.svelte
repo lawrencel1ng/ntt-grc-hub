@@ -113,9 +113,9 @@
     <ShieldCheck class="h-5 w-5 text-violet-700" />
     <span class="text-sm font-semibold text-slate-800">Audit log verified — chain intact</span>
     <span class="text-slate-300">·</span>
-    <span class="text-xs text-slate-600 font-mono">{data.entries.length} of {data.entries.length} entries</span>
+    <span class="num text-xs text-slate-600">{data.entries.length} of {data.entries.length} entries</span>
     <span class="text-violet-300">·</span>
-    <span class="text-xs text-violet-800">Last verified <span class="font-mono">{verifiedAt}</span></span>
+    <span class="text-xs text-violet-800">Last verified <span class="num">{verifiedAt}</span></span>
   </div>
 
   <!-- KPI strip -->
@@ -188,17 +188,17 @@
         <tbody>
           {#each pageRows as e}
             <tr class="tr">
-              <td class="td font-mono text-[11px] text-slate-500">{formatIsoSgt(e.ts)}</td>
+              <td class="td num text-[11px] text-slate-500">{formatIsoSgt(e.ts)}</td>
               <td class="td">{e.actorEmail}</td>
               <td class="td"><span class="tag tag-slate">{tenantName(e.tenantId)}</span></td>
-              <td class="td font-mono text-[11px] text-slate-700">{e.action}</td>
-              <td class="td font-mono text-[11px] text-slate-500">{e.target}</td>
+              <td class="td num text-[11px] text-slate-700">{e.action}</td>
+              <td class="td num text-[11px] text-slate-500">{e.target}</td>
               <td class="td">
                 <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ring-1 ring-inset {resultCls(e.result)}">
                   {e.result}
                 </span>
               </td>
-              <td class="td font-mono text-[11px] text-slate-500">{e.ipAddress ?? '—'}</td>
+              <td class="td num text-[11px] text-slate-500">{e.ipAddress ?? '—'}</td>
               <td class="td text-[11px] text-slate-500">{shortUa(e.userAgent)}</td>
               <td class="td">
                 <span class="evidence-chip" title={e.rowHash}>{shortHash(e.rowHash)}</span>
@@ -215,7 +215,7 @@
         <span>Showing {(page - 1) * PAGE + 1}–{Math.min(page * PAGE, filtered.length)} of {filtered.length.toLocaleString()}</span>
         <div class="flex items-center gap-2">
           <button class="btn-ghost py-1 text-xs" on:click={() => page = Math.max(1, page - 1)} disabled={page === 1}>Prev</button>
-          <span class="font-mono">{page} / {pageCount}</span>
+          <span class="num">{page} / {pageCount}</span>
           <button class="btn-ghost py-1 text-xs" on:click={() => page = Math.min(pageCount, page + 1)} disabled={page === pageCount}>Next</button>
         </div>
       </div>

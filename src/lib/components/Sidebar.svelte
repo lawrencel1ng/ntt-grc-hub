@@ -49,7 +49,7 @@
                 {#if $sidebarOpen}
                   <span class="flex-1 truncate">{item.label}</span>
                   {#if item.badge}
-                    <span class="rounded-full px-1.5 py-0.5 text-[10px] font-semibold {active ? 'bg-grc-accent text-slate-900' : 'bg-grc-accent/20 text-grc-accent'}">{item.badge}</span>
+                    <span class="rounded px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-wider tabular-nums {active ? 'bg-white/15 text-white/80' : 'bg-white/[0.06] text-white/50'}">{item.badge}</span>
                   {/if}
                 {/if}
               </a>

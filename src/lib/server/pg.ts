@@ -1,7 +1,22 @@
 import pg from 'pg';
 import { env } from '$env/dynamic/private';
 
-const { Pool } = pg;
+const { Pool, types } = pg;
+
+// ── Normalise Postgres → JS types to match the mock fixtures ──────────
+// node-postgres returns NUMERIC/BIGINT as strings (to preserve arbitrary
+// precision) and timestamps as Date objects. The UI components and the
+// mock data, however, assume plain `number`s and ISO-8601 `string`s — so
+// without these parsers pg mode throws during SSR with errors like
+// "score.toFixed is not a function" or "iso.slice is not a function".
+// Demo-grade precision: coercing NUMERIC to Number is acceptable here.
+const asNumber = (v: string | null): number | null => (v === null ? null : Number(v));
+const asIso = (v: string | null): string | null => (v === null ? null : new Date(v).toISOString());
+types.setTypeParser(1700, asNumber); // numeric / decimal
+types.setTypeParser(20, asNumber); // int8 / bigint
+types.setTypeParser(1114, asIso); // timestamp (without time zone)
+types.setTypeParser(1184, asIso); // timestamptz
+types.setTypeParser(1082, (v) => v); // date → keep raw 'YYYY-MM-DD' string
 
 let pool: pg.Pool | null = null;
 

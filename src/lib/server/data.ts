@@ -41,6 +41,23 @@ async function safeQuery<T>(sql: string, params: unknown[] = []): Promise<T[]> {
   }
 }
 
+/**
+ * Resolve the owning tenant of a row by its primary key. In pg mode the
+ * detail-page id is a DB UUID, not the mock `kind_tenant_n` string, so the
+ * tenant can't be parsed out of the id. A 1-column lookup lets the by-id
+ * getters reuse the existing tenant-scoped list query (which already maps
+ * every column). `table` is always a hard-coded literal — never user input.
+ * Returns undefined when the row isn't found so callers fall back to their
+ * mock-prefix decoding.
+ */
+async function tenantOfRow(table: string, id: string): Promise<string | undefined> {
+  const rows = await safeQuery<{ tenantId: string }>(
+    `SELECT tenant_id AS "tenantId" FROM ${table} WHERE id = $1`,
+    [id]
+  );
+  return rows[0]?.tenantId;
+}
+
 // =====================================================================
 // Tenants
 // =====================================================================
@@ -213,6 +230,10 @@ export async function getRisks(tenantId: string): Promise<Risk[]> {
 }
 
 export async function getRisk(id: string): Promise<Risk | undefined> {
+  if (isPgMode()) {
+    const tid = await tenantOfRow('risk.risks', id);
+    if (tid) return (await getRisks(tid)).find((r) => r.id === id);
+  }
   // Decode tenant from the mock id prefix.
   const parts = id.split('_');
   if (parts.length < 3) return undefined;
@@ -431,6 +452,10 @@ export async function getAudits(tenantId: string): Promise<AuditEngagement[]> {
 }
 
 export async function getAudit(id: string): Promise<AuditEngagement | undefined> {
+  if (isPgMode()) {
+    const tid = await tenantOfRow('audit.engagements', id);
+    if (tid) return (await getAudits(tid)).find((a) => a.id === id);
+  }
   const parts = id.split('_');
   if (parts.length < 3) return undefined;
   const tenantId = `${parts[1]}_${parts[2]}`;
@@ -495,6 +520,10 @@ export async function getPolicies(tenantId: string): Promise<Policy[]> {
 }
 
 export async function getPolicy(id: string): Promise<Policy | undefined> {
+  if (isPgMode()) {
+    const tid = await tenantOfRow('policy.documents', id);
+    if (tid) return (await getPolicies(tid)).find((p) => p.id === id);
+  }
   const parts = id.split('_');
   if (parts.length < 3) return undefined;
   const tenantId = `${parts[1]}_${parts[2]}`;
@@ -529,6 +558,10 @@ export async function getVendors(tenantId: string): Promise<Vendor[]> {
 }
 
 export async function getVendor(id: string): Promise<Vendor | undefined> {
+  if (isPgMode()) {
+    const tid = await tenantOfRow('vendor.vendors', id);
+    if (tid) return (await getVendors(tid)).find((v) => v.id === id);
+  }
   const parts = id.split('_');
   if (parts.length < 3) return undefined;
   const tenantId = `${parts[1]}_${parts[2]}`;
@@ -549,6 +582,10 @@ export async function getQuestionnaires(tenantId: string): Promise<Questionnaire
 }
 
 export async function getQuestionnaire(id: string): Promise<Questionnaire | undefined> {
+  if (isPgMode()) {
+    const tid = await tenantOfRow('vendor.questionnaires', id);
+    if (tid) return (await getQuestionnaires(tid)).find((q) => q.id === id);
+  }
   // Mock id pattern is q_vnd_<tenant>_<n>.
   const m = /^q_vnd_(t_[a-z]+)_/.exec(id);
   if (!m) return undefined;
@@ -711,6 +748,10 @@ export async function getIssues(tenantId: string): Promise<Issue[]> {
 }
 
 export async function getIssue(id: string): Promise<Issue | undefined> {
+  if (isPgMode()) {
+    const tid = await tenantOfRow('issue.issues', id);
+    if (tid) return (await getIssues(tid)).find((i) => i.id === id);
+  }
   const parts = id.split('_');
   if (parts.length < 3) return undefined;
   const tenantId = `${parts[1]}_${parts[2]}`;

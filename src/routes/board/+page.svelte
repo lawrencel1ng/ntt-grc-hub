@@ -173,10 +173,13 @@
 
   // ---------- Actions ----------
   function onPrint() {
-    addToast('info', 'Print dialog would open here (demo). Layout is print-ready.');
+    if (typeof window === 'undefined') return;
+    window.print();
   }
   function onDownload() {
-    addToast('info', 'PDF export would be generated server-side (demo).');
+    if (typeof window === 'undefined') return;
+    addToast('info', 'Choose "Save as PDF" as the destination to export the board pack.');
+    window.print();
   }
 
   function fmtRel(ts: Date): string {

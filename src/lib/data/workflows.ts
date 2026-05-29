@@ -136,6 +136,7 @@ const CONNECTOR_SPECS: ConnectorSpec[] = [
   { kind: 'snyk',         name: 'Snyk',         category: 'Security/Obs' },
   { kind: 'tenable',      name: 'Tenable',      category: 'Security/Obs' },
   { kind: 'qualys',       name: 'Qualys',       category: 'Security/Obs' },
+  { kind: 'knowbe4',      name: 'KnowBe4',      category: 'Security/Obs' },
 
   // ---- GRC/Audit (3) — for migration scenarios ----
   { kind: 'servicenow-irm', name: 'ServiceNow IRM', category: 'GRC/Audit' },

@@ -26,7 +26,8 @@ import type {
   Workflow, WorkflowExecution,
   Connector,
   AuditLogEntry,
-  KpiSnapshot
+  KpiSnapshot,
+  HumanRiskSummary, HumanRiskUser, HumanRiskDepartment, PhishingCampaign, TrainingCampaign
 } from '$lib/data/types';
 
 const HERO_TENANTS = ['t_maybank', 't_mindef', 't_grab'] as const;
@@ -413,7 +414,8 @@ export async function getEvidence(tenantId: string, limit?: number): Promise<Evi
   if (limit) { params.push(limit); limitSql = `LIMIT $${params.length}`; }
   const rows = await safeQuery<EvidenceItem>(
     `SELECT i.id, i.tenant_id AS "tenantId", i.collector_id AS "collectorId",
-            i.control_id AS "controlId", i.kind::text AS kind, i.title, i.source_url AS "sourceUrl",
+            i.control_id AS "controlId", i.kind::text AS kind, (i.metadata->>'domain') AS domain,
+            i.title, i.source_url AS "sourceUrl",
             i.blob_url AS "blobUrl", i.captured_at AS "capturedAt", i.metadata,
             s.row_hash AS "rowHash", s.prev_hash AS "prevHash"
      FROM evidence.items i LEFT JOIN evidence.seals s ON s.item_id = i.id
@@ -890,6 +892,34 @@ export async function getAuditLog(tenantId?: string, limit = 200): Promise<Audit
 }
 
 // =====================================================================
+// Human Risk (KnowBe4) — synthesised; mock in both modes (like Privacy/ESG)
+// =====================================================================
+
+export async function getHumanRiskSummary(tenantId: string): Promise<HumanRiskSummary | null> {
+  return mock.humanRiskSummary(tenantId);
+}
+
+export async function getHumanRiskUsers(tenantId: string): Promise<HumanRiskUser[]> {
+  return mock.humanRiskUsers(tenantId);
+}
+
+export async function getHumanRiskUser(id: string): Promise<HumanRiskUser | undefined> {
+  return mock.humanRiskUser(id);
+}
+
+export async function getHumanRiskDepartments(tenantId: string): Promise<HumanRiskDepartment[]> {
+  return mock.humanRiskDepartments(tenantId);
+}
+
+export async function getPhishingCampaigns(tenantId: string): Promise<PhishingCampaign[]> {
+  return mock.phishingCampaigns(tenantId);
+}
+
+export async function getTrainingCampaigns(tenantId: string): Promise<TrainingCampaign[]> {
+  return mock.trainingCampaigns(tenantId);
+}
+
+// =====================================================================
 // KPI snapshot + Board narrative
 // =====================================================================
 
@@ -926,8 +956,12 @@ export async function getKpiSnapshot(tenantId?: string): Promise<KpiSnapshot> {
 export async function getBoardNarrative(tenantId: string): Promise<string> {
   const tenant = await getCurrentTenant(tenantId);
   const name = tenant?.name ?? 'Group';
+  const hr = mock.humanRiskSummary(tenantId);
+  const humanPara = hr
+    ? `Human risk — the people layer — is now quantified and trending favourably. The KnowBe4 Virtual Risk Officer integration scores all ${hr.headcount.toLocaleString()} staff, yielding an org Human Risk Score of ${hr.orgRiskScore}/100 (${hr.riskLevel}). The phish-prone percentage has fallen from ${hr.phishPronePct12mAgo}% to ${hr.phishPronePct}% against an industry benchmark of ${hr.industryPhishPronePct}%, with ${hr.trainingCompletionPct}% training completion. Translated through FAIR, this human-risk exposure carries an annualised loss expectancy of S$${(hr.quant.aleSgd / 1e6).toFixed(2)}M — down S$${(hr.quant.aleReducedSgd / 1e6).toFixed(2)}M year-on-year as the awareness programme matured. The exposure feeds the enterprise risk register as ${hr.quant.riskId.includes('maybank') ? 'R-MAYB-HUMAN' : 'a tracked human-risk line'} and is reviewed monthly.`
+    : '';
   // A short, curated narrative — production wires this to the LLM agent.
-  return [
+  const paras = [
     `**${name} — Risk Pack, May 2026**`,
     '',
     `Aggregate risk posture is stable with the residual heatmap mass concentrated in the *medium / possible* band. Critical risks are bounded and within board-approved appetite. The Risk Quantifier agent computed a fleet-wide annualised loss expectancy (ALE) of S$4.2M for the most material scenario — cross-border outsourcing concentration — triggered by the MAS Notice 655 update detected by Regulatory Horizon eleven minutes ago.`,
@@ -937,5 +971,7 @@ export async function getBoardNarrative(tenantId: string): Promise<string> {
     `Third-party posture is the largest watch item: concentration on AWS ap-southeast-1 across 22 vendors equates to an SGD 11.5M exposure. The Vendor Risk Analyst auto-completed 81% of in-flight questionnaires, recovering an estimated 320 analyst hours. A vendor exit-plan workstream is recommended for the next quarter.`,
     '',
     `Agentic operations delivered 4.7 FTE-equivalent capacity at a run-rate cost of S$950/month against an avoided cost of ~S$97,500/month, a 100× ROI. The fleet operated within its cost cap with no HITL escalations rejected. The board may wish to expand the Risk Quantifier and Policy Drafter deployment to MINDEF and Grab tenancies in H2.`
-  ].join('\n');
+  ];
+  if (humanPara) { paras.push('', humanPara); }
+  return paras.join('\n');
 }

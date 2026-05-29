@@ -538,25 +538,18 @@ CROSS JOIN (VALUES
 -- 15. evidence.items (8,400 Maybank · 11,000 Grab · 5,200 MINDEF + shallow)
 -- =====================================================================
 -- Spread captured_at across the last 90 days (peak in last 7 days).
+-- Each item is tagged to one of the ten GRC evidence domains. The three
+-- parallel arrays (domain / kind / title) are kept in lock-step order and
+-- indexed by the same `1 + (g % 52)`, mirroring EVIDENCE_SPECS in
+-- src/lib/data/evidence.ts so mock and pg modes show identical coverage.
 INSERT INTO evidence.items (tenant_id, collector_id, control_id, kind, title, source_url, blob_url, captured_at, metadata)
 SELECT
   spec.tid,
   (SELECT id FROM evidence.collectors WHERE tenant_id = spec.tid ORDER BY id OFFSET (g % 10) LIMIT 1),
   -- control_id: pick one of the tenant's controls (round-robin via offset)
   (SELECT id FROM control.library WHERE tenant_id = spec.tid ORDER BY code OFFSET (g % GREATEST(spec.cn,1)) LIMIT 1),
-  (ARRAY['screenshot','log','config','attestation','document','scan-result','api-response'])[1 + (g % 7)]::evidence.kind,
-  (ARRAY[
-    'AWS S3 bucket policy snapshot',         'Okta MFA enrolment report',
-    'GitHub branch protection config',       'Azure NSG rule export',
-    'Jira change ticket — approved',         'CrowdStrike agent inventory',
-    'AWS Config compliance summary',         'KMS key rotation event',
-    'IAM access review — quarterly',         'M365 conditional access report',
-    'PCI ASV scan result',                   'Endpoint patch report',
-    'Backup restore test result',            'DLP policy hit summary',
-    'Tabletop exercise minutes',             'SOC 2 vendor attestation',
-    'Penetration test exec summary',         'Threat intel digest',
-    'BCP test report',                       'Privacy impact assessment'
-  ])[1 + (g % 20)] || ' #' || g,
+  spc.kind::evidence.kind,
+  spc.title || ' #' || g,
   'https://evidence.example.sg/' || spec.tid || '/' || g,
   's3://grc-evidence/' || spec.tid || '/' || g || '.bin',
   -- Weighted: 70% in last 14 days, 30% in last 90
@@ -564,7 +557,7 @@ SELECT
                 THEN ((random() * 14)::int * interval '1 day')
                 ELSE ((random() * 90)::int * interval '1 day')
            END) - ((random() * 24)::int * interval '1 hour'),
-  jsonb_build_object('source','seed','batch', g % 50, 'idx', g)
+  jsonb_build_object('source','seed','domain', spc.domain, 'batch', g % 50, 'idx', g)
 FROM (VALUES
   ('t_maybank',  8400, 1200),
   ('t_grab',    11000, 1500),
@@ -575,7 +568,46 @@ FROM (VALUES
   ('t_mediacorp',   90, 30),
   ('t_singtel',    280, 120)
 ) AS spec(tid, n, cn)
-CROSS JOIN LATERAL generate_series(1, spec.n) g;
+CROSS JOIN LATERAL generate_series(1, spec.n) g
+CROSS JOIN LATERAL (
+  SELECT
+    (ARRAY[
+      'policy-governance','policy-governance','policy-governance','policy-governance','policy-governance',
+      'risk-management','risk-management','risk-management','risk-management','risk-management',
+      'iam','iam','iam','iam','iam','iam',
+      'security-operations','security-operations','security-operations','security-operations','security-operations',
+      'infra-config','infra-config','infra-config','infra-config','infra-config','infra-config',
+      'asset-management','asset-management','asset-management','asset-management','asset-management',
+      'compliance-audit','compliance-audit','compliance-audit','compliance-audit','compliance-audit',
+      'bcm','bcm','bcm','bcm','bcm',
+      'third-party-vendor','third-party-vendor','third-party-vendor','third-party-vendor','third-party-vendor',
+      'security-awareness','security-awareness','security-awareness','security-awareness','security-awareness'
+    ])[1 + (g % 52)] AS domain,
+    (ARRAY[
+      'document','attestation','document','config','attestation',
+      'document','api-response','document','document','screenshot',
+      'attestation','attestation','log','document','config','scan-result',
+      'log','config','scan-result','document','log',
+      'config','config','scan-result','config','log','config',
+      'document','api-response','scan-result','document','config',
+      'attestation','document','scan-result','document','document',
+      'document','log','document','scan-result','document',
+      'document','api-response','attestation','document','log',
+      'scan-result','attestation','attestation','document','document'
+    ])[1 + (g % 52)] AS kind,
+    (ARRAY[
+      'Information Security Policy v4 — board-approved','Acceptable Use Policy attestation roster','Board Risk Committee minutes — Q2','Policy exception register snapshot','Code of Conduct sign-off export',
+      'Enterprise risk register export','FAIR quantification run — ransomware ALE','Risk appetite statement — approved','Quarterly risk review minutes','Key risk indicator dashboard snapshot',
+      'Okta MFA enrolment report','Quarterly access recertification — completed','Privileged access (PAM) session log','Joiner-mover-leaver ticket export','Azure AD conditional access policy export','Dormant account disablement report',
+      'CrowdStrike EDR alert triage log','SIEM detection rule coverage export','Vulnerability scan — critical findings','Threat intel digest — weekly','Incident response runbook execution log',
+      'AWS S3 bucket policy snapshot','Azure NSG rule export','CIS benchmark scan — EC2 fleet','Terraform drift detection report','KMS key rotation event','GCP IAM binding export',
+      'CMDB asset inventory export','Endpoint inventory — CrowdStrike','Cloud asset reconciliation report','Software / SBOM inventory snapshot','Data classification register snapshot',
+      'SOC 2 Type II report — current period','ISO 27001 internal audit findings','PCI ASV scan result','MAS TRM control test evidence pack','External audit PBC list — submitted',
+      'BCP test report — annual','Backup restore test result','DR failover exercise minutes','RTO/RPO validation report','Tabletop exercise minutes',
+      'Vendor SIG questionnaire — completed','Fourth-party concentration report','Vendor SOC 2 attestation on file','Contract DPA clause review','Vendor offboarding access revocation log',
+      'Phishing simulation campaign results','Security awareness training completion','Onboarding security briefing sign-off','Role-based training matrix export','Awareness quiz scores — quarterly'
+    ])[1 + (g % 52)] AS title
+) AS spc;
 
 \echo ' >> evidence items seeded'
 

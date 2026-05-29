@@ -15,5 +15,6 @@ export * from './specialized';
 export * from './regwatch';
 export * from './incidents';
 export * from './workflows';
+export * from './humanrisk';
 
 export type * from './types';

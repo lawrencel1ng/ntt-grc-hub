@@ -34,6 +34,13 @@ Each step below has four lines:
 - **Say:** *"Monte Carlo, 10,000 trials, built in. Archer and MetricStream charge extra for this; 6clicks doesn't have it at all. Our Risk Quantifier agent re-runs the simulation whenever a contributing risk changes."*
 - **Expected:** LEC (Loss Exceedance Curve) renders with a ~S$4.2M ALE annotation and a smooth descending curve from 0–100% probability.
 
+## Step 3b — Human Risk (KnowBe4) feeds the register & FAIR · 3:15
+
+- **Action:** sidebar → **Enterprise Risk → Human Risk** (`/human-risk`), then click the riskiest user.
+- **Point at:** the org Human Risk Score (28/100, down from 54), the phish-prone rate (6.2% vs 32.4% industry), and the **Quantified ALE** KPI. Use the right-hand banner's "View register entry" and "Open FAIR scenario" links to show the same number landing in the ERM register (R-MBB-HUMAN) and a FAIR Monte-Carlo scenario. On the user drill-down, point at the score drivers (failed phishing, MFA, privileged access) and the 12-month trend.
+- **Say:** *"KnowBe4's Virtual Risk Officer scores every employee. We don't just show training stats — we convert the phish-prone rate into an annualised loss expectancy, push it into the enterprise risk register as a quantified people-risk, and run it through the same FAIR engine as cyber risk. Human risk becomes a board number, not a checkbox."*
+- **Expected:** populated dashboard (KPI strip, 12-month trend, department table, at-risk users); the register entry and FAIR scenario both reflect the same ALE; the per-user page renders score ring, drivers and phishing/training history.
+
 ## Step 4 — Agent Fleet (the moat) · 4:00
 
 - **Action:** sidebar → **Agentic OS → Agent Fleet** (`/agents`).

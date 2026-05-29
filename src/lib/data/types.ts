@@ -24,6 +24,45 @@ export type AssessmentStatus = 'not-started' | 'in-progress' | 'complete' | 'exp
 export type EvidenceKind = 'screenshot' | 'log' | 'config' | 'attestation' | 'document' | 'scan-result' | 'api-response';
 export type EvidenceCollectorKind = 'aws' | 'azure' | 'gcp' | 'okta' | 'jira' | 'm365' | 'github' | 'servicenow' | 'slack' | 'manual';
 
+// The ten GRC evidence domains every tenant's vault is expected to cover.
+export type EvidenceDomain =
+  | 'policy-governance'
+  | 'risk-management'
+  | 'iam'
+  | 'security-operations'
+  | 'infra-config'
+  | 'asset-management'
+  | 'compliance-audit'
+  | 'bcm'
+  | 'third-party-vendor'
+  | 'security-awareness';
+
+export const EVIDENCE_DOMAINS: EvidenceDomain[] = [
+  'policy-governance',
+  'risk-management',
+  'iam',
+  'security-operations',
+  'infra-config',
+  'asset-management',
+  'compliance-audit',
+  'bcm',
+  'third-party-vendor',
+  'security-awareness'
+];
+
+export const EVIDENCE_DOMAIN_LABELS: Record<EvidenceDomain, string> = {
+  'policy-governance': 'Policy & Governance',
+  'risk-management': 'Risk Management',
+  'iam': 'Identity & Access',
+  'security-operations': 'Security Operations',
+  'infra-config': 'Infrastructure & Config',
+  'asset-management': 'Asset Management',
+  'compliance-audit': 'Compliance & Audit',
+  'bcm': 'Business Continuity',
+  'third-party-vendor': 'Third Party & Vendor',
+  'security-awareness': 'Security Awareness'
+};
+
 export type EngagementType = 'internal' | 'external' | 'regulatory' | 'customer';
 export type FindingStatus = 'open' | 'closed' | 'accepted-risk';
 
@@ -279,6 +318,7 @@ export interface EvidenceItem {
   collectorId?: string;
   controlId?: string;
   kind: EvidenceKind;
+  domain?: EvidenceDomain;
   title: string;
   sourceUrl?: string;
   blobUrl?: string;
@@ -758,6 +798,114 @@ export interface Connector {
   status: IntegrationStatus;
   lastSyncAt?: string;
   recordsIngested24h?: number;
+}
+
+// -------------------- Human Risk (KnowBe4) --------------------
+//  Security-awareness / human-risk-management telemetry sourced from
+//  KnowBe4 (Virtual Risk Officer). Per-user risk scoring rolls up to an
+//  org Human Risk Score and is quantified into a FAIR ALE that feeds the
+//  enterprise risk register and quantitative risk reporting.
+
+export type HumanRiskLevel = 'low' | 'moderate' | 'high' | 'critical';
+// Outcome of the most recent simulated phishing test for a user.
+export type PhishResult = 'reported' | 'no-action' | 'opened' | 'clicked' | 'data-entered';
+
+export interface HumanRiskUser {
+  id: string;
+  tenantId: string;
+  name: string;
+  email: string;
+  department: string;
+  jobTitle: string;
+  riskScore: number;          // 0–100, higher = riskier (KnowBe4 convention)
+  riskLevel: HumanRiskLevel;
+  riskScore30dDelta: number;  // change vs 30 days ago (negative = improving)
+  phishingSent: number;
+  phishingClicked: number;
+  phishingReported: number;
+  phishingDataEntered: number;
+  lastPhishResult: PhishResult;
+  lastPhishAt?: string;
+  trainingAssigned: number;
+  trainingCompleted: number;
+  trainingCompletionPct: number;
+  lastTrainingAt?: string;
+  mfaEnabled: boolean;
+  privilegedAccess: boolean;  // risk booster
+  riskHistory: number[];      // last 12 monthly risk scores (oldest → newest)
+}
+
+export interface HumanRiskDepartment {
+  tenantId: string;
+  department: string;
+  headcount: number;
+  avgRiskScore: number;
+  riskLevel: HumanRiskLevel;
+  phishPronePct: number;
+  trainingCompletionPct: number;
+  highRiskUsers: number;
+}
+
+export interface PhishingCampaign {
+  id: string;
+  tenantId: string;
+  name: string;
+  template: string;
+  difficulty: 1 | 2 | 3 | 4 | 5;
+  sentAt: string;
+  recipients: number;
+  delivered: number;
+  opened: number;
+  clicked: number;
+  dataEntered: number;
+  reported: number;
+  phishPronePct: number;
+  status: 'scheduled' | 'in-progress' | 'closed';
+}
+
+export interface TrainingCampaign {
+  id: string;
+  tenantId: string;
+  name: string;
+  contentType: 'video' | 'interactive' | 'assessment' | 'policy-ack';
+  frameworkRef?: string;      // mapped control/requirement, e.g. 'ISO 27001 A.6.3'
+  enrolled: number;
+  completed: number;
+  completionPct: number;
+  passRate: number;
+  dueAt: string;
+  status: 'active' | 'completed' | 'overdue';
+}
+
+// Quantified human-risk loss exposure — the bridge from KnowBe4 telemetry
+// into FAIR / the enterprise risk register.
+export interface HumanRiskQuant {
+  aro: number;                // annualised rate of a successful phishing-led compromise
+  perIncidentMeanSgd: number; // mean single-loss magnitude (lognormal mean)
+  perIncidentStdevSgd: number;
+  aleSgd: number;             // ARO × per-incident mean
+  aleSgd12mAgo: number;       // ALE a year ago, before training uplift
+  aleReducedSgd: number;      // avoided annualised loss from the training programme
+  riskId: string;             // ERM register entry this quant feeds
+  scenarioId: string;         // FAIR scenario id on the heatmap
+}
+
+export interface HumanRiskSummary {
+  tenantId: string;
+  headcount: number;
+  orgRiskScore: number;       // 0–100
+  riskLevel: HumanRiskLevel;
+  orgRiskScore12mAgo: number;
+  phishPronePct: number;
+  phishPronePct12mAgo: number;
+  industryPhishPronePct: number;   // industry benchmark for the same period
+  trainingCompletionPct: number;
+  usersAtHighRisk: number;
+  usersAtCriticalRisk: number;
+  campaignsRun12m: number;
+  reportingRatePct: number;        // % of phishing tests reported (good behaviour)
+  riskScoreHistory: { period: string; score: number; ppp: number }[];
+  quant: HumanRiskQuant;
 }
 
 // -------------------- KPI snapshots --------------------

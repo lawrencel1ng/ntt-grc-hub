@@ -1,6 +1,52 @@
 import type { Risk, RiskSeverity, RiskLikelihood, FAIRRun, FAIRScenario, AppetiteStatement, HeatmapCell } from './types';
 import { TENANT_PROFILES } from './tenants';
 import { hashStringToInt, mulberry32, pick } from './rng';
+import { humanRiskSummary, humanRiskQuant, hasHumanRisk } from './humanrisk';
+
+// Map the KnowBe4 org Human Risk Score (0–100) onto the register's
+// residual sev × lik so the human-risk entry is placed on the same
+// heatmap as every other enterprise risk.
+function humanRiskResidual(orgScore: number): { sev: RiskSeverity; lik: RiskLikelihood } {
+  if (orgScore >= 65) return { sev: 'critical', lik: 'likely' };
+  if (orgScore >= 45) return { sev: 'high', lik: 'possible' };
+  if (orgScore >= 25) return { sev: 'medium', lik: 'possible' };
+  return { sev: 'low', lik: 'unlikely' };
+}
+
+// The enterprise-risk-register entry sourced from KnowBe4 telemetry. This
+// is what makes "user risk scoring feeds the risk register" literal: the
+// row's residual scoring is driven by the live org Human Risk Score and
+// its tags carry the quantified ALE for downstream reporting.
+export function humanRiskRegisterEntry(tenantId: string): Risk | null {
+  const summary = humanRiskSummary(tenantId);
+  if (!summary) return null;
+  const { sev, lik } = humanRiskResidual(summary.orgRiskScore);
+  const prefix = tenantCodePrefix(tenantId);
+  return {
+    id: `risk_${tenantId}_humanrisk`,
+    tenantId,
+    registerId: `reg_${tenantId}`,
+    code: `R-${prefix}-HUMAN`,
+    title: 'Phishing-led credential compromise (Human Risk · KnowBe4)',
+    description: `Sourced from KnowBe4 Virtual Risk Officer. Org Human Risk Score ${summary.orgRiskScore}/100 (${summary.riskLevel}); phish-prone ${summary.phishPronePct}% across ${summary.headcount.toLocaleString()} staff. Residual scoring tracks the live human-risk telemetry and is quantified at S$${(summary.quant.aleSgd / 1e6).toFixed(2)}M ALE.`,
+    category: 'people',
+    inherentSeverity: 'high',
+    inherentLikelihood: 'likely',
+    residualSeverity: sev,
+    residualLikelihood: lik,
+    status: 'monitoring',
+    treatmentStrategy: 'mitigate',
+    lastAssessedAt: new Date(Date.now() - 6 * 3600 * 1000).toISOString(),
+    nextReviewAt: new Date(Date.now() + 30 * 86_400_000).toISOString(),
+    businessService: 'Enterprise-wide',
+    tags: {
+      source: 'knowbe4',
+      orgRiskScore: summary.orgRiskScore,
+      phishPronePct: summary.phishPronePct,
+      aleSgd: summary.quant.aleSgd
+    }
+  };
+}
 
 const RISK_TITLES = [
   'Ransomware on customer-facing systems',           'Insider data exfiltration',
@@ -87,6 +133,10 @@ export function risksForTenant(tenantId: string): Risk[] {
       tags: { hero: true, elevated_in_last_24h: true }
     });
   }
+  // Inject the KnowBe4-sourced human-risk entry near the top of every
+  // tenant's register so user risk scoring is visible alongside the ERM.
+  const human = humanRiskRegisterEntry(tenantId);
+  if (human) out.splice(tenantId === 't_maybank' ? 1 : 0, 0, human);
   // Note: rng kept for parity with the seeded-jitter style — used later.
   void rng;
   return out;
@@ -165,6 +215,20 @@ export function fairScenariosForTenant(tenantId: string): FAIRScenario[] {
     });
     void rng;
   }
+  // Human-risk FAIR scenario sourced from KnowBe4 — frequency from the org
+  // phish-prone rate, magnitude from credential-compromise loss benchmarks.
+  if (hasHumanRisk(tenantId)) {
+    const q = humanRiskQuant(tenantId);
+    out.unshift({
+      id: q.scenarioId,
+      tenantId,
+      riskId: q.riskId,
+      name: `Phishing-led credential compromise (KnowBe4 · ${tenantId})`,
+      description: 'FAIR scenario derived from KnowBe4 human-risk telemetry. ARO scales with the org phish-prone percentage; magnitude benchmarked to credential-compromise / BEC losses.',
+      frequencyDist: { kind: 'beta-pert', min: Math.max(0.1, q.aro * 0.5), mode: q.aro, max: q.aro * 2.4 },
+      magnitudeDist: { kind: 'lognormal', mean: q.perIncidentMeanSgd, stdev: q.perIncidentStdevSgd }
+    });
+  }
   // Hero scenario for Maybank — $4.2M ALE
   if (tenantId === 't_maybank') {
     out.unshift({
@@ -192,6 +256,26 @@ export function fairRunForRisk(riskId: string): FAIRRun | null {
       aleSgd: 4_200_000,
       aro: 1.7,
       runAt: new Date(Date.now() - 3 * 3600 * 1000).toISOString()
+    };
+  }
+  // Human-risk run: anchor the curve to the quantified ALE so the heatmap,
+  // the register entry and the /human-risk page all tell the same number.
+  const hrMatch = /^risk_(t_[a-z]+)_humanrisk$/.exec(riskId);
+  if (hrMatch) {
+    const q = humanRiskQuant(hrMatch[1]);
+    const m = q.perIncidentMeanSgd;
+    return {
+      id: `fair_${riskId}`,
+      tenantId: hrMatch[1],
+      scenarioId: q.scenarioId,
+      trials: 10_000,
+      lecPercentiles: {
+        p10: Math.round(m * 0.28), p25: Math.round(m * 0.55), p50: Math.round(m * 0.95),
+        p75: Math.round(m * 1.7), p90: Math.round(m * 2.9), p95: Math.round(m * 4.1), p99: Math.round(m * 7.2)
+      },
+      aleSgd: q.aleSgd,
+      aro: q.aro,
+      runAt: new Date(Date.now() - 6 * 3600 * 1000).toISOString()
     };
   }
   const rng = mulberry32(hashStringToInt(`fair:${riskId}`));

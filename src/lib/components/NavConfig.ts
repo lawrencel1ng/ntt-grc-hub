@@ -5,7 +5,7 @@ import {
   Building, FileQuestion, GitFork,
   Lock, Leaf, BrainCircuit, Calculator, LifeBuoy,
   Bot, History, Workflow, Plug,
-  Users, KeyRound, FileSearch, Settings,
+  Users, KeyRound, FileSearch, Settings, GraduationCap,
   type Icon
 } from 'lucide-svelte';
 
@@ -27,6 +27,7 @@ export const navSections: NavSection[] = [
     items: [
       { label: 'ERM Register', href: '/risk', icon: AlertTriangle },
       { label: 'Heatmap & FAIR', href: '/heatmap', icon: Grid3x3 },
+      { label: 'Human Risk', href: '/human-risk', icon: GraduationCap, badge: 'KnowBe4' },
       { label: 'Issues & Incidents', href: '/issues', icon: ListChecks },
       { label: 'Op Resilience', href: '/resilience', icon: ShieldAlert }
     ]

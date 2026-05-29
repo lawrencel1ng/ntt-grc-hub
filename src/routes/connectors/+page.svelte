@@ -9,7 +9,7 @@
     Cloud, KeyRound, ListChecks, MessageSquare, Building2, ShieldCheck, ScrollText, Webhook,
     Plug, MoreHorizontal, CheckCircle2, AlertTriangle, XCircle, RefreshCw, Container,
     Github, Gitlab, Cog, Slack, MessageCircle, Bell, PhoneCall, Mail, FileText,
-    Briefcase, Inbox, BarChart3, Database, ShieldAlert, Bug, Activity
+    Briefcase, Inbox, BarChart3, Database, ShieldAlert, Bug, Activity, GraduationCap
   } from 'lucide-svelte';
 
   export let data;
@@ -106,6 +106,7 @@
       case 'crowdstrike': return ShieldAlert;
       case 'wiz': return ShieldCheck;
       case 'snyk': case 'tenable': case 'qualys': return Bug;
+      case 'knowbe4': return GraduationCap;
       // GRC / Audit
       case 'servicenow-irm': case 'archer': case 'onetrust': return ScrollText;
       // Custom

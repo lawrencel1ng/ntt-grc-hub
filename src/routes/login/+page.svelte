@@ -1,6 +1,7 @@
 <script lang="ts">
   import { page } from '$app/stores';
   import Logo from '$lib/components/Logo.svelte';
+  import { DEMO_LOGINS } from '$lib/data/demo-logins';
   import {
     ShieldCheck,
     KeyRound,
@@ -13,23 +14,6 @@
 
   export let data: { next: string };
   export let form: { error?: string } | null = null;
-
-  type DemoLogin = {
-    email: string;
-    password: string;
-    name: string;
-    role: string;
-    tenant: string;
-  };
-
-  const DEMO_LOGINS: DemoLogin[] = [
-    { email: 'admin@ntt.sg',       password: 'demo', name: 'Lawrence Tan',  role: 'admin',          tenant: 'NTT Singapore (Platform Admin)' },
-    { email: 'ciso@maybank.sg',    password: 'demo', name: 'Aisha Rahman',  role: 'risk-owner',     tenant: 'Maybank Singapore' },
-    { email: 'auditor@mindef.sg',  password: 'demo', name: 'Col. R. Kumar', role: 'auditor',        tenant: 'MINDEF Defence Cloud' },
-    { email: 'control@grab.com',   password: 'demo', name: 'Wei Ming Lee',  role: 'control-owner',  tenant: 'Grab Fintech APAC' },
-    { email: 'agent-ops@ntt.sg',   password: 'demo', name: 'Priya Nair',    role: 'agent-operator', tenant: 'NTT Singapore' },
-    { email: 'viewer@maybank.sg',  password: 'demo', name: 'Jason Chua',    role: 'viewer',         tenant: 'Maybank Singapore' }
-  ];
 
   let email = 'admin@maybank.sg';
   let password = '';
@@ -57,7 +41,7 @@
     window.location.href = `/login?sso_unavailable=${provider}&next=${next}`;
   }
 
-  function useDemo(d: DemoLogin) {
+  function useDemo(d: (typeof DEMO_LOGINS)[number]) {
     email = d.email;
     password = d.password;
   }
@@ -254,7 +238,7 @@
             >
               <div class="min-w-0">
                 <div class="truncate font-medium text-slate-700">{d.email}</div>
-                <div class="truncate text-[11px] text-slate-500">{d.name} · {d.tenant}</div>
+                <div class="truncate text-[11px] text-slate-500">{d.name} · {d.tenantName}</div>
               </div>
               <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium uppercase text-slate-600">{d.role}</span>
             </button>

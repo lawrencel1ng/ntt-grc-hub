@@ -288,6 +288,43 @@ export async function revokeOtherSessions(userId: string, exceptToken?: string):
   }
 }
 
+// ── API Token auth ───────────────────────────────────────────────────────────
+
+/**
+ * Validate an API token from the Authorization: Bearer header.
+ * Returns the owning SessionUser on success, or null if invalid/expired.
+ * Updates last_used_at on success (best-effort, non-blocking).
+ */
+export async function validateApiToken(rawToken: string): Promise<SessionUser | null> {
+  if (!rawToken || !rawToken.startsWith('ntt_grc_')) return null;
+  const pool = getPool();
+  const hash = createHash('sha256').update(rawToken).digest('hex');
+  const prefix = rawToken.slice(0, 16);
+
+  const { rows } = await pool.query<{
+    id: string; token_hash: string;
+    user_id: string; email: string; name: string; role: Role; tenant_id: string; status: string;
+  }>(
+    `SELECT t.id, t.token_hash,
+            u.id AS user_id, u.email, u.name, u.role, u.tenant_id, u.status
+     FROM platform.api_tokens t
+     JOIN platform.users u ON u.id = t.user_id
+     WHERE t.prefix = $1
+       AND t.expires_at > now()
+     LIMIT 1`,
+    [prefix]
+  ).catch(() => ({ rows: [] as never[] }));
+
+  if (!rows.length) return null;
+  const row = rows[0];
+  if (row.token_hash !== hash || row.status !== 'active') return null;
+
+  // Update last_used_at asynchronously — don't block the request.
+  pool.query(`UPDATE platform.api_tokens SET last_used_at = now() WHERE id = $1`, [row.id]).catch(() => {});
+
+  return { id: row.user_id, email: row.email, name: row.name, role: row.role, tenantId: row.tenant_id };
+}
+
 // ── Audit log ───────────────────────────────────────────────────────────────
 
 export interface AuditEvent {

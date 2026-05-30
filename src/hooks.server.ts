@@ -1,7 +1,7 @@
 // src/hooks.server.ts
 import type { Handle } from '@sveltejs/kit';
 import { redirect } from '@sveltejs/kit';
-import { validateSession, SESSION_COOKIE } from '$lib/server/auth';
+import { validateSession, validateApiToken, SESSION_COOKIE } from '$lib/server/auth';
 import { isPgMode } from '$lib/server/pg';
 import { DEMO_USER_COOKIE, DEFAULT_DEMO_LOGIN, findDemoLogin } from '$lib/data/demo-logins';
 
@@ -89,6 +89,20 @@ export const handle: Handle = async ({ event, resolve }) => {
   if (!isPgMode()) {
     if (isPublic) return withRequestId(addSecurityHeaders(await resolve(event)), requestId);
     throw redirect(303, `/login?next=${encodeURIComponent(path)}`);
+  }
+
+  // ── Postgres mode: check API token (Bearer) before cookie ─────────────
+  const authHeader = event.request.headers.get('authorization') ?? '';
+  if (authHeader.startsWith('Bearer ')) {
+    const apiUser = await validateApiToken(authHeader.slice(7).trim());
+    if (apiUser) {
+      event.locals.user = { ...apiUser, tenantId };
+      return withRequestId(addSecurityHeaders(await resolve(event)), requestId);
+    }
+    // Invalid Bearer token — reject rather than falling through to cookie auth
+    if (authHeader.slice(7).trim().startsWith('ntt_grc_')) {
+      return withRequestId(new Response('Invalid or expired API token', { status: 401 }), requestId);
+    }
   }
 
   // ── Postgres mode: validate real session cookie ────────────────────────

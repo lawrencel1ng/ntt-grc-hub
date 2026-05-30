@@ -3,11 +3,19 @@
   import Kpi from '$lib/components/Kpi.svelte';
   import StatusDot from '$lib/components/StatusDot.svelte';
   import {
-    LifeBuoy, ShieldAlert, Clock, CheckCircle2, Activity, ChevronRight, Network
+    LifeBuoy, ShieldAlert, Clock, CheckCircle2, Activity, ChevronRight, Network, Plus
   } from 'lucide-svelte';
   import type { BCMPlan, BCMDependency, BCMTest } from '$lib/data/types';
+  import { enhance } from '$app/forms';
+  import { addToast } from '$lib/stores/toast';
 
   export let data;
+  export let form: { created?: boolean; createError?: string } | null = null;
+
+  $: if (form?.created) { addToast('success', 'BCM plan created.'); showAddForm = false; }
+  $: if (form?.createError) addToast('error', form.createError);
+
+  let showAddForm = false;
 
   type Row = { plan: BCMPlan; deps: BCMDependency[]; tests: BCMTest[] };
 
@@ -66,7 +74,50 @@
   }
 </script>
 
-<PageHeader title="Business Continuity Management" subtitle="ISO 22301 · MAS Notice 657 · DORA {data.isAll ? '· aggregated view' : ''}" />
+<PageHeader title="Business Continuity Management" subtitle="ISO 22301 · MAS Notice 657 · DORA {data.isAll ? '· aggregated view' : ''}">
+  <svelte:fragment slot="actions">
+    {#if !data.isAll}
+      <button class="btn-primary" on:click={() => (showAddForm = !showAddForm)}>
+        <Plus class="h-4 w-4" />
+        <span>New BCM Plan</span>
+      </button>
+    {/if}
+  </svelte:fragment>
+</PageHeader>
+
+{#if showAddForm}
+  <div class="card p-5">
+    <h3 class="mb-4 text-sm font-semibold text-grc-ink">New BCM Plan</h3>
+    <form method="POST" action="?/createBCMPlan" use:enhance class="space-y-4">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Name</span>
+          <input name="name" class="input" placeholder="e.g. Payment Processing Recovery" required maxlength="256" />
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Business Service</span>
+          <input name="businessService" class="input" placeholder="e.g. Core Banking" required maxlength="256" />
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">RTO (minutes)</span>
+          <input name="rtoMinutes" type="number" min="0" class="input" value="240" />
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">RPO (minutes)</span>
+          <input name="rpoMinutes" type="number" min="0" class="input" value="60" />
+        </label>
+        <label class="block sm:col-span-2">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Description</span>
+          <textarea name="description" class="input h-20 resize-none" placeholder="Optional" maxlength="2048"></textarea>
+        </label>
+      </div>
+      <div class="flex gap-2">
+        <button type="submit" class="btn-primary">Create plan</button>
+        <button type="button" class="btn-secondary" on:click={() => (showAddForm = false)}>Cancel</button>
+      </div>
+    </form>
+  </div>
+{/if}
 
 <div class="space-y-6">
   <!-- KPI strip -->

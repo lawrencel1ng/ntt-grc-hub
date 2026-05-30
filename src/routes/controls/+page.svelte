@@ -3,10 +3,18 @@
   import Kpi from '$lib/components/Kpi.svelte';
   import StatusDot from '$lib/components/StatusDot.svelte';
   import FrameworkBadge from '$lib/components/FrameworkBadge.svelte';
-  import { ShieldCheck, Bot, CheckCircle2, AlertTriangle, Search, ChevronRight, User as UserIcon } from 'lucide-svelte';
+  import { ShieldCheck, Bot, CheckCircle2, AlertTriangle, Search, ChevronRight, User as UserIcon, Plus } from 'lucide-svelte';
   import type { Control, ControlMapping, ControlType, ControlTestResult } from '$lib/data/types';
+  import { enhance } from '$app/forms';
+  import { addToast } from '$lib/stores/toast';
 
   export let data;
+  export let form: { created?: boolean; code?: string; createError?: string } | null = null;
+
+  $: if (form?.created) { addToast('success', `Control ${form.code} created.`); showAddForm = false; }
+  $: if (form?.createError) addToast('error', form.createError);
+
+  let showAddForm = false;
 
   // ---------- KPIs ----------
   $: total = data.controls.length;
@@ -110,7 +118,65 @@
   }
 </script>
 
-<PageHeader title="Controls Library" subtitle="{total.toLocaleString()} controls · {automatedPct.toFixed(0)}% automated" />
+<PageHeader title="Controls Library" subtitle="{total.toLocaleString()} controls · {automatedPct.toFixed(0)}% automated">
+  <svelte:fragment slot="actions">
+    <button class="btn-primary" on:click={() => (showAddForm = !showAddForm)}>
+      <Plus class="h-4 w-4" />
+      <span>Add Control</span>
+    </button>
+  </svelte:fragment>
+</PageHeader>
+
+{#if showAddForm}
+  <div class="card p-5">
+    <h3 class="mb-4 text-sm font-semibold text-grc-ink">New Control</h3>
+    <form method="POST" action="?/createControl" use:enhance class="space-y-4">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <label class="block sm:col-span-2">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Title</span>
+          <input name="title" class="input" placeholder="e.g. Multi-factor Authentication Enforcement" required maxlength="256" />
+        </label>
+        <label class="block sm:col-span-2">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Description</span>
+          <textarea name="description" class="input h-20 resize-none" placeholder="Optional" maxlength="2048"></textarea>
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Type</span>
+          <select name="type" class="input">
+            <option value="technical">Technical</option>
+            <option value="process">Process</option>
+            <option value="admin">Admin</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Maturity</span>
+          <select name="maturity" class="input">
+            <option value="initial">Initial</option>
+            <option value="developing">Developing</option>
+            <option value="defined">Defined</option>
+            <option value="managed">Managed</option>
+            <option value="optimised">Optimised</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Frequency</span>
+          <input name="frequency" class="input" value="annual" maxlength="64" />
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Automated</span>
+          <select name="automated" class="input">
+            <option value="false">No</option>
+            <option value="true">Yes</option>
+          </select>
+        </label>
+      </div>
+      <div class="flex gap-2">
+        <button type="submit" class="btn-primary">Create control</button>
+        <button type="button" class="btn-secondary" on:click={() => (showAddForm = false)}>Cancel</button>
+      </div>
+    </form>
+  </div>
+{/if}
 
 <div class="space-y-6">
   <!-- KPI strip -->

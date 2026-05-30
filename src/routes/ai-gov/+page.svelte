@@ -2,11 +2,19 @@
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Kpi from '$lib/components/Kpi.svelte';
   import {
-    BrainCircuit, ShieldCheck, BarChart3, Sparkles, ChevronRight, Award
+    BrainCircuit, ShieldCheck, BarChart3, Sparkles, ChevronRight, Award, Plus
   } from 'lucide-svelte';
   import type { AIModel, AIRiskTier, ISO42001Status, AIModelKind } from '$lib/data/types';
+  import { enhance } from '$app/forms';
+  import { addToast } from '$lib/stores/toast';
 
   export let data;
+  export let form: { created?: boolean; createError?: string } | null = null;
+
+  $: if (form?.created) { addToast('success', 'AI model registered.'); showRegisterForm = false; }
+  $: if (form?.createError) addToast('error', form.createError);
+
+  let showRegisterForm = false;
 
   // ---------- KPIs ----------
   $: total = data.models.length;
@@ -44,7 +52,65 @@
   }
 </script>
 
-<PageHeader title="AI Governance" subtitle="EU AI Act · ISO 42001 · NIST AI RMF · MAS FEAT {data.isAll ? '· aggregated view' : ''}" />
+<PageHeader title="AI Governance" subtitle="EU AI Act · ISO 42001 · NIST AI RMF · MAS FEAT {data.isAll ? '· aggregated view' : ''}">
+  <svelte:fragment slot="actions">
+    {#if !data.isAll}
+      <button class="btn-primary" on:click={() => (showRegisterForm = !showRegisterForm)}>
+        <Plus class="h-4 w-4" />
+        <span>Register Model</span>
+      </button>
+    {/if}
+  </svelte:fragment>
+</PageHeader>
+
+{#if showRegisterForm}
+  <div class="card p-5">
+    <h3 class="mb-4 text-sm font-semibold text-grc-ink">Register AI Model</h3>
+    <form method="POST" action="?/registerModel" use:enhance class="space-y-4">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Name</span>
+          <input name="name" class="input" placeholder="e.g. Credit Risk Classifier" required maxlength="256" />
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Kind</span>
+          <select name="kind" class="input">
+            <option value="llm">LLM</option>
+            <option value="classifier">Classifier</option>
+            <option value="regression">Regression</option>
+            <option value="vision">Vision</option>
+            <option value="recommender">Recommender</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Risk Tier</span>
+          <select name="riskTier" class="input">
+            <option value="minimal">Minimal</option>
+            <option value="limited">Limited</option>
+            <option value="high">High</option>
+            <option value="unacceptable">Unacceptable</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Jurisdiction</span>
+          <input name="jurisdiction" class="input" value="Singapore" maxlength="128" />
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">ISO 42001 Status</span>
+          <select name="iso42001Status" class="input">
+            <option value="not-started">Not started</option>
+            <option value="in-progress">In progress</option>
+            <option value="certified">Certified</option>
+          </select>
+        </label>
+      </div>
+      <div class="flex gap-2">
+        <button type="submit" class="btn-primary">Register model</button>
+        <button type="button" class="btn-secondary" on:click={() => (showRegisterForm = false)}>Cancel</button>
+      </div>
+    </form>
+  </div>
+{/if}
 
 <div class="space-y-6">
   <!-- KPI strip -->

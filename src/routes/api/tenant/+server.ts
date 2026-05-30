@@ -14,6 +14,8 @@ const ALL_TENANTS_ID = '__all__';
  * to their tenantId anyway).
  */
 export const POST: RequestHandler = async ({ request, cookies, locals }) => {
+  if (!locals.user) throw error(401, 'Not authenticated');
+
   let tenantId = '';
   try {
     const body = await request.json();
@@ -23,7 +25,7 @@ export const POST: RequestHandler = async ({ request, cookies, locals }) => {
   }
 
   const user = locals.user;
-  if (user && user.role !== 'admin') {
+  if (user.role !== 'admin') {
     // Non-admin users may only view their own tenant or the all-tenants sentinel.
     if (tenantId !== ALL_TENANTS_ID && tenantId !== user.tenantId) {
       throw error(403, 'You may only view your own tenant.');

@@ -2,7 +2,8 @@
 import type { PageServerLoad, Actions } from './$types';
 import { fail } from '@sveltejs/kit';
 import { getTenantSummaries } from '$lib/server/data';
-import { hashPassword, verifyCredentials, writeAuditLog } from '$lib/server/auth';
+import { hashPassword, verifyCredentials, writeAuditLog, revokeOtherSessions } from '$lib/server/auth';
+import { SESSION_COOKIE } from '$lib/server/auth';
 import { ALL_TENANTS_ID } from '$lib/stores/tenant';
 import { isPgMode, getPool } from '$lib/server/pg';
 import { randomBytes } from 'crypto';
@@ -90,7 +91,7 @@ export const actions: Actions = {
     return { profileSuccess: true };
   },
 
-  changePassword: async ({ request, locals }) => {
+  changePassword: async ({ request, locals, cookies }) => {
     if (!locals.user) return fail(401, { pwError: 'Not authenticated' });
     if (!isPgMode()) return fail(400, { pwError: 'Password change requires Postgres mode.' });
 
@@ -109,6 +110,10 @@ export const actions: Actions = {
     const hash = await hashPassword(next);
     const pool = getPool();
     await pool.query(`UPDATE platform.users SET password_hash = $1 WHERE id = $2`, [hash, locals.user.id]);
+
+    // Revoke all other active sessions so devices with the old password are forced to re-login.
+    const currentToken = cookies.get(SESSION_COOKIE);
+    await revokeOtherSessions(locals.user.id, currentToken);
 
     await pool.query(
       `INSERT INTO platform.audit_log (tenant_id, user_id, actor_email, action, target, result, metadata)

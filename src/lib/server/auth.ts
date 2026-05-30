@@ -248,7 +248,38 @@ export async function consumePasswordResetToken(
      WHERE token_prefix = $1 AND used_at IS NULL`,
     [prefix]
   );
+  // Revoke all active sessions so stolen/leaked credentials can't be replayed.
+  await pool.query(
+    `UPDATE platform.sessions SET revoked_at = now()
+     WHERE user_id = $1 AND revoked_at IS NULL AND expires_at > now()`,
+    [valid.userId]
+  );
   return true;
+}
+
+/**
+ * Revoke all active sessions for a user except an optional excluded session
+ * (pass the raw cookie token to keep the current session alive). Call after
+ * a self-service password change so other devices/browsers are forced to
+ * re-authenticate.
+ */
+export async function revokeOtherSessions(userId: string, exceptToken?: string): Promise<void> {
+  const pool = getPool();
+  if (exceptToken) {
+    const exceptPrefix = tokenPrefix(exceptToken);
+    await pool.query(
+      `UPDATE platform.sessions SET revoked_at = now()
+       WHERE user_id = $1 AND revoked_at IS NULL AND expires_at > now()
+         AND token_prefix != $2`,
+      [userId, exceptPrefix]
+    );
+  } else {
+    await pool.query(
+      `UPDATE platform.sessions SET revoked_at = now()
+       WHERE user_id = $1 AND revoked_at IS NULL AND expires_at > now()`,
+      [userId]
+    );
+  }
 }
 
 // ── Audit log ───────────────────────────────────────────────────────────────

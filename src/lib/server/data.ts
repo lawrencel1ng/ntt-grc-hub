@@ -1377,7 +1377,7 @@ export async function getSOXKcas(tenantId?: string) {
             COALESCE(i.frequency, 'monthly') AS frequency,
             CASE i.control_type
               WHEN 'automated'       THEN 100
-              WHEN 'it-dependent'    THEN 60
+              WHEN 'itdm'            THEN 60
               ELSE 0
             END AS "automationPct",
             k.assessed_at AS "lastTestedAt",

@@ -55,7 +55,7 @@
     const rows: string[][] = data.evidence.map((e) => [String(e.id), e.title, e.kind, e.capturedAt, e.rowHash ?? '']);
     const csv = [headers.join(','), ...rows.map((r) => r.map(escapeCsv).join(','))].join('\n');
     downloadCsv(`audit-${data.audit.id}-evidence-pack-${new Date().toISOString().slice(0, 10)}.csv`, csv);
-    addToast('success', `Evidence pack downloaded — ${rows.length} items, 8s assembly via Audit Companion.`);
+    addToast('success', `Evidence pack downloaded — ${rows.length} items via Audit Companion.`);
   }
 
   import type { AuditWorkpaper } from '$lib/data/types';
@@ -217,8 +217,7 @@
               <AgentTypeBadge type="intelligent" />
             </div>
             <div class="mt-1 text-xs text-violet-700">
-              {data.evidence.length} evidence items assembled in <span class="font-mono font-semibold">8 seconds</span>.
-              Previously: ~3 days of manual assembly.
+              {data.evidence.length} evidence items assembled automatically via Audit Companion.
             </div>
           </div>
           <button class="btn-primary" on:click={downloadPack}>

@@ -241,28 +241,34 @@ export async function getAgentFleetSummary(): Promise<AgentFleetSummary[]> {
 export async function getRisks(tenantId?: string): Promise<Risk[]> {
   if (!isPgMode()) return tenantId ? mock.risksForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.risksForTenant(t));
   const sql = tenantId
-    ? `SELECT id::text AS id, tenant_id AS "tenantId", register_id::text AS "registerId",
-              code, title, description, category,
-              inherent_severity::text AS "inherentSeverity",
-              inherent_likelihood::text AS "inherentLikelihood",
-              residual_severity::text AS "residualSeverity",
-              residual_likelihood::text AS "residualLikelihood",
-              status::text AS status,
-              treatment_strategy::text AS "treatmentStrategy",
-              last_assessed_at AS "lastAssessedAt", next_review_at AS "nextReviewAt",
-              business_service AS "businessService", tags
-       FROM risk.risks WHERE tenant_id = $1 ORDER BY code`
-    : `SELECT id::text AS id, tenant_id AS "tenantId", register_id::text AS "registerId",
-              code, title, description, category,
-              inherent_severity::text AS "inherentSeverity",
-              inherent_likelihood::text AS "inherentLikelihood",
-              residual_severity::text AS "residualSeverity",
-              residual_likelihood::text AS "residualLikelihood",
-              status::text AS status,
-              treatment_strategy::text AS "treatmentStrategy",
-              last_assessed_at AS "lastAssessedAt", next_review_at AS "nextReviewAt",
-              business_service AS "businessService", tags
-       FROM risk.risks ORDER BY tenant_id, code`;
+    ? `SELECT r.id::text AS id, r.tenant_id AS "tenantId", r.register_id::text AS "registerId",
+              r.code, r.title, r.description, r.category,
+              r.inherent_severity::text AS "inherentSeverity",
+              r.inherent_likelihood::text AS "inherentLikelihood",
+              r.residual_severity::text AS "residualSeverity",
+              r.residual_likelihood::text AS "residualLikelihood",
+              r.status::text AS status,
+              r.treatment_strategy::text AS "treatmentStrategy",
+              r.last_assessed_at AS "lastAssessedAt", r.next_review_at AS "nextReviewAt",
+              r.business_service AS "businessService", r.tags,
+              r.owner_user_id::text AS "ownerUserId", u.email AS "ownerEmail"
+       FROM risk.risks r
+       LEFT JOIN platform.users u ON u.id = r.owner_user_id
+       WHERE r.tenant_id = $1 ORDER BY r.code`
+    : `SELECT r.id::text AS id, r.tenant_id AS "tenantId", r.register_id::text AS "registerId",
+              r.code, r.title, r.description, r.category,
+              r.inherent_severity::text AS "inherentSeverity",
+              r.inherent_likelihood::text AS "inherentLikelihood",
+              r.residual_severity::text AS "residualSeverity",
+              r.residual_likelihood::text AS "residualLikelihood",
+              r.status::text AS status,
+              r.treatment_strategy::text AS "treatmentStrategy",
+              r.last_assessed_at AS "lastAssessedAt", r.next_review_at AS "nextReviewAt",
+              r.business_service AS "businessService", r.tags,
+              r.owner_user_id::text AS "ownerUserId", u.email AS "ownerEmail"
+       FROM risk.risks r
+       LEFT JOIN platform.users u ON u.id = r.owner_user_id
+       ORDER BY r.tenant_id, r.code`;
   const rows = await safeQuery<Risk>(sql, tenantId ? [tenantId] : []);
   return rows.length ? rows : (tenantId ? mock.risksForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.risksForTenant(t)));
 }
@@ -564,12 +570,18 @@ export async function getFrameworkScores(tenantId?: string): Promise<FrameworkSc
 export async function getControls(tenantId?: string): Promise<Control[]> {
   if (!isPgMode()) return tenantId ? mock.controlsForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.controlsForTenant(t));
   const sql = tenantId
-    ? `SELECT id, tenant_id AS "tenantId", code, title, description, type::text AS type,
-              family, frequency, automated, maturity::text AS maturity
-       FROM control.library WHERE tenant_id = $1 ORDER BY code`
-    : `SELECT id, tenant_id AS "tenantId", code, title, description, type::text AS type,
-              family, frequency, automated, maturity::text AS maturity
-       FROM control.library ORDER BY tenant_id, code`;
+    ? `SELECT c.id, c.tenant_id AS "tenantId", c.code, c.title, c.description,
+              c.type::text AS type, c.family, c.frequency, c.automated, c.maturity::text AS maturity,
+              c.owner_user_id::text AS "ownerUserId", u.email AS "ownerEmail"
+       FROM control.library c
+       LEFT JOIN platform.users u ON u.id = c.owner_user_id
+       WHERE c.tenant_id = $1 ORDER BY c.code`
+    : `SELECT c.id, c.tenant_id AS "tenantId", c.code, c.title, c.description,
+              c.type::text AS type, c.family, c.frequency, c.automated, c.maturity::text AS maturity,
+              c.owner_user_id::text AS "ownerUserId", u.email AS "ownerEmail"
+       FROM control.library c
+       LEFT JOIN platform.users u ON u.id = c.owner_user_id
+       ORDER BY c.tenant_id, c.code`;
   const rows = await safeQuery<Control>(sql, tenantId ? [tenantId] : []);
   return rows.length ? rows : (tenantId ? mock.controlsForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.controlsForTenant(t)));
 }
@@ -743,7 +755,7 @@ export async function getAudits(tenantId?: string): Promise<AuditEngagement[]> {
             scope, framework_id AS "frameworkId"
      FROM audit.engagements ${where} ORDER BY opened_at DESC`, params
   );
-  return rows.length ? rows : (tenantId ? mock.auditsForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.auditsForTenant(t)));
+  return rows.length ? rows : (isPgMode() ? [] : (tenantId ? mock.auditsForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.auditsForTenant(t))));
 }
 
 export async function getAudit(id: string): Promise<AuditEngagement | undefined> {
@@ -766,7 +778,7 @@ export async function getAuditFindings(engagementId: string): Promise<AuditFindi
             due_at AS "dueAt", status::text AS status
      FROM audit.findings WHERE engagement_id = $1`, [engagementId]
   );
-  return rows.length ? rows : mock.auditFindings(engagementId);
+  return rows;
 }
 
 export async function getAuditWorkpapers(engagementId: string): Promise<AuditWorkpaper[]> {

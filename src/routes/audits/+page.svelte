@@ -80,7 +80,7 @@
       </label>
       <label class="block flex-1 min-w-[160px]">
         <span class="mb-1 block text-xs font-medium text-slate-700">Lead auditor</span>
-        <input name="leadAuditor" type="text" class="input" placeholder="Jane Lim" required />
+        <input name="leadAuditor" type="text" class="input" placeholder="Auditor name or firm" required />
       </label>
       <label class="block">
         <span class="mb-1 block text-xs font-medium text-slate-700">Opening date</span>

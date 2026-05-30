@@ -13,9 +13,10 @@ export const load: PageServerLoad = async () => {
     getRegSources(),
     getImpactAssessments()
   ]);
-  const heroImpacts = allImpacts.filter((ia) => ia.changeId === 'reg_hero_mas655');
+  // Pick the most recently assessed impact as the hero callout
+  const heroImpact = allImpacts[0] ?? null;
   const gapsOpened30d = allImpacts
     .filter((ia) => ia.assessedAt && (Date.now() - new Date(ia.assessedAt).getTime()) / 86_400_000 <= 30)
     .reduce((s, ia) => s + ia.gapsOpened, 0);
-  return { changes, sources, heroImpacts, activeImpacts: allImpacts.length, gapsOpened30d };
+  return { changes, sources, heroImpact, activeImpacts: allImpacts.length, gapsOpened30d };
 };

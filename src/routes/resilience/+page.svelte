@@ -206,7 +206,7 @@
               </td>
               <td class="td font-medium">{r.plan.name}</td>
               <td class="td"><span class="tag tag-slate">{r.plan.businessService}</span></td>
-              <td class="td text-xs text-slate-500">CRO Office</td>
+              <td class="td text-xs text-slate-500">{r.plan.ownerEmail ?? '—'}</td>
               <td class="td text-right font-mono text-xs">{fmtMin(r.plan.rtoMinutes)}</td>
               <td class="td text-right font-mono text-xs">{fmtMin(r.plan.rpoMinutes)}</td>
               <td class="td font-mono text-xs {dateColor(r.plan.lastTestedAt, 'past')}">{fmtRel(r.plan.lastTestedAt)}</td>

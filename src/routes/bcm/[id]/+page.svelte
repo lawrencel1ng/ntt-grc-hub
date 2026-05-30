@@ -116,7 +116,7 @@
       <div class="rounded-lg bg-rose-50 p-2 text-rose-700"><LifeBuoy class="h-5 w-5" /></div>
       <div class="flex-1">
         <h2 class="text-lg font-semibold text-grc-ink">{data.plan.businessService}</h2>
-        <p class="mt-1 text-sm text-slate-600">Owner: <span class="font-medium text-slate-800">CRO Office</span></p>
+        <p class="mt-1 text-sm text-slate-600">Owner: <span class="font-medium text-slate-800">{data.plan.ownerEmail ?? '—'}</span></p>
       </div>
     </div>
   </div>

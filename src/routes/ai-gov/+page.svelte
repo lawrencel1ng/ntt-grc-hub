@@ -15,10 +15,7 @@
   $: iso42001Pct = total > 0 ? Math.round((iso42001Compliant / total) * 100) : 0;
   $: prompts24h = data.prompts.filter((p: { capturedAt: string }) =>
     (Date.now() - new Date(p.capturedAt).getTime()) <= 86_400_000).length;
-  // NTT Tsuzumi count — MINDEF tenant story; for others, count models where name includes "Tsuzumi"
-  $: tsuzumiCount = data.effectiveTenantId === 't_mindef'
-    ? data.models.length // MINDEF story: 100% sovereign
-    : data.models.filter((m: AIModel) => /tsuzumi/i.test(m.name)).length;
+  $: tsuzumiCount = data.models.filter((m: AIModel) => /tsuzumi/i.test(m.name)).length;
 
   // ---------- Helpers ----------
   function tierCls(t: AIRiskTier): string {
@@ -81,7 +78,7 @@
         </div>
         <p class="mt-1 text-xs leading-relaxed text-slate-600">
           <span class="font-semibold">NTT Tsuzumi</span> (sovereign LLM, on-premise, Japanese-origin) covers
-          {data.effectiveTenantId === 't_mindef' ? '100%' : 'designated sensitive workloads'} of prompts in the MINDEF tenant —
+          {tsuzumiCount > 0 ? `${tsuzumiCount} of ${total} models` : 'designated sensitive workloads'} —
           air-gapped inference with full audit trail. ISO 42001 controls operational; prompts cryptographically sealed and
           retained for 7 years under MAS Notice 644 and applicable defence-grade data-handling policies.
         </p>

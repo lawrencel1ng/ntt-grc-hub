@@ -826,15 +826,20 @@ export async function getImpactAssessments(changeId?: string, tenantId?: string)
   if (!isPgMode()) return changeId ? mock.impactAssessmentsForChange(changeId, tenantId) : HERO_TENANTS.flatMap((t) => mock.impactAssessmentsForChange('reg_hero_mas655', t));
   const clauses: string[] = [];
   const params: unknown[] = [];
-  if (changeId) { params.push(changeId); clauses.push(`change_id = $${params.length}::uuid`); }
-  if (tenantId) { params.push(tenantId); clauses.push(`tenant_id = $${params.length}`); }
+  if (changeId) { params.push(changeId); clauses.push(`ia.change_id = $${params.length}::uuid`); }
+  if (tenantId) { params.push(tenantId); clauses.push(`ia.tenant_id = $${params.length}`); }
   const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
   const rows = await safeQuery<ImpactAssessment>(
-    `SELECT id::text AS id, tenant_id AS "tenantId", change_id::text AS "changeId",
-            framework_id AS "frameworkId", impact::text AS impact,
-            gaps_opened AS "gapsOpened", assessed_by_agent_id AS "assessedByAgentId",
-            assessed_at AS "assessedAt", notes
-     FROM regwatch.impact_assessments ${where} ORDER BY assessed_at DESC`,
+    `SELECT ia.id::text AS id, ia.tenant_id AS "tenantId", t.name AS "tenantName",
+            ia.change_id::text AS "changeId",
+            ia.framework_id AS "frameworkId", f.name AS "frameworkName",
+            ia.impact::text AS impact,
+            ia.gaps_opened AS "gapsOpened", ia.assessed_by_agent_id AS "assessedByAgentId",
+            ia.assessed_at AS "assessedAt", ia.notes
+     FROM regwatch.impact_assessments ia
+     LEFT JOIN platform.tenants t ON t.id = ia.tenant_id
+     LEFT JOIN compliance.frameworks f ON f.id::text = ia.framework_id::text
+     ${where} ORDER BY ia.assessed_at DESC`,
     params
   );
   return rows.length ? rows : (changeId ? mock.impactAssessmentsForChange(changeId, tenantId) : HERO_TENANTS.flatMap((t) => mock.impactAssessmentsForChange('reg_hero_mas655', t)));

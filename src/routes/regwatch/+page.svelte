@@ -19,7 +19,7 @@
     (SEV_ORDER[b.severity] ?? 0) - (SEV_ORDER[a.severity] ?? 0) ||
     b.publishedAt.localeCompare(a.publishedAt)
   )[0] ?? null;
-  $: heroImpact = data.heroImpacts[0];
+  $: heroImpact = data.heroImpact;
 
   function regColor(code?: string): string {
     switch (code) {
@@ -119,7 +119,7 @@
             {#if heroImpact}
               <div class="mt-3 inline-flex flex-wrap items-center gap-3 rounded-lg bg-white/70 px-3 py-2 text-xs ring-1 ring-rose-100">
                 <span class="font-semibold text-rose-900">Impact assessed:</span>
-                <span class="text-slate-700">{heroImpact.gapsOpened} new gaps · framework <span class="font-mono">mas-notice-655</span> · tenant Maybank · {fmtRel(heroImpact.assessedAt)}</span>
+                <span class="text-slate-700">{heroImpact.gapsOpened} new gaps{heroImpact.frameworkName ? ` · framework ${heroImpact.frameworkName}` : ''}{heroImpact.tenantName ? ` · ${heroImpact.tenantName}` : ''} · {fmtRel(heroImpact.assessedAt)}</span>
               </div>
             {/if}
           </div>

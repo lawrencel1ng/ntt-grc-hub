@@ -724,8 +724,10 @@ export interface RegChange {
 export interface ImpactAssessment {
   id: string;
   tenantId: string;
+  tenantName?: string;
   changeId: string;
   frameworkId?: string;
+  frameworkName?: string;
   impact: RegImpact;
   gapsOpened: number;
   assessedByAgentId?: string;

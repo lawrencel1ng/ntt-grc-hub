@@ -48,7 +48,7 @@
   $: lastRun = liveRuns[0];
   $: lastRunSeconds = lastRun
     ? Math.max(1, Math.floor((Date.now() - new Date(lastRun.startedAt).getTime()) / 1000))
-    : 47;
+    : null;
   $: fteSaved = +(
     data.fleetSummary.reduce((s, x) => s + x.fteHours30d, 0) / 160
   ).toFixed(1);
@@ -108,11 +108,6 @@
       name: 'Current',
       color: '#6d28d9',
       values: data.frameworks.slice(0, 8).map((f) => f.score ?? 0)
-    },
-    {
-      name: 'Target',
-      color: '#d946ef',
-      values: data.frameworks.slice(0, 8).map(() => 90)
     }
   ];
 
@@ -311,7 +306,7 @@
     </div>
     <span class="text-slate-300">·</span>
     <span class="text-sm text-slate-600">
-      Last decision <span class="num font-semibold text-slate-800">{lastRunSeconds}s</span> ago
+      {#if lastRunSeconds !== null}Last decision <span class="num font-semibold text-slate-800">{lastRunSeconds}s</span> ago{:else}No recent decisions{/if}
     </span>
     <span class="text-slate-300">·</span>
     <span class="text-sm text-slate-600">

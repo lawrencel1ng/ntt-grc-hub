@@ -15,16 +15,20 @@ import {
   getCostLedger30d,
   getNavBadgeCounts
 } from '$lib/server/data';
+import { ALL_TENANTS_ID } from '$lib/stores/tenant';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals }) => {
   const agent = await getAgent(params.id);
   if (!agent) throw error(404, 'Agent not found');
 
+  const tenantId = locals.tenantId ?? ALL_TENANTS_ID;
+  const effective = tenantId === ALL_TENANTS_ID ? undefined : tenantId;
+
   const [tools, runs, decisions, ledger, navBadges] = await Promise.all([
     getAgentTools(agent.id),
-    getAgentRunsForAgent(agent.id, 200),
-    getAgentDecisions({ agentId: agent.id, limit: 200 }),
-    getCostLedger30d(),
+    getAgentRunsForAgent(agent.id, 200, effective),
+    getAgentDecisions({ agentId: agent.id, tenantId: effective, limit: 200 }),
+    getCostLedger30d(effective),
     getNavBadgeCounts()
   ]);
 

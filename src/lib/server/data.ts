@@ -172,15 +172,18 @@ export async function getRecentAgentRuns(limit = 20, tenantId?: string): Promise
   return rows;
 }
 
-export async function getAgentRunsForAgent(agentId: string, limit = 20): Promise<AgentRun[]> {
+export async function getAgentRunsForAgent(agentId: string, limit = 20, tenantId?: string): Promise<AgentRun[]> {
   if (!isPgMode()) return mock.recentAgentRuns(limit).filter((r) => r.agentId === agentId);
+  const tenantClause = tenantId ? ' AND r.tenant_id = $3' : '';
+  const params: unknown[] = [agentId, limit];
+  if (tenantId) params.push(tenantId);
   const rows = await safeQuery<AgentRun>(
     `SELECT r.id, r.tenant_id AS "tenantId", r.agent_id AS "agentId", a.name AS "agentName",
             r.trigger::text AS trigger, r.started_at AS "startedAt", r.ended_at AS "endedAt",
             r.status::text AS status, r.input_summary AS "inputSummary", r.output_summary AS "outputSummary",
             r.tools_called AS "toolsCalled", r.cost_cents AS "costCents", r.latency_ms AS "latencyMs"
      FROM agent.runs r JOIN agent.agents a ON a.id = r.agent_id
-     WHERE r.agent_id = $1 ORDER BY r.started_at DESC LIMIT $2`, [agentId, limit]
+     WHERE r.agent_id = $1${tenantClause} ORDER BY r.started_at DESC LIMIT $2`, params
   );
   return rows;
 }

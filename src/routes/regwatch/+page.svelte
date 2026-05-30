@@ -13,8 +13,12 @@
   $: activeImpacts = data.activeImpacts as number;
   $: gapsOpened30d = data.gapsOpened30d as number;
 
-  // ---------- Hero callout ----------
-  $: hero = data.changes.find((c) => c.id === 'reg_hero_mas655');
+  // ---------- Hero callout — most recent critical/high change ----------
+  const SEV_ORDER: Record<string, number> = { critical: 4, high: 3, medium: 2, low: 1, info: 0 };
+  $: hero = data.changes.slice().sort((a, b) =>
+    (SEV_ORDER[b.severity] ?? 0) - (SEV_ORDER[a.severity] ?? 0) ||
+    b.publishedAt.localeCompare(a.publishedAt)
+  )[0] ?? null;
   $: heroImpact = data.heroImpacts[0];
 
   function regColor(code?: string): string {
@@ -61,7 +65,7 @@
     return `${year}-W${String(week).padStart(2, '0')}`;
   }
   $: groupedChanges = (() => {
-    const non = data.changes.filter((c) => c.id !== 'reg_hero_mas655');
+    const non = hero ? data.changes.filter((c) => c.id !== hero.id) : data.changes;
     const map = new Map<string, RegChange[]>();
     for (const c of non) {
       const k = weekKey(c.publishedAt);

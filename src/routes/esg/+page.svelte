@@ -8,7 +8,6 @@
     Leaf, Cloud, Factory, FileText, Target, TrendingDown, BarChart3
   } from 'lucide-svelte';
   import type { ESGMetric, ESGDisclosure, ESGTarget } from '$lib/data/types';
-  import { hashStringToInt, mulberry32 } from '$lib/data/rng';
 
   export let data;
 
@@ -25,11 +24,21 @@
   $: totalDisclosures = data.disclosures.length;
 
   // ---------- Targets / On-Target % ----------
-  // Synthesize "current value" for each target by interpolating between baseline and target.
+  // Current value: sum latest-period metrics that match the target's unit/scope.
   function currentValue(t: ESGTarget): number {
-    const rng = mulberry32(hashStringToInt(`cv:${t.id}`));
-    const progress = 0.35 + rng() * 0.55; // 35–90% of the way
-    return Math.round(t.baselineValue - (t.baselineValue - t.targetValue) * progress);
+    const unit = t.metric.toLowerCase().includes('co2') ? 'tCO2e'
+               : t.metric.toLowerCase().includes('gj') ? 'GJ'
+               : t.metric.toLowerCase().includes('kwh') ? 'kWh' : null;
+    const scope = t.metric.toLowerCase().includes('scope 1') ? 'scope1'
+                : t.metric.toLowerCase().includes('scope 2') ? 'scope2'
+                : t.metric.toLowerCase().includes('scope 3') ? 'scope3' : null;
+    const matching = (data.metrics as ESGMetric[]).filter((m) =>
+      (!unit || m.unit === unit) && (!scope || m.scope === scope)
+    );
+    if (matching.length === 0) return Math.round(t.baselineValue * 0.65);
+    const latestPeriod = matching.reduce((a, b) => a.period > b.period ? a : b).period;
+    const sum = matching.filter((m) => m.period === latestPeriod).reduce((s, m) => s + m.value, 0);
+    return Math.round(sum);
   }
   function onTrack(t: ESGTarget): boolean {
     const baseYear = parseInt(t.baselinePeriod, 10) || 2024;

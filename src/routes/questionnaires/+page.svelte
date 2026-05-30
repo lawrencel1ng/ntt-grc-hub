@@ -6,7 +6,6 @@
   import AgentTypeBadge from '$lib/components/AgentTypeBadge.svelte';
   import { FileQuestion, CheckCircle2, Clock, Bot, ChevronRight, Search } from 'lucide-svelte';
   import type { Questionnaire, QuestionnaireStatus } from '$lib/data/types';
-  import { hashStringToInt } from '$lib/data/rng';
 
   export let data;
 
@@ -75,10 +74,10 @@
   function fmtDate(iso?: string): string {
     return iso ? iso.slice(0, 10) : '—';
   }
-  // Deterministic per-questionnaire confidence (only meaningful when agent-completed).
+  // Confidence: agent-completed questionnaires use the normalized questionnaire score.
   function avgConfidence(q: Questionnaire): number {
-    const seed = hashStringToInt(q.id);
-    return 78 + (seed % 18); // 78–95
+    if (!q.completedByAgentId) return 0;
+    return q.score ?? 80;
   }
 </script>
 

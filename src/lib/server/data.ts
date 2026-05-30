@@ -1887,27 +1887,46 @@ async function computeVendorRiskIndex(tenantId?: string): Promise<number> {
 }
 
 export async function getKpiSnapshot(tenantId?: string): Promise<KpiSnapshot> {
-  const tenants = tenantId ? [tenantId] : (HERO_TENANTS as readonly string[]);
   let openCriticalRisks = 0, openFindings = 0, evidenceItems30d = 0, agentFteSaved30d = 0;
-  for (const tid of tenants) {
-    const risks = await getRisks(tid);
-    openCriticalRisks += risks.filter((r) => r.residualSeverity === 'critical' && r.status !== 'closed').length;
-    const audits = await getAudits(tid);
-    for (const a of audits) {
-      const f = await getAuditFindings(a.id);
-      openFindings += f.filter((x) => x.status === 'open').length;
-    }
-    evidenceItems30d += isPgMode() ? 0 : mock.evidenceCount24h(tid) * 30;
-  }
+
   if (isPgMode()) {
-    const rows = await safeQuery<{ cnt: number }>(
-      tenantId
-        ? `SELECT COUNT(*)::int AS cnt FROM evidence.items WHERE tenant_id = $1 AND captured_at >= now() - interval '30 days'`
-        : `SELECT COUNT(*)::int AS cnt FROM evidence.items WHERE captured_at >= now() - interval '30 days'`,
-      tenantId ? [tenantId] : []
-    );
-    evidenceItems30d = rows[0]?.cnt ?? 0;
+    const [riskRows, findingRows, evidenceRows] = await Promise.all([
+      safeQuery<{ cnt: number }>(
+        tenantId
+          ? `SELECT COUNT(*)::int AS cnt FROM risk.risks WHERE tenant_id = $1 AND residual_severity = 'critical' AND status <> 'closed'`
+          : `SELECT COUNT(*)::int AS cnt FROM risk.risks WHERE residual_severity = 'critical' AND status <> 'closed'`,
+        tenantId ? [tenantId] : []
+      ),
+      safeQuery<{ cnt: number }>(
+        tenantId
+          ? `SELECT COUNT(*)::int AS cnt FROM audit.findings WHERE engagement_id IN (SELECT id FROM audit.engagements WHERE tenant_id = $1) AND status = 'open'`
+          : `SELECT COUNT(*)::int AS cnt FROM audit.findings WHERE status = 'open'`,
+        tenantId ? [tenantId] : []
+      ),
+      safeQuery<{ cnt: number }>(
+        tenantId
+          ? `SELECT COUNT(*)::int AS cnt FROM evidence.items WHERE tenant_id = $1 AND captured_at >= now() - interval '30 days'`
+          : `SELECT COUNT(*)::int AS cnt FROM evidence.items WHERE captured_at >= now() - interval '30 days'`,
+        tenantId ? [tenantId] : []
+      )
+    ]);
+    openCriticalRisks = riskRows[0]?.cnt ?? 0;
+    openFindings = findingRows[0]?.cnt ?? 0;
+    evidenceItems30d = evidenceRows[0]?.cnt ?? 0;
+  } else {
+    const tenants = tenantId ? [tenantId] : (HERO_TENANTS as readonly string[]);
+    for (const tid of tenants) {
+      const risks = await getRisks(tid);
+      openCriticalRisks += risks.filter((r) => r.residualSeverity === 'critical' && r.status !== 'closed').length;
+      const audits = await getAudits(tid);
+      for (const a of audits) {
+        const f = await getAuditFindings(a.id);
+        openFindings += f.filter((x) => x.status === 'open').length;
+      }
+      evidenceItems30d += mock.evidenceCount24h(tid) * 30;
+    }
   }
+
   const ledger = await getCostLedger30d(tenantId);
   agentFteSaved30d = +ledger.reduce((s, e) => s + e.fteSavedHours, 0).toFixed(1);
   const scores = await getFrameworkScores(tenantId);

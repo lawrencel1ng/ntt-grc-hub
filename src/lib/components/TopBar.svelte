@@ -40,6 +40,29 @@
   let busy = '';
   let tenantFilter = '';
 
+  // Notifications — fetched from real DB on first open
+  interface Notif { id: string; title: string; body: string; href: string; severity: string; createdAt: string }
+  let notifications: Notif[] = [];
+  let notifLoaded = false;
+  let notifLoading = false;
+
+  async function openNotifications() {
+    showNotif = !showNotif;
+    showMenu = false;
+    if (showNotif && !notifLoaded && !notifLoading) {
+      notifLoading = true;
+      try {
+        const res = await fetch('/api/notifications');
+        if (res.ok) {
+          const data = await res.json();
+          notifications = data.notifications ?? [];
+        }
+      } catch { /* ignore */ }
+      notifLoaded = true;
+      notifLoading = false;
+    }
+  }
+
   $: isAdmin = user?.role === 'admin';
   $: isAllView = currentTenantId === ALL_TENANTS_ID;
   // The user's "home" tenant comes from their session; treat it as authoritative.
@@ -136,27 +159,29 @@
     <div class="relative">
       <button
         class="btn-ghost relative rounded-full p-2"
-        on:click={() => { showNotif = !showNotif; showMenu = false; }}
+        on:click={openNotifications}
         aria-label="Notifications"
       >
         <Bell class="h-4 w-4" />
-        <span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-rose-500"></span>
+        {#if notifications.length > 0 || !notifLoaded}
+          <span class="absolute right-1 top-1 h-2 w-2 rounded-full bg-rose-500"></span>
+        {/if}
       </button>
       {#if showNotif}
         <div class="absolute right-0 top-full mt-2 w-96 rounded-lg border border-slate-200 bg-white p-2 shadow-lg">
           <div class="px-2 py-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">Notifications</div>
-          <a href="/regwatch" class="block rounded p-2 hover:bg-slate-50" on:click={() => (showNotif = false)}>
-            <div class="text-sm font-medium text-slate-800">Critical: MAS Notice 655 update detected</div>
-            <div class="text-xs text-slate-500">7 control gaps opened across 3 tenants</div>
-          </a>
-          <a href="/controls" class="block rounded p-2 hover:bg-slate-50" on:click={() => (showNotif = false)}>
-            <div class="text-sm font-medium text-slate-800">Control test failed: AWS S3 encryption</div>
-            <div class="text-xs text-slate-500">3 buckets non-compliant · evidence attached</div>
-          </a>
-          <a href="/vendors" class="block rounded p-2 hover:bg-slate-50" on:click={() => (showNotif = false)}>
-            <div class="text-sm font-medium text-slate-800">Vendor questionnaire auto-filled</div>
-            <div class="text-xs text-slate-500">DBS Vickers SOC 2 · 38 questions · ready for review</div>
-          </a>
+          {#if notifLoading}
+            <div class="px-3 py-4 text-center text-xs text-slate-400">Loading…</div>
+          {:else if notifications.length === 0}
+            <div class="px-3 py-4 text-center text-xs text-slate-400">No recent notifications.</div>
+          {:else}
+            {#each notifications as n (n.id)}
+              <a href={n.href} class="block rounded p-2 hover:bg-slate-50" on:click={() => (showNotif = false)}>
+                <div class="text-sm font-medium {n.severity === 'critical' ? 'text-rose-800' : n.severity === 'warning' ? 'text-amber-800' : 'text-slate-800'}">{n.title}</div>
+                <div class="text-xs text-slate-500">{n.body}</div>
+              </a>
+            {/each}
+          {/if}
         </div>
       {/if}
     </div>

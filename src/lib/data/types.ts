@@ -980,6 +980,7 @@ export interface RiskTreatment {
   strategy: RiskTreatmentStrategy;
   description: string;
   ownerUserId?: string;
+  ownerEmail?: string;
   dueAt?: string;
   completedAt?: string;
   costSgd?: number;

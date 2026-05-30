@@ -99,8 +99,17 @@
     return `${Math.floor(ad / 86400)}d ${diff > 0 ? '' : 'ago'}`;
   }
 
-  function runFairAction() {
-    addToast('success', `FAIR analysis queued for ${data.risk.code}. Risk Quantifier agent will report in ~30s.`);
+  async function runFairAction() {
+    const res = await fetch(`/api/risk/${data.risk.id}/run-fair`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (res.ok) {
+      addToast('success', `FAIR analysis queued for ${data.risk.code}. Risk Quantifier agent will report in ~30s.`);
+    } else {
+      const msg = await res.text().catch(() => '');
+      addToast('error', msg || 'Failed to queue FAIR analysis.');
+    }
   }
 
 

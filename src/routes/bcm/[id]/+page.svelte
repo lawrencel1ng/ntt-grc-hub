@@ -90,8 +90,17 @@
   $: escalationContacts = data.escalationContacts as BCMEscalationContact[];
 
   // ---------- Action ----------
-  function scheduleTest() {
-    addToast('success', `Test scheduled for ${data.plan.name}. Resilience Coach agent will draft scenario and notify owners.`);
+  async function scheduleTest() {
+    const res = await fetch(`/api/bcm/${data.plan.id}/schedule-test`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (res.ok) {
+      addToast('success', `Test scheduled for ${data.plan.name}. Resilience Coach agent will draft scenario and notify owners.`);
+    } else {
+      const msg = await res.text().catch(() => '');
+      addToast('error', msg || 'Failed to schedule BCM test.');
+    }
   }
 </script>
 

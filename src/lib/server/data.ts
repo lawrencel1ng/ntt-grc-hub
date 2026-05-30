@@ -1598,7 +1598,8 @@ export async function getAuditLog(tenantId?: string, limit = 200): Promise<Audit
   if (tenantId) params.push(tenantId);
   return safeQuery<AuditLogEntry>(
     `SELECT id, ts, tenant_id AS "tenantId", actor_email AS "actorEmail",
-            action, target, result, prev_hash AS "prevHash", row_hash AS "rowHash"
+            action, target, result, prev_hash AS "prevHash", row_hash AS "rowHash",
+            ip_address AS "ipAddress", user_agent AS "userAgent"
      FROM platform.audit_log ${where} ORDER BY ts DESC LIMIT $1`, params
   );
 }
@@ -1860,8 +1861,8 @@ export async function getKpiSnapshot(tenantId?: string): Promise<KpiSnapshot> {
   if (isPgMode()) {
     const rows = await safeQuery<{ cnt: number }>(
       tenantId
-        ? `SELECT COUNT(*)::int AS cnt FROM evidence.items WHERE tenant_id = $1 AND collected_at >= now() - interval '30 days'`
-        : `SELECT COUNT(*)::int AS cnt FROM evidence.items WHERE collected_at >= now() - interval '30 days'`,
+        ? `SELECT COUNT(*)::int AS cnt FROM evidence.items WHERE tenant_id = $1 AND captured_at >= now() - interval '30 days'`
+        : `SELECT COUNT(*)::int AS cnt FROM evidence.items WHERE captured_at >= now() - interval '30 days'`,
       tenantId ? [tenantId] : []
     );
     evidenceItems30d = rows[0]?.cnt ?? 0;

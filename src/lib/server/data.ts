@@ -1258,8 +1258,19 @@ export async function getAIModels(tenantId?: string): Promise<AIModel[]> {
 
 export async function getAIModel(id: string): Promise<AIModel | undefined> {
   if (isPgMode()) {
-    const tid = await tenantOfRow('ai_gov.models', id);
-    if (tid) return (await getAIModels(tid)).find((m) => m.id === id);
+    const rows = await safeQuery<AIModel>(
+      `SELECT m.id::text AS id, m.tenant_id AS "tenantId", m.name, m.kind,
+              m.risk_tier::text AS "riskTier", m.jurisdiction,
+              m.eu_ai_act_class AS "euAiActClass",
+              m.iso_42001_status::text AS "iso42001Status",
+              m.owner_user_id::text AS "ownerUserId",
+              u.email AS "ownerEmail",
+              m.training_data_summary AS "trainingDataSummary"
+         FROM ai_gov.models m
+         LEFT JOIN platform.users u ON u.id = m.owner_user_id
+        WHERE m.id = $1::uuid LIMIT 1`, [id]
+    );
+    return rows[0];
   }
   const parts = id.split('_');
   if (parts.length < 3) return undefined;
@@ -1419,9 +1430,13 @@ export async function getIncidents(tenantId?: string): Promise<Incident[]> {
 
 export async function getIncident(id: string): Promise<Incident | undefined> {
   if (isPgMode()) {
-    const tid = await tenantOfRow('incident.incidents', id);
-    if (tid) return (await getIncidents(tid)).find((i) => i.id === id);
-    return undefined;
+    const rows = await safeQuery<Incident>(
+      `SELECT id::text AS id, tenant_id AS "tenantId", code, severity::text AS severity,
+              title, status::text AS status, opened_at AS "openedAt",
+              contained_at AS "containedAt", resolved_at AS "resolvedAt"
+         FROM incident.incidents WHERE id = $1::uuid LIMIT 1`, [id]
+    );
+    return rows[0];
   }
   const parts = id.split('_');
   if (parts.length < 3) return undefined;

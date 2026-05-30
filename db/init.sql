@@ -1489,6 +1489,18 @@ CREATE TABLE human_risk.quant (
 CREATE INDEX ON human_risk.quant (tenant_id, computed_at DESC);
 CREATE UNIQUE INDEX ON human_risk.quant (tenant_id);
 
+CREATE TABLE human_risk.remediation_actions (
+    id              BIGSERIAL PRIMARY KEY,
+    tenant_id       TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    user_id         TEXT NOT NULL REFERENCES human_risk.users(id) ON DELETE CASCADE,
+    action_type     TEXT NOT NULL,   -- 'training_enrollment' | 'phishing_simulation'
+    actor_id        TEXT,
+    notes           TEXT,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON human_risk.remediation_actions (tenant_id, created_at DESC);
+CREATE INDEX ON human_risk.remediation_actions (user_id);
+
 CREATE TYPE human_risk.campaign_status AS ENUM ('scheduled', 'in-progress', 'closed');
 CREATE TYPE human_risk.training_status AS ENUM ('active', 'completed', 'overdue');
 CREATE TYPE human_risk.training_content_type AS ENUM ('video', 'interactive', 'assessment', 'policy-ack');

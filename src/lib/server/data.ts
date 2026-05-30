@@ -745,6 +745,19 @@ export async function getRegChange(id: string): Promise<RegChange | undefined> {
   return all.find((c) => c.id === id);
 }
 
+export async function getRegFrameworkRequirements(changeId: string, limit = 8): Promise<Requirement[]> {
+  if (!isPgMode()) return [];
+  return safeQuery<Requirement>(
+    `SELECT DISTINCT r.id, r.framework_id AS "frameworkId", r.code, r.title,
+            r.description, r.parent_requirement_id AS "parentRequirementId", r.weight
+     FROM regwatch.impact_assessments ia
+     JOIN compliance.requirements r ON r.framework_id = ia.framework_id
+     WHERE ia.change_id = $1::uuid AND ia.framework_id IS NOT NULL
+     ORDER BY r.code
+     LIMIT $2`, [changeId, limit]
+  );
+}
+
 export async function getRegSources(): Promise<RegSource[]> {
   if (!isPgMode()) return mock.REG_SOURCES;
   const rows = await safeQuery<RegSource>(
@@ -1249,11 +1262,22 @@ export async function getIssues(tenantId?: string): Promise<Issue[]> {
   const params = tenantId ? [tenantId] : [];
   const rows = await safeQuery<Issue>(
     `SELECT id::text AS id, tenant_id AS "tenantId", source::text AS source,
-            source_id AS "sourceId", title, severity::text AS severity, status::text AS status,
-            owner_user_id AS "ownerUserId", due_at AS "dueAt"
+            source_id AS "sourceId", title, description, severity::text AS severity,
+            status::text AS status, owner_user_id AS "ownerUserId", due_at AS "dueAt"
      FROM issue.issues ${where} ORDER BY due_at`, params
   );
   return rows.length ? rows : (tenantId ? mock.issuesForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.issuesForTenant(t)));
+}
+
+export async function getVendorIssues(vendorId: string): Promise<Issue[]> {
+  if (!isPgMode()) return [];
+  return safeQuery<Issue>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", source::text AS source,
+            source_id AS "sourceId", title, description, severity::text AS severity,
+            status::text AS status, owner_user_id AS "ownerUserId", due_at AS "dueAt"
+     FROM issue.issues WHERE vendor_id = $1::uuid
+     ORDER BY due_at`, [vendorId]
+  );
 }
 
 export async function getIssue(id: string): Promise<Issue | undefined> {

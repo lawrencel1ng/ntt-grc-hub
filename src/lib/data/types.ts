@@ -622,6 +622,7 @@ export interface Issue {
   source: IssueSource;
   sourceId: string;
   title: string;
+  description?: string;
   severity: RiskSeverity;
   status: IssueStatus;
   ownerUserId?: string;

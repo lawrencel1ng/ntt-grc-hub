@@ -4,7 +4,7 @@
   import AgentTypeBadge from '$lib/components/AgentTypeBadge.svelte';
   import { addToast } from '$lib/stores/toast';
   import { ExternalLink, Sparkles, Antenna, Calendar } from 'lucide-svelte';
-  import type { RiskSeverity, RegImpact } from '$lib/data/types';
+  import type { RiskSeverity, RegImpact, Requirement } from '$lib/data/types';
 
   export let data;
 
@@ -46,21 +46,10 @@
     return `${Math.floor(diff / 86400)}d ago`;
   }
 
-  // ---------- Action mapping suggestions (synthetic) ----------
-  $: suggestions = (() => {
-    const base = data.change.id === 'reg_hero_mas655'
-      ? [
-          'MAS-NOTICE-655-014 — cross-border outsourcing register',
-          'MAS-NOTICE-655-022 — exit plan documentation',
-          'MAS-NOTICE-655-028 — concentration risk reporting',
-          'MAS-TRM-038 — KMS rotation evidence cadence'
-        ]
-      : [
-          'ISO27001-A.5.20 — supplier relationships',
-          'ISO27001-A.5.22 — monitoring of suppliers'
-        ];
-    return base.map((label, i) => ({ id: `sug_${data.change.id}_${i}`, label }));
-  })();
+  $: suggestions = (data.requirementSuggestions as Requirement[]).map((r) => ({
+    id: r.id,
+    label: `${r.code} — ${r.title}`
+  }));
 
   function applySuggestion(label: string) {
     addToast('success', `Mapping applied: ${label}`);
@@ -170,13 +159,17 @@
       <Antenna class="h-4 w-4 text-violet-600" />
       <h2 class="section-title">Mapping Suggestions</h2>
     </div>
-    <ul class="space-y-2">
-      {#each suggestions as sug}
-        <li class="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm">
-          <span class="font-mono text-xs text-slate-600">Map to requirement <span class="text-grc-primary">{sug.label}</span></span>
-          <button class="btn-secondary py-1 text-xs" on:click={() => applySuggestion(sug.label)}>Apply</button>
-        </li>
-      {/each}
-    </ul>
+    {#if suggestions.length === 0}
+      <p class="text-xs text-slate-400">No requirement mappings found for this change's assessed frameworks.</p>
+    {:else}
+      <ul class="space-y-2">
+        {#each suggestions as sug (sug.id)}
+          <li class="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm">
+            <span class="font-mono text-xs text-slate-600">Map to requirement <span class="text-grc-primary">{sug.label}</span></span>
+            <button class="btn-secondary py-1 text-xs" on:click={() => applySuggestion(sug.label)}>Apply</button>
+          </li>
+        {/each}
+      </ul>
+    {/if}
   </div>
 </div>

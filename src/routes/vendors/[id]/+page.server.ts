@@ -6,17 +6,18 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import {
-  getVendor, getVendorContracts, getQuestionnaires, getFourthParties, getIssues, getEvidence
+  getVendor, getVendorContracts, getQuestionnaires, getFourthParties, getVendorIssues, getIssues, getEvidence
 } from '$lib/server/data';
 
 export const load: PageServerLoad = async ({ params }) => {
   const vendor = await getVendor(params.id);
   if (!vendor) throw error(404, 'Vendor not found');
 
-  const [contracts, allQuestionnaires, allFourthParties, allIssues, allEvidence] = await Promise.all([
+  const [contracts, allQuestionnaires, allFourthParties, vendorIssues, allIssues, allEvidence] = await Promise.all([
     getVendorContracts(vendor.id),
     getQuestionnaires(vendor.tenantId),
     getFourthParties(vendor.tenantId),
+    getVendorIssues(vendor.id),
     getIssues(vendor.tenantId),
     getEvidence(vendor.tenantId, 200)
   ]);
@@ -24,11 +25,10 @@ export const load: PageServerLoad = async ({ params }) => {
   const questionnaires = allQuestionnaires.filter((q) => q.vendorId === vendor.id);
   const fourthParties = allFourthParties.filter((fp) => fp.vendorId === vendor.id);
 
-  // Heuristic linkage for risk findings — pull a handful of issues from
-  // this tenant; in PG mode we would join via vendor_id on issues.
-  const riskFindings = allIssues
-    .filter((i) => i.source === 'audit' || i.source === 'risk-treatment')
-    .slice(0, 4);
+  // Use real vendor-linked issues; fall back to audit/risk-treatment subset if none found yet.
+  const riskFindings = vendorIssues.length > 0
+    ? vendorIssues.slice(0, 4)
+    : allIssues.filter((i) => i.source === 'audit' || i.source === 'risk-treatment').slice(0, 4);
 
   // Vendor-specific evidence: SOC 2, attestations, scan results.
   const vendorEvidence = allEvidence

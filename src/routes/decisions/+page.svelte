@@ -162,7 +162,6 @@
             <th class="px-4 py-2 text-left">Confidence</th>
             <th class="px-4 py-2 text-left">Outcome</th>
             <th class="px-4 py-2 text-left">Approver</th>
-            <th class="px-4 py-2 text-right">Latency</th>
           </tr>
         </thead>
         <tbody>
@@ -195,10 +194,9 @@
                 </span>
               </td>
               <td class="td text-slate-600">{d.approverUserId ?? '—'}</td>
-              <td class="td text-right font-mono text-xs text-slate-500">{(50 + (Number(d.id) % 1200))}ms</td>
             </tr>
           {:else}
-            <tr><td colspan="9" class="px-4 py-6 text-center text-sm text-slate-500">No decisions match those filters.</td></tr>
+            <tr><td colspan="8" class="px-4 py-6 text-center text-sm text-slate-500">No decisions match those filters.</td></tr>
           {/each}
         </tbody>
       </table>

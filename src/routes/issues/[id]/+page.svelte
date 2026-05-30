@@ -1,6 +1,6 @@
 <script lang="ts">
   import PageHeader from '$lib/components/PageHeader.svelte';
-  import { ListChecks, ShieldCheck, ClipboardCheck, AlertTriangle, Link as LinkIcon, User as UserIcon } from 'lucide-svelte';
+  import { ListChecks, ClipboardCheck, Link as LinkIcon, User as UserIcon } from 'lucide-svelte';
   import type { IssueSource, RiskSeverity, IssueStatus, ActionStatus } from '$lib/data/types';
 
   export let data;
@@ -49,8 +49,8 @@
     }
   }
 
-  // Synthesise description (Issue doesn't carry one in mock).
-  $: description = `Issue raised from ${data.issue.source} workflow (${data.issue.sourceId}). Investigation required: validate scope, capture evidence, and complete the action plan below.`;
+  $: description = data.issue.description
+    ?? `Issue raised from ${data.issue.source} workflow (${data.issue.sourceId}). Validate scope, capture evidence, and complete the action plan below.`;
 
   // Derive a mini timeline from the actions' due/status.
   $: createdAt = new Date(Date.now() - 21 * 86_400_000).toISOString();
@@ -79,9 +79,6 @@
     return `${Math.floor(ad / 86400)}d ${diff > 0 ? '' : 'ago'}`;
   }
 
-  // Heuristic linked entities. Real wiring would store ids.
-  $: linkedControlId = `ctl_${data.issue.tenantId}_1`;
-  $: linkedRiskId = `risk_${data.issue.tenantId}_1`;
   $: linkedFindingId = data.issue.source === 'audit' ? data.issue.sourceId : null;
 </script>
 
@@ -168,24 +165,10 @@
   </div>
 
   <!-- Related items -->
-  <div class="card p-5">
-    <h2 class="section-title mb-3">Related Items</h2>
-    <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-      <a href="/risk/{linkedRiskId}" class="card-hover flex items-center gap-3 rounded-lg px-3 py-3 ring-1 ring-inset ring-slate-200/70">
-        <div class="rounded-lg bg-rose-50 p-2 text-rose-700"><AlertTriangle class="h-4 w-4" /></div>
-        <div>
-          <div class="text-[11px] uppercase tracking-wider text-slate-500">Linked Risk</div>
-          <div class="text-sm font-mono">{linkedRiskId.slice(0, 24)}…</div>
-        </div>
-      </a>
-      <a href="/controls/{linkedControlId}" class="card-hover flex items-center gap-3 rounded-lg px-3 py-3 ring-1 ring-inset ring-slate-200/70">
-        <div class="rounded-lg bg-violet-50 p-2 text-violet-700"><ShieldCheck class="h-4 w-4" /></div>
-        <div>
-          <div class="text-[11px] uppercase tracking-wider text-slate-500">Linked Control</div>
-          <div class="text-sm font-mono">{linkedControlId.slice(0, 24)}…</div>
-        </div>
-      </a>
-      {#if linkedFindingId}
+  {#if linkedFindingId}
+    <div class="card p-5">
+      <h2 class="section-title mb-3">Related Items</h2>
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <a href="/audits" class="card-hover flex items-center gap-3 rounded-lg px-3 py-3 ring-1 ring-inset ring-slate-200/70">
           <div class="rounded-lg bg-blue-50 p-2 text-blue-700"><ClipboardCheck class="h-4 w-4" /></div>
           <div>
@@ -193,7 +176,7 @@
             <div class="text-sm font-mono">{linkedFindingId}</div>
           </div>
         </a>
-      {/if}
+      </div>
     </div>
-  </div>
+  {/if}
 </div>

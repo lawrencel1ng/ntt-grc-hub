@@ -104,13 +104,8 @@
     { id: 'awaiting-hitl', label: 'Awaiting HITL' }
   ];
 
-  // Simulated row-hash for the Audit tab — derived deterministically from
-  // run id so the chain feels stable across reloads.
-  function fakeHash(seed: number, len = 8): string {
-    let h = (seed ^ 0x9e3779b9) >>> 0;
-    h = ((h ^ (h >>> 16)) * 0x7feb352d) >>> 0;
-    h = ((h ^ (h >>> 15)) * 0x846ca68b) >>> 0;
-    return h.toString(16).padStart(8, '0').slice(0, len);
+  function runHash(id: number | string): string {
+    return Number(id).toString(16).padStart(8, '0').slice(0, 8);
   }
 </script>
 
@@ -270,8 +265,8 @@
             </thead>
             <tbody>
               {#each data.runs.slice(0, 30) as r, i}
-                {@const prev = i + 1 < data.runs.length ? fakeHash(Number(data.runs[i + 1].id)) : '00000000'}
-                {@const curr = fakeHash(Number(r.id))}
+                {@const prev = i + 1 < data.runs.length ? runHash(data.runs[i + 1].id) : '00000000'}
+                {@const curr = runHash(r.id)}
                 <tr class="tr">
                   <td class="td font-mono text-xs text-slate-500">{r.startedAt.slice(0, 19)}</td>
                   <td class="td font-mono text-xs">#{r.id}</td>

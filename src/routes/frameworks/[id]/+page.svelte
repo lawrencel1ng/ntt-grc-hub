@@ -6,8 +6,9 @@
   import AgentTypeBadge from '$lib/components/AgentTypeBadge.svelte';
   import ProgressBar from '$lib/components/ProgressBar.svelte';
   import { addToast } from '$lib/stores/toast';
+  import { downloadCsv } from '$lib/utils/csv';
   import { FileBarChart, ShieldCheck, FileLock2, AlertTriangle, Stamp, Download } from 'lucide-svelte';
-  import type { Requirement, Control, EvidenceItem } from '$lib/data/types';
+  import type { Requirement, Control, EvidenceItem, RequirementCoverage, ComplianceGap, ComplianceAttestation } from '$lib/data/types';
 
   export let data;
 
@@ -20,8 +21,6 @@
     { id: 'gaps',          label: 'Gaps',         icon: AlertTriangle },
     { id: 'attestations',  label: 'Attestations', icon: Stamp }
   ];
-
-  import type { RequirementCoverage, ComplianceGap, ComplianceAttestation } from '$lib/data/types';
 
   // ---------- Requirement coverage from real control.mappings ----------
   type ReqStatus = 'pass' | 'warn' | 'fail' | 'na';
@@ -73,8 +72,28 @@
   // ---------- Real attestations from DB ----------
   $: attestations = data.attestations as ComplianceAttestation[];
 
-  function generatePack() {
-    addToast('success', `Audit Companion queued · generating evidence pack for ${data.framework.name}.`);
+  async function generatePack() {
+    const res = await fetch(`/api/frameworks/${data.framework.id}/generate-pack`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (res.ok) {
+      addToast('success', `Audit Companion queued · generating evidence pack for ${data.framework.name}.`);
+    } else {
+      const msg = await res.text().catch(() => '');
+      addToast('error', msg || 'Failed to queue evidence pack generation.');
+    }
+  }
+
+  function downloadAttestation(a: ComplianceAttestation) {
+    const content = [
+      `Framework: ${data.framework.name} ${data.framework.version}`,
+      `Signed at: ${a.signedAt?.slice(0, 10) ?? '—'}`,
+      `Valid until: ${a.validUntil?.slice(0, 10) ?? '—'}`,
+      '',
+      a.attestationText
+    ].join('\n');
+    downloadCsv(`attestation-${data.framework.id}-${a.signedAt?.slice(0, 10) ?? 'unknown'}.txt`, content);
   }
 </script>
 
@@ -301,7 +320,7 @@
                   <td class="td font-mono text-xs text-slate-500">{a.signedAt?.slice(0, 10) ?? '—'}</td>
                   <td class="td font-mono text-xs text-slate-500">{a.validUntil?.slice(0, 10) ?? '—'}</td>
                   <td class="td text-right">
-                    <button class="btn-ghost p-1" on:click={() => addToast('info', 'Attestation download started.')}>
+                    <button class="btn-ghost p-1" on:click={() => downloadAttestation(a)}>
                       <Download class="h-4 w-4" />
                     </button>
                   </td>

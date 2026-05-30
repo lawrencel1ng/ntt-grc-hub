@@ -443,7 +443,7 @@ export async function getRequirementsForFramework(id: string): Promise<Requireme
             parent_requirement_id AS "parentRequirementId", weight
      FROM compliance.requirements WHERE framework_id = $1 ORDER BY code`, [id]
   );
-  return rows.length ? rows : mock.getRequirementsForFramework(id);
+  return rows;
 }
 
 export async function getComplianceGaps(frameworkId: string, tenantId?: string): Promise<ComplianceGap[]> {

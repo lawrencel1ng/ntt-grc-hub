@@ -1489,15 +1489,16 @@ export async function getSOXDeficiencies(tenantId?: string) {
 // Incidents / Issues / BCM
 // =====================================================================
 
-export async function getIncidents(tenantId?: string): Promise<Incident[]> {
+export async function getIncidents(tenantId?: string, limit = 1000): Promise<Incident[]> {
   if (!isPgMode()) return tenantId ? mock.incidentsForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.incidentsForTenant(t));
-  const where = tenantId ? 'WHERE tenant_id = $1' : '';
-  const params = tenantId ? [tenantId] : [];
+  const where = tenantId ? 'WHERE tenant_id = $2' : '';
+  const params: unknown[] = [limit];
+  if (tenantId) params.push(tenantId);
   const rows = await safeQuery<Incident>(
     `SELECT id::text AS id, tenant_id AS "tenantId", code, severity::text AS severity,
             title, status::text AS status, opened_at AS "openedAt",
             contained_at AS "containedAt", resolved_at AS "resolvedAt"
-     FROM incident.incidents ${where} ORDER BY opened_at DESC`, params
+     FROM incident.incidents ${where} ORDER BY opened_at DESC LIMIT $1`, params
   );
   return rows;
 }

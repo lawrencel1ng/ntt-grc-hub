@@ -58,8 +58,7 @@
   }
 
   // ---------- Sankey for dependencies. We build 3 columns: Service → Tech → Vendor.
-  // The plan.deps contains kinds people/tech/site/vendor — we surface tech & vendor
-  // in their own columns and bridge via a derived "tech" node if missing.
+  // Only real BCM dependencies are shown; empty columns are omitted.
   function depsSankey(r: Row) {
     const serviceId = `svc:${r.plan.id}`;
     const nodes: { id: string; name: string; column: 0 | 1 | 2 }[] = [];
@@ -69,24 +68,24 @@
     const techDeps = r.deps.filter((d) => d.dependencyKind === 'tech' || d.dependencyKind === 'site');
     const vendorDeps = r.deps.filter((d) => d.dependencyKind === 'vendor' || d.dependencyKind === 'people');
 
-    // Tech middle column
-    const techNodes = techDeps.length ? techDeps : [{ id: `tech:${r.plan.id}`, name: 'Cloud Platform', criticality: 'high' as const }];
-    techNodes.forEach((t, i) => {
-      const id = 'id' in t ? `tech-${t.id}` : `tech-derived-${r.plan.id}-${i}`;
+    // Tech middle column (real deps only)
+    techDeps.forEach((t) => {
+      const id = `tech-${t.id}`;
       nodes.push({ id, name: t.name, column: 1 });
       links.push({ source: serviceId, target: id, value: critWeight(t.criticality), color: critColor(t.criticality) });
     });
 
-    // Vendor right column
-    const vendorNodes = vendorDeps.length ? vendorDeps : [{ id: `vnd-fallback-${r.plan.id}`, name: 'AWS', criticality: 'critical' as const }];
-    vendorNodes.forEach((v, vi) => {
-      const id = 'id' in v ? `vnd-${v.id}` : `vnd-derived-${r.plan.id}-${vi}`;
+    // Vendor right column (real deps only)
+    vendorDeps.forEach((v) => {
+      const id = `vnd-${v.id}`;
       nodes.push({ id, name: v.name, column: 2 });
-      // Spread vendor edges across all tech middle nodes uniformly.
-      techNodes.forEach((t, ti) => {
-        const tid = 'id' in t ? `tech-${t.id}` : `tech-derived-${r.plan.id}-${ti}`;
-        links.push({ source: tid, target: id, value: critWeight(v.criticality), color: critColor(v.criticality) });
-      });
+      if (techDeps.length) {
+        techDeps.forEach((t) => {
+          links.push({ source: `tech-${t.id}`, target: id, value: critWeight(v.criticality), color: critColor(v.criticality) });
+        });
+      } else {
+        links.push({ source: serviceId, target: id, value: critWeight(v.criticality), color: critColor(v.criticality) });
+      }
     });
 
     return { nodes, links };

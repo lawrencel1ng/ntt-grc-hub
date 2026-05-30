@@ -64,9 +64,6 @@
       return 'text-slate-500';
     }
   }
-  function ownerFor(_r: Row): string {
-    return 'CRO Office';
-  }
 </script>
 
 <PageHeader title="Business Continuity Management" subtitle="ISO 22301 · MAS Notice 657 · DORA {data.isAll ? '· aggregated view' : ''}" />
@@ -123,7 +120,7 @@
             </div>
             <div class="flex items-center justify-between">
               <span class="text-slate-500">Owner</span>
-              <span class="font-medium text-slate-700">{ownerFor(r)}</span>
+              <span class="font-medium text-slate-700">{r.plan.ownerEmail ?? '—'}</span>
             </div>
           </div>
           <div class="mt-3 flex items-center justify-between border-t border-slate-100 pt-2 text-xs">

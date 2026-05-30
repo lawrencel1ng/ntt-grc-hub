@@ -630,6 +630,7 @@ export interface Issue {
   status: IssueStatus;
   ownerUserId?: string;
   dueAt?: string;
+  createdAt?: string;
 }
 
 export interface IssueAction {
@@ -654,6 +655,8 @@ export interface BCMPlan {
   nextTestAt?: string;
   description?: string;
   recoveryStrategy?: string;
+  ownerUserId?: string;
+  ownerEmail?: string;
 }
 
 export interface BCMEscalationContact {

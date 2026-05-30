@@ -52,18 +52,17 @@
   $: description = data.issue.description
     ?? `Issue raised from ${data.issue.source} workflow (${data.issue.sourceId}). Validate scope, capture evidence, and complete the action plan below.`;
 
-  // Derive a mini timeline from the actions' due/status.
-  $: createdAt = new Date(Date.now() - 21 * 86_400_000).toISOString();
+  // Mini timeline derived from real timestamps + status.
   $: timeline = (() => {
     const out: { ts: string; event: string; status: 'done' | 'pending' }[] = [];
-    out.push({ ts: createdAt, event: 'Issue created and assigned to owner', status: 'done' });
+    out.push({ ts: data.issue.createdAt ?? '', event: 'Issue created and assigned to owner', status: 'done' });
     if (data.issue.status === 'in-progress' || data.issue.status === 'resolved') {
-      out.push({ ts: new Date(Date.now() - 14 * 86_400_000).toISOString(), event: 'Investigation in progress', status: 'done' });
+      out.push({ ts: '', event: 'Investigation in progress', status: 'done' });
     } else {
       out.push({ ts: '', event: 'Investigation in progress', status: 'pending' });
     }
     if (data.issue.status === 'resolved') {
-      out.push({ ts: new Date(Date.now() - 3 * 86_400_000).toISOString(), event: 'Resolved with evidence sealed', status: 'done' });
+      out.push({ ts: '', event: 'Resolved with evidence sealed', status: 'done' });
     } else {
       out.push({ ts: data.issue.dueAt ?? '', event: 'Target resolution', status: 'pending' });
     }

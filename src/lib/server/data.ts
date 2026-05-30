@@ -1355,7 +1355,8 @@ export async function getIssues(tenantId?: string): Promise<Issue[]> {
   const rows = await safeQuery<Issue>(
     `SELECT id::text AS id, tenant_id AS "tenantId", source::text AS source,
             source_id AS "sourceId", title, description, severity::text AS severity,
-            status::text AS status, owner_user_id AS "ownerUserId", due_at AS "dueAt"
+            status::text AS status, owner_user_id AS "ownerUserId", due_at AS "dueAt",
+            created_at AS "createdAt"
      FROM issue.issues ${where} ORDER BY due_at`, params
   );
   return rows.length ? rows : (tenantId ? mock.issuesForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.issuesForTenant(t)));
@@ -1366,7 +1367,8 @@ export async function getVendorIssues(vendorId: string): Promise<Issue[]> {
   return safeQuery<Issue>(
     `SELECT id::text AS id, tenant_id AS "tenantId", source::text AS source,
             source_id AS "sourceId", title, description, severity::text AS severity,
-            status::text AS status, owner_user_id AS "ownerUserId", due_at AS "dueAt"
+            status::text AS status, owner_user_id AS "ownerUserId", due_at AS "dueAt",
+            created_at AS "createdAt"
      FROM issue.issues WHERE vendor_id = $1::uuid
      ORDER BY due_at`, [vendorId]
   );
@@ -1397,14 +1399,18 @@ export async function getIssueActions(issueId: string): Promise<IssueAction[]> {
 
 export async function getBCMPlans(tenantId?: string): Promise<BCMPlan[]> {
   if (!isPgMode()) return mock.bcmPlansForTenant(tenantId ?? 't_maybank');
-  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const where = tenantId ? 'WHERE p.tenant_id = $1' : '';
   const params = tenantId ? [tenantId] : [];
   const rows = await safeQuery<BCMPlan>(
-    `SELECT id::text AS id, tenant_id AS "tenantId", name, business_service AS "businessService",
-            rto_minutes AS "rtoMinutes", rpo_minutes AS "rpoMinutes",
-            last_tested_at AS "lastTestedAt", next_test_at AS "nextTestAt",
-            description, recovery_strategy AS "recoveryStrategy"
-     FROM bcm.plans ${where} ORDER BY name`,
+    `SELECT p.id::text AS id, p.tenant_id AS "tenantId", p.name,
+            p.business_service AS "businessService",
+            p.rto_minutes AS "rtoMinutes", p.rpo_minutes AS "rpoMinutes",
+            p.last_tested_at AS "lastTestedAt", p.next_test_at AS "nextTestAt",
+            p.description, p.recovery_strategy AS "recoveryStrategy",
+            p.owner_user_id::text AS "ownerUserId", u.email AS "ownerEmail"
+     FROM bcm.plans p
+     LEFT JOIN platform.users u ON u.id = p.owner_user_id
+     ${where} ORDER BY p.name`,
     params
   );
   return rows.length ? rows : mock.bcmPlansForTenant(tenantId ?? 't_maybank');
@@ -1413,11 +1419,15 @@ export async function getBCMPlans(tenantId?: string): Promise<BCMPlan[]> {
 export async function getBCMPlan(id: string): Promise<BCMPlan | undefined> {
   if (isPgMode()) {
     const rows = await safeQuery<BCMPlan>(
-      `SELECT id::text AS id, tenant_id AS "tenantId", name, business_service AS "businessService",
-              rto_minutes AS "rtoMinutes", rpo_minutes AS "rpoMinutes",
-              last_tested_at AS "lastTestedAt", next_test_at AS "nextTestAt",
-              description, recovery_strategy AS "recoveryStrategy"
-       FROM bcm.plans WHERE id = $1::uuid`,
+      `SELECT p.id::text AS id, p.tenant_id AS "tenantId", p.name,
+              p.business_service AS "businessService",
+              p.rto_minutes AS "rtoMinutes", p.rpo_minutes AS "rpoMinutes",
+              p.last_tested_at AS "lastTestedAt", p.next_test_at AS "nextTestAt",
+              p.description, p.recovery_strategy AS "recoveryStrategy",
+              p.owner_user_id::text AS "ownerUserId", u.email AS "ownerEmail"
+       FROM bcm.plans p
+       LEFT JOIN platform.users u ON u.id = p.owner_user_id
+       WHERE p.id = $1::uuid`,
       [id]
     );
     return rows[0];

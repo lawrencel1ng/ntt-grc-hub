@@ -649,6 +649,25 @@ export interface BCMPlan {
   rpoMinutes: number;
   lastTestedAt?: string;
   nextTestAt?: string;
+  description?: string;
+  recoveryStrategy?: string;
+}
+
+export interface BCMEscalationContact {
+  id: string;
+  tenantId: string;
+  planId: string;
+  role: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  sortOrder: number;
+}
+
+export interface RiskHistoryEntry {
+  ts: string;
+  event: string;
+  actor: string;
 }
 
 export interface BCMDependency {

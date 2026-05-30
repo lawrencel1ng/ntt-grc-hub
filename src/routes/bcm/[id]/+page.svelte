@@ -8,7 +8,7 @@
   } from 'lucide-svelte';
   import type {
     BCMPlan, BCMDependency, BCMTest, BCMTestKind, BCMTestResult, BCMDependencyKind,
-    VendorCriticality, Risk, RiskSeverity
+    BCMEscalationContact, VendorCriticality, Risk, RiskSeverity
   } from '$lib/data/types';
 
   export let data;
@@ -87,19 +87,7 @@
     return 'bg-slate-100 text-slate-600 ring-slate-200';
   }
 
-  // ---------- Synthesised description, recovery strategy, escalation contacts ----------
-  function description(p: BCMPlan): string {
-    return `${p.name} establishes the continuity and recovery posture for ${p.businessService}. The plan defines RTO of ${fmtMin(p.rtoMinutes)} and RPO of ${fmtMin(p.rpoMinutes)}, with multi-region failover to a warm-standby environment and quarterly tabletop exercises.`;
-  }
-  function recoveryStrategy(_p: BCMPlan): string {
-    return 'Active-active across two AZ-pairs (ap-southeast-1a/1b) with cross-region async replication to ap-southeast-3. Tier-1 data is backed up every 15 minutes; tier-2 hourly. DR runbook auto-generated in Confluence and validated by Resilience Coach agent monthly.';
-  }
-  const ESCALATION_CONTACTS = [
-    { name: 'Incident Commander', role: 'CRO Office', email: 'ic@example.com', phone: '+65 9000 1001' },
-    { name: 'Tech Lead',          role: 'SRE',        email: 'sre@example.com', phone: '+65 9000 1002' },
-    { name: 'Comms Lead',         role: 'PR',         email: 'pr@example.com',  phone: '+65 9000 1003' },
-    { name: 'Regulatory Lead',    role: 'Compliance', email: 'comp@example.com', phone: '+65 9000 1004' }
-  ];
+  $: escalationContacts = data.escalationContacts as BCMEscalationContact[];
 
   // ---------- Action ----------
   function scheduleTest() {
@@ -170,28 +158,32 @@
       <div class="space-y-5 p-5 text-sm">
         <div>
           <div class="section-title text-xs">Plan Description</div>
-          <p class="mt-1 leading-relaxed text-slate-700">{description(data.plan)}</p>
+          <p class="mt-1 leading-relaxed text-slate-700">{data.plan.description ?? `${data.plan.name} — no description on file.`}</p>
         </div>
         <div>
           <div class="section-title text-xs">Recovery Strategy</div>
-          <p class="mt-1 leading-relaxed text-slate-700">{recoveryStrategy(data.plan)}</p>
+          <p class="mt-1 leading-relaxed text-slate-700">{data.plan.recoveryStrategy ?? 'Recovery strategy not documented.'}</p>
         </div>
         <div>
           <div class="section-title text-xs">Escalation Contacts</div>
-          <div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {#each ESCALATION_CONTACTS as c}
-              <div class="rounded-lg bg-white ring-1 ring-inset ring-slate-200/70 p-3 text-xs">
-                <div class="flex items-center justify-between">
-                  <span class="font-semibold text-grc-ink">{c.name}</span>
-                  <span class="tag tag-slate">{c.role}</span>
+          {#if escalationContacts.length === 0}
+            <div class="mt-2 text-xs text-slate-400">No escalation contacts on file.</div>
+          {:else}
+            <div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
+              {#each escalationContacts as c (c.id)}
+                <div class="rounded-lg bg-white ring-1 ring-inset ring-slate-200/70 p-3 text-xs">
+                  <div class="flex items-center justify-between">
+                    <span class="font-semibold text-grc-ink">{c.name}</span>
+                    <span class="tag tag-slate">{c.role}</span>
+                  </div>
+                  <div class="mt-1 flex items-center justify-between text-slate-500">
+                    <span class="font-mono">{c.email ?? '—'}</span>
+                    <span class="font-mono">{c.phone ?? '—'}</span>
+                  </div>
                 </div>
-                <div class="mt-1 flex items-center justify-between text-slate-500">
-                  <span class="font-mono">{c.email}</span>
-                  <span class="font-mono">{c.phone}</span>
-                </div>
-              </div>
-            {/each}
-          </div>
+              {/each}
+            </div>
+          {/if}
         </div>
       </div>
 

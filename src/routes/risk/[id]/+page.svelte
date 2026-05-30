@@ -61,8 +61,9 @@
     { id: 'controls',   label: 'Linked Controls',  icon: ShieldCheck }
   ];
 
-  import type { RiskTreatment } from '$lib/data/types';
+  import type { RiskTreatment, RiskHistoryEntry } from '$lib/data/types';
   $: treatments = data.treatments as RiskTreatment[];
+  $: history = data.history as RiskHistoryEntry[];
 
   // ---------- Run FAIR per scenario lazily ----------
   type ScenarioWithRun = FAIRScenario & {
@@ -102,16 +103,6 @@
     addToast('success', `FAIR analysis queued for ${data.risk.code}. Risk Quantifier agent will report in ~30s.`);
   }
 
-  // History (synthesised assessed events)
-  $: history = (() => {
-    const out: { ts: string; event: string; actor: string }[] = [];
-    if (data.risk.lastAssessedAt) {
-      out.push({ ts: data.risk.lastAssessedAt, event: `Residual revised to ${data.risk.residualSeverity}/${data.risk.residualLikelihood} (score ${res})`, actor: 'Risk Quantifier agent' });
-    }
-    out.push({ ts: new Date(Date.now() - 14 * 86_400_000).toISOString(), event: `Treatment plan approved (${data.risk.treatmentStrategy})`, actor: 'Risk owner' });
-    out.push({ ts: new Date(Date.now() - 30 * 86_400_000).toISOString(), event: 'Risk identified and scoped', actor: 'Internal audit' });
-    return out;
-  })();
 
   function sevCls(s: string): string {
     if (s === 'critical') return 'bg-rose-100 text-rose-800 ring-rose-200';
@@ -336,16 +327,20 @@
     <!-- History -->
     {:else if tab === 'history'}
       <div class="px-5 py-4">
-        <ol class="relative ml-3 border-l-2 border-slate-200">
-          {#each history as h, i (i)}
-            <li class="relative ml-6 py-3">
-              <span class="absolute -left-[33px] top-4 inline-flex h-3 w-3 rounded-full bg-grc-primary ring-2 ring-white"></span>
-              <div class="font-mono text-[11px] text-slate-500">{h.ts.replace('T', ' ').slice(0, 19)}</div>
-              <div class="mt-0.5 text-sm font-medium text-grc-ink">{h.event}</div>
-              <div class="mt-0.5 text-xs text-slate-500">by {h.actor}</div>
-            </li>
-          {/each}
-        </ol>
+        {#if history.length === 0}
+          <div class="py-4 text-center text-sm text-slate-400">No history recorded yet.</div>
+        {:else}
+          <ol class="relative ml-3 border-l-2 border-slate-200">
+            {#each history as h, i (i)}
+              <li class="relative ml-6 py-3">
+                <span class="absolute -left-[33px] top-4 inline-flex h-3 w-3 rounded-full bg-grc-primary ring-2 ring-white"></span>
+                <div class="font-mono text-[11px] text-slate-500">{h.ts.replace('T', ' ').slice(0, 19)}</div>
+                <div class="mt-0.5 text-sm font-medium text-grc-ink">{h.event}</div>
+                <div class="mt-0.5 text-xs text-slate-500">by {h.actor}</div>
+              </li>
+            {/each}
+          </ol>
+        {/if}
       </div>
 
     <!-- Linked Controls -->

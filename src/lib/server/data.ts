@@ -22,7 +22,8 @@ import type {
   AIModel, ModelRisk, PromptAuditEntry,
   Incident, TimelineEvent, Postmortem,
   Issue, IssueAction,
-  BCMPlan, BCMDependency, BCMTest,
+  BCMPlan, BCMDependency, BCMTest, BCMEscalationContact,
+  RiskHistoryEntry,
   RegChange, ImpactAssessment, RegSource,
   Workflow, WorkflowExecution,
   Connector,
@@ -359,6 +360,37 @@ export async function getRiskTreatments(riskId: string): Promise<RiskTreatment[]
             due_at AS "dueAt", completed_at AS "completedAt",
             cost_sgd AS "costSgd", created_at AS "createdAt"
      FROM risk.treatments WHERE risk_id = $1::uuid ORDER BY created_at`, [riskId]
+  );
+}
+
+export async function getRiskHistory(riskId: string): Promise<RiskHistoryEntry[]> {
+  if (!isPgMode()) return [];
+  return safeQuery<RiskHistoryEntry>(
+    `SELECT ts, event, actor FROM (
+       SELECT ts,
+              action AS event,
+              COALESCE(actor_email, 'system') AS actor
+       FROM platform.audit_log
+       WHERE target = 'risk:' || $1::text
+       UNION ALL
+       SELECT created_at AS ts,
+              'Risk identified and registered' AS event,
+              'Internal audit' AS actor
+       FROM risk.risks WHERE id = $1::uuid
+       UNION ALL
+       SELECT last_assessed_at AS ts,
+              'Residual re-assessed to ' || residual_severity::text || '/' || residual_likelihood::text AS event,
+              'Risk Quantifier agent' AS actor
+       FROM risk.risks WHERE id = $1::uuid AND last_assessed_at IS NOT NULL
+       UNION ALL
+       SELECT rt.created_at AS ts,
+              'Treatment plan created: ' || rt.strategy::text AS event,
+              COALESCE(u.email, 'Risk owner') AS actor
+       FROM risk.treatments rt
+       LEFT JOIN platform.users u ON u.id = rt.owner_user_id
+       WHERE rt.risk_id = $1::uuid
+     ) h ORDER BY ts DESC LIMIT 20`,
+    [riskId]
   );
 }
 
@@ -1353,7 +1385,8 @@ export async function getBCMPlans(tenantId?: string): Promise<BCMPlan[]> {
   const rows = await safeQuery<BCMPlan>(
     `SELECT id::text AS id, tenant_id AS "tenantId", name, business_service AS "businessService",
             rto_minutes AS "rtoMinutes", rpo_minutes AS "rpoMinutes",
-            last_tested_at AS "lastTestedAt", next_test_at AS "nextTestAt"
+            last_tested_at AS "lastTestedAt", next_test_at AS "nextTestAt",
+            description, recovery_strategy AS "recoveryStrategy"
      FROM bcm.plans ${where} ORDER BY name`,
     params
   );
@@ -1361,10 +1394,32 @@ export async function getBCMPlans(tenantId?: string): Promise<BCMPlan[]> {
 }
 
 export async function getBCMPlan(id: string): Promise<BCMPlan | undefined> {
+  if (isPgMode()) {
+    const rows = await safeQuery<BCMPlan>(
+      `SELECT id::text AS id, tenant_id AS "tenantId", name, business_service AS "businessService",
+              rto_minutes AS "rtoMinutes", rpo_minutes AS "rpoMinutes",
+              last_tested_at AS "lastTestedAt", next_test_at AS "nextTestAt",
+              description, recovery_strategy AS "recoveryStrategy"
+       FROM bcm.plans WHERE id = $1::uuid`,
+      [id]
+    );
+    return rows[0];
+  }
   const parts = id.split('_');
   if (parts.length < 3) return undefined;
   const tenantId = `${parts[1]}_${parts[2]}`;
   return (await getBCMPlans(tenantId)).find((p) => p.id === id);
+}
+
+export async function getBCMEscalationContacts(planId: string): Promise<BCMEscalationContact[]> {
+  if (!isPgMode()) return [];
+  return safeQuery<BCMEscalationContact>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", plan_id::text AS "planId",
+            role, name, email, phone, sort_order AS "sortOrder"
+     FROM bcm.escalation_contacts
+     WHERE plan_id = $1::uuid ORDER BY sort_order, role`,
+    [planId]
+  );
 }
 
 export async function getBCMDependencies(planId: string): Promise<BCMDependency[]> {

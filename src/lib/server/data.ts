@@ -76,7 +76,7 @@ export async function getTenantSummaries(): Promise<Tenant[]> {
             COALESCE(ai_provider, 'anthropic') AS "aiProvider",
             COALESCE(data_residency, 'SG') AS "dataResidency",
             created_at AS "createdAt"
-     FROM platform.tenants ORDER BY name`
+     FROM platform.tenants ORDER BY name LIMIT 500`
   );
   return rows;
 }
@@ -248,7 +248,7 @@ export async function getCostLedger30d(tenantId?: string): Promise<CostLedgerEnt
   const rows = await safeQuery<CostLedgerEntry>(
     `SELECT tenant_id AS "tenantId", agent_id AS "agentId", ts, runs, cost_cents AS "costCents",
             fte_saved_hours AS "fteSavedHours"
-     FROM agent.cost_ledger ${where}`,
+     FROM agent.cost_ledger ${where} ORDER BY ts DESC LIMIT 2000`,
     params
   );
   return rows;
@@ -454,7 +454,7 @@ export async function getAppetiteStatements(tenantId?: string): Promise<Appetite
   const rows = await safeQuery<AppetiteStatement>(
     `SELECT id::text AS id, tenant_id AS "tenantId", category, statement,
             threshold_sgd AS "thresholdSgd", severity_cap::text AS "severityCap"
-     FROM risk.appetite_statements ${where} ORDER BY category`,
+     FROM risk.appetite_statements ${where} ORDER BY category LIMIT 200`,
     params
   );
   return rows;
@@ -484,7 +484,7 @@ export async function getRequirementsForFramework(id: string): Promise<Requireme
   const rows = await safeQuery<Requirement>(
     `SELECT id, framework_id AS "frameworkId", code, title, description,
             parent_requirement_id AS "parentRequirementId", weight
-     FROM compliance.requirements WHERE framework_id = $1 ORDER BY code`, [id]
+     FROM compliance.requirements WHERE framework_id = $1 ORDER BY code LIMIT 1000`, [id]
   );
   return rows;
 }
@@ -505,7 +505,7 @@ export async function getComplianceGaps(frameworkId: string, tenantId?: string):
      JOIN compliance.assessments a ON a.id = g.assessment_id
      JOIN compliance.requirements r ON r.id = g.requirement_id
      WHERE a.framework_id = $1${tenantClause}
-     ORDER BY g.created_at DESC`, params
+     ORDER BY g.created_at DESC LIMIT 2000`, params
   );
 }
 
@@ -521,7 +521,7 @@ export async function getComplianceAttestations(frameworkId: string, tenantId?: 
             created_at AS "createdAt"
      FROM compliance.attestations
      WHERE framework_id = $1${tenantClause}
-     ORDER BY signed_at DESC`, params
+     ORDER BY signed_at DESC LIMIT 200`, params
   );
 }
 

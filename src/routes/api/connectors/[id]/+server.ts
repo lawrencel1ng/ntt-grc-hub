@@ -2,6 +2,7 @@ import type { RequestHandler } from './$types';
 import { json, error } from '@sveltejs/kit';
 import { isPgMode, getPool } from '$lib/server/pg';
 import { writeAuditLog } from '$lib/server/auth';
+import { checkRateLimit } from '$lib/server/rateLimit';
 
 /**
  * PATCH /api/connectors/:id — update connector status or record a sync.
@@ -12,6 +13,7 @@ import { writeAuditLog } from '$lib/server/auth';
  */
 export const PATCH: RequestHandler = async ({ params, request, locals }) => {
   if (!locals.user) throw error(401, 'Not authenticated');
+  if (!checkRateLimit('connector.action', locals.user.id, 30, 5 * 60_000)) throw error(429, 'Too many connector actions — try again in a few minutes.');
 
   const body = await request.json().catch(() => ({})) as { action?: string };
   const action = body.action;

@@ -1,7 +1,8 @@
 // =====================================================================
 //  /tenants-compare — MSSP tenant rollup. Fans out per-tenant KPIs +
-//  vendor/audit counts for the three hero tenants in parallel, and
-//  surfaces a lightweight summary for the 5 shallow tenants.
+//  vendor/audit counts for hero tenants in parallel, and surfaces a
+//  lightweight summary for remaining tenants. In pg mode uses real
+//  tenant IDs from the DB; in mock mode falls back to static IDs.
 // =====================================================================
 
 import type { PageServerLoad } from './$types';
@@ -14,6 +15,7 @@ import {
   getFrameworkScores,
   getRisks
 } from '$lib/server/data';
+import { isPgMode } from '$lib/server/pg';
 import { HERO_TENANT_IDS, SHALLOW_TENANT_IDS } from '$lib/data/tenants';
 
 interface HeroSnapshot {
@@ -40,9 +42,23 @@ interface ShallowSnapshot {
 export const load: PageServerLoad = async () => {
   const tenants = await getTenantSummaries();
 
+  // In pg mode derive hero/shallow from the real tenant list.
+  // Sort by MRR descending: top 3 are hero, the rest shallow.
+  // In mock mode fall back to the static ID lists (which match mock tenantIds).
+  let heroIds: string[];
+  let shallowIds: string[];
+  if (isPgMode() && tenants.length > 0) {
+    const sorted = [...tenants].sort((a, b) => (b.mrrSgd ?? 0) - (a.mrrSgd ?? 0));
+    heroIds = sorted.slice(0, Math.min(3, sorted.length)).map((t) => t.id);
+    shallowIds = sorted.slice(3).map((t) => t.id);
+  } else {
+    heroIds = [...HERO_TENANT_IDS];
+    shallowIds = [...SHALLOW_TENANT_IDS];
+  }
+
   // ---------- Per-tenant snapshots ----------
   const heroes: HeroSnapshot[] = await Promise.all(
-    HERO_TENANT_IDS.map(async (tid) => {
+    heroIds.map(async (tid) => {
       const [kpi, vendors, audits, ledger, scores, risks] = await Promise.all([
         getKpiSnapshot(tid),
         getVendors(tid),
@@ -76,7 +92,7 @@ export const load: PageServerLoad = async () => {
 
   // ---------- Shallow tenants (lightweight) ----------
   const shallow: ShallowSnapshot[] = await Promise.all(
-    SHALLOW_TENANT_IDS.map(async (tid) => {
+    shallowIds.map(async (tid) => {
       const [risks, ledger, scores] = await Promise.all([
         getRisks(tid),
         getCostLedger30d(tid),
@@ -106,8 +122,7 @@ export const load: PageServerLoad = async () => {
     Math.max(1, heroes.length + shallow.length)
   ).toFixed(1);
 
-  // Active audits = audits without closed_at across heroes
-  const auditsByTenant = await Promise.all(HERO_TENANT_IDS.map((tid) => getAudits(tid)));
+  const auditsByTenant = await Promise.all(heroIds.map((tid) => getAudits(tid)));
   const activeAudits = auditsByTenant.flat().filter((a) => !a.closedAt).length;
 
   return {

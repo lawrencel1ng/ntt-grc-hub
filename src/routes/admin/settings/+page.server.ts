@@ -12,12 +12,37 @@ export const load: PageServerLoad = async ({ locals }) => {
   const effective = tenantId === ALL_TENANTS_ID ? undefined : tenantId;
   const tenant = tenants.find((t) => t.id === effective);
 
-  const apiTokens = [
-    { id: 'tok_1', name: 'Evidence Collector CI', scope: 'evidence:write', prefix: 'ntt_grc_', lastUsedAt: new Date(Date.now() - 12 * 60_000).toISOString(),  expiresAt: new Date(Date.now() + 30 * 86_400_000).toISOString() },
-    { id: 'tok_2', name: 'Board Pack Exporter',   scope: 'report:read',    prefix: 'ntt_grc_', lastUsedAt: new Date(Date.now() - 2 * 3600_000).toISOString(),  expiresAt: new Date(Date.now() + 90 * 86_400_000).toISOString() },
-    { id: 'tok_3', name: 'Auditor (external)',    scope: 'evidence:read',  prefix: 'ntt_grc_', lastUsedAt: new Date(Date.now() - 9 * 86_400_000).toISOString(), expiresAt: new Date(Date.now() + 180 * 86_400_000).toISOString() },
-    { id: 'tok_4', name: 'Servicedesk webhook',   scope: 'issue:write',    prefix: 'ntt_grc_', lastUsedAt: new Date(Date.now() - 31 * 60_000).toISOString(),   expiresAt: new Date(Date.now() + 365 * 86_400_000).toISOString() }
-  ];
+  let apiTokens: { id: string; name: string; scope: string; prefix: string; lastUsedAt: string; expiresAt: string }[] = [];
+  if (isPgMode() && locals.user) {
+    try {
+      const pool = getPool();
+      // Join to users so we can filter by tenant — admin sees all tokens in their tenant
+      const where = locals.user.role === 'admin'
+        ? `WHERE u.tenant_id = $1`
+        : `WHERE t.user_id = $1`;
+      const param = locals.user.role === 'admin' ? locals.user.tenantId : locals.user.id;
+      const rows = await pool.query<{ id: string; name: string; scope: string; prefix: string; last_used_at: string | null; expires_at: string | null }>(
+        `SELECT t.id::text, t.name, t.scope, t.prefix,
+                t.last_used_at::text AS last_used_at,
+                t.expires_at::text AS expires_at
+         FROM platform.api_tokens t
+         JOIN platform.users u ON u.id = t.user_id
+         ${where}
+         ORDER BY t.created_at DESC`,
+        [param]
+      );
+      apiTokens = rows.rows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        scope: r.scope,
+        prefix: r.prefix,
+        lastUsedAt: r.last_used_at ?? new Date().toISOString(),
+        expiresAt: r.expires_at ?? new Date(Date.now() + 365 * 86_400_000).toISOString()
+      }));
+    } catch {
+      apiTokens = [];
+    }
+  }
 
   return { tenants, tenant, apiTokens, user: locals.user };
 };

@@ -74,6 +74,7 @@ CREATE SCHEMA IF NOT EXISTS regwatch;     -- regulator sources, changes, impact
 CREATE SCHEMA IF NOT EXISTS agent;        -- agent fleet, runs, decisions, cost
 CREATE SCHEMA IF NOT EXISTS workflow;     -- workflow definitions + executions
 CREATE SCHEMA IF NOT EXISTS integration;  -- connectors, sync jobs, credential metadata
+CREATE SCHEMA IF NOT EXISTS human_risk;   -- KnowBe4 human-risk telemetry, FAIR ALE quant
 
 -- ---------------------------------------------------------------------
 -- Enums
@@ -1397,8 +1398,97 @@ CREATE INDEX ON integration.credentials_meta (tenant_id);
 CREATE INDEX ON integration.credentials_meta (connector_id);
 
 -- =====================================================================
--- 20. Views (dashboards)
+-- 20. Human Risk (KnowBe4)
 -- =====================================================================
+
+CREATE TABLE human_risk.sync_jobs (
+    id              BIGSERIAL PRIMARY KEY,
+    tenant_id       TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    synced_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    status          TEXT NOT NULL DEFAULT 'ok'  -- 'ok' | 'error' | 'partial'
+);
+CREATE INDEX ON human_risk.sync_jobs (tenant_id, synced_at DESC);
+
+CREATE TABLE human_risk.org_scores (
+    id                          BIGSERIAL PRIMARY KEY,
+    tenant_id                   TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    org_risk_score              INT NOT NULL,
+    org_risk_score_12m_ago      INT NOT NULL DEFAULT 0,
+    phish_prone_pct             NUMERIC(5,2) NOT NULL,
+    phish_prone_pct_12m_ago     NUMERIC(5,2) NOT NULL DEFAULT 0,
+    industry_phish_prone_pct    NUMERIC(5,2) NOT NULL DEFAULT 0,
+    training_completion_pct     NUMERIC(5,2) NOT NULL DEFAULT 0,
+    headcount                   INT NOT NULL DEFAULT 0,
+    users_at_high_risk          INT NOT NULL DEFAULT 0,
+    users_at_critical_risk      INT NOT NULL DEFAULT 0,
+    campaigns_run_12m           INT NOT NULL DEFAULT 0,
+    reporting_rate_pct          NUMERIC(5,2) NOT NULL DEFAULT 0,
+    risk_level                  TEXT NOT NULL DEFAULT 'moderate',
+    risk_score_history          JSONB NOT NULL DEFAULT '[]',
+    synced_at                   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON human_risk.org_scores (tenant_id, synced_at DESC);
+CREATE UNIQUE INDEX ON human_risk.org_scores (tenant_id);
+
+CREATE TABLE human_risk.users (
+    id                      TEXT PRIMARY KEY,              -- hru_<tenant>_<n> or UUID from KnowBe4
+    tenant_id               TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    name                    TEXT NOT NULL,
+    email                   TEXT NOT NULL,
+    department              TEXT NOT NULL DEFAULT '',
+    job_title               TEXT NOT NULL DEFAULT '',
+    risk_score              INT NOT NULL DEFAULT 0,
+    risk_level              TEXT NOT NULL DEFAULT 'low',
+    risk_score_30d_delta    INT NOT NULL DEFAULT 0,
+    phishing_sent           INT NOT NULL DEFAULT 0,
+    phishing_clicked        INT NOT NULL DEFAULT 0,
+    phishing_reported       INT NOT NULL DEFAULT 0,
+    phishing_data_entered   INT NOT NULL DEFAULT 0,
+    last_phish_result       TEXT NOT NULL DEFAULT 'no-action',
+    last_phish_at           TIMESTAMPTZ,
+    training_assigned       INT NOT NULL DEFAULT 0,
+    training_completed      INT NOT NULL DEFAULT 0,
+    training_completion_pct INT NOT NULL DEFAULT 0,
+    last_training_at        TIMESTAMPTZ,
+    mfa_enabled             BOOLEAN NOT NULL DEFAULT true,
+    privileged_access       BOOLEAN NOT NULL DEFAULT false,
+    risk_history            JSONB NOT NULL DEFAULT '[]',   -- int[]
+    synced_at               TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON human_risk.users (tenant_id, risk_score DESC);
+CREATE INDEX ON human_risk.users (tenant_id, email);
+
+CREATE TABLE human_risk.departments (
+    id                      BIGSERIAL PRIMARY KEY,
+    tenant_id               TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    department              TEXT NOT NULL,
+    headcount               INT NOT NULL DEFAULT 0,
+    avg_risk_score          INT NOT NULL DEFAULT 0,
+    risk_level              TEXT NOT NULL DEFAULT 'low',
+    phish_prone_pct         NUMERIC(5,2) NOT NULL DEFAULT 0,
+    training_completion_pct NUMERIC(5,2) NOT NULL DEFAULT 0,
+    high_risk_users         INT NOT NULL DEFAULT 0,
+    synced_at               TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON human_risk.departments (tenant_id, avg_risk_score DESC);
+CREATE UNIQUE INDEX ON human_risk.departments (tenant_id, department);
+
+CREATE TABLE human_risk.quant (
+    id                      BIGSERIAL PRIMARY KEY,
+    tenant_id               TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    aro                     NUMERIC(10,4) NOT NULL DEFAULT 0,
+    per_incident_mean_sgd   INT NOT NULL DEFAULT 0,
+    per_incident_stdev_sgd  INT NOT NULL DEFAULT 0,
+    ale_sgd                 INT NOT NULL DEFAULT 0,
+    ale_sgd_12m_ago         INT NOT NULL DEFAULT 0,
+    ale_reduced_sgd         INT NOT NULL DEFAULT 0,
+    risk_id                 TEXT NOT NULL DEFAULT '',
+    scenario_id             TEXT NOT NULL DEFAULT '',
+    computed_at             TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON human_risk.quant (tenant_id, computed_at DESC);
+CREATE UNIQUE INDEX ON human_risk.quant (tenant_id);
+
 CREATE OR REPLACE VIEW compliance.framework_score AS
 SELECT
     a.tenant_id,

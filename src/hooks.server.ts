@@ -10,6 +10,17 @@ const ALL_TENANTS_ID = '__all__';
 
 const PUBLIC_PATHS = ['/login', '/logout', '/forgot', '/reset'];
 
+function addSecurityHeaders(response: Response): Response {
+  response.headers.set('X-Frame-Options', 'DENY');
+  response.headers.set('X-Content-Type-Options', 'nosniff');
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  if (process.env.NODE_ENV === 'production') {
+    response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+  }
+  return response;
+}
+
 export const handle: Handle = async ({ event, resolve }) => {
   const tenantCookie = event.cookies.get(TENANT_COOKIE);
   const tenantId = tenantCookie && tenantCookie.length > 0 ? tenantCookie : ALL_TENANTS_ID;
@@ -34,7 +45,7 @@ export const handle: Handle = async ({ event, resolve }) => {
         role: demo.role,
         tenantId
       };
-      return resolve(event);
+      return addSecurityHeaders(await resolve(event));
     }
     if (!isPgMode()) {
       event.locals.user = {
@@ -44,7 +55,7 @@ export const handle: Handle = async ({ event, resolve }) => {
         role: DEFAULT_DEMO_LOGIN.role,
         tenantId
       };
-      return resolve(event);
+      return addSecurityHeaders(await resolve(event));
     }
     // pg mode with an unrecognised demo cookie — clear it and validate the
     // real session cookie below.
@@ -53,7 +64,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 
   // ── Mock mode (no Postgres, no demo cookie) ────────────────────────────
   if (!isPgMode()) {
-    if (isPublic) return resolve(event);
+    if (isPublic) return addSecurityHeaders(await resolve(event));
     throw redirect(303, `/login?next=${encodeURIComponent(path)}`);
   }
 
@@ -70,5 +81,5 @@ export const handle: Handle = async ({ event, resolve }) => {
     }
   }
 
-  return resolve(event);
+  return addSecurityHeaders(await resolve(event));
 };

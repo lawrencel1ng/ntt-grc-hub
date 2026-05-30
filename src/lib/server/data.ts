@@ -1253,23 +1253,182 @@ export async function getAuditLog(tenantId?: string, limit = 200): Promise<Audit
 }
 
 // =====================================================================
-// Human Risk (KnowBe4) — synthesised; mock in both modes (like Privacy/ESG)
+// Human Risk (KnowBe4)
 // =====================================================================
 
 export async function getHumanRiskSummary(tenantId?: string): Promise<HumanRiskSummary | null> {
-  return mock.humanRiskSummary(tenantId ?? 't_maybank');
+  const tid = tenantId ?? 't_maybank';
+  if (!isPgMode()) return mock.humanRiskSummary(tid);
+
+  // Fetch org_scores and quant in parallel.
+  type OrgRow = {
+    tenantId: string;
+    orgRiskScore: number;
+    orgRiskScore12mAgo: number;
+    phishPronePct: number;
+    phishPronePct12mAgo: number;
+    industryPhishPronePct: number;
+    trainingCompletionPct: number;
+    headcount: number;
+    usersAtHighRisk: number;
+    usersAtCriticalRisk: number;
+    campaignsRun12m: number;
+    reportingRatePct: number;
+    riskLevel: string;
+    riskScoreHistory: { period: string; score: number; ppp: number }[];
+  };
+  type QuantRow = {
+    aro: number;
+    perIncidentMeanSgd: number;
+    perIncidentStdevSgd: number;
+    aleSgd: number;
+    aleSgd12mAgo: number;
+    aleReducedSgd: number;
+    riskId: string;
+    scenarioId: string;
+  };
+
+  const [orgRows, quantRows] = await Promise.all([
+    safeQuery<OrgRow>(
+      `SELECT tenant_id AS "tenantId",
+              org_risk_score AS "orgRiskScore",
+              org_risk_score_12m_ago AS "orgRiskScore12mAgo",
+              phish_prone_pct AS "phishPronePct",
+              phish_prone_pct_12m_ago AS "phishPronePct12mAgo",
+              industry_phish_prone_pct AS "industryPhishPronePct",
+              training_completion_pct AS "trainingCompletionPct",
+              headcount,
+              users_at_high_risk AS "usersAtHighRisk",
+              users_at_critical_risk AS "usersAtCriticalRisk",
+              campaigns_run_12m AS "campaignsRun12m",
+              reporting_rate_pct AS "reportingRatePct",
+              risk_level AS "riskLevel",
+              risk_score_history AS "riskScoreHistory"
+         FROM human_risk.org_scores WHERE tenant_id = $1`,
+      [tid]
+    ),
+    safeQuery<QuantRow>(
+      `SELECT aro,
+              per_incident_mean_sgd AS "perIncidentMeanSgd",
+              per_incident_stdev_sgd AS "perIncidentStdevSgd",
+              ale_sgd AS "aleSgd",
+              ale_sgd_12m_ago AS "aleSgd12mAgo",
+              ale_reduced_sgd AS "aleReducedSgd",
+              risk_id AS "riskId",
+              scenario_id AS "scenarioId"
+         FROM human_risk.quant WHERE tenant_id = $1`,
+      [tid]
+    )
+  ]);
+
+  if (!orgRows.length) return mock.humanRiskSummary(tid);
+
+  const org = orgRows[0];
+  const q = quantRows[0];
+  const fallbackQuant = mock.humanRiskSummary(tid)?.quant ?? {
+    aro: 0, perIncidentMeanSgd: 0, perIncidentStdevSgd: 0,
+    aleSgd: 0, aleSgd12mAgo: 0, aleReducedSgd: 0,
+    riskId: `risk_${tid}_humanrisk`, scenarioId: `scn_${tid}_humanrisk`
+  };
+
+  return {
+    tenantId: org.tenantId,
+    headcount: org.headcount,
+    orgRiskScore: org.orgRiskScore,
+    riskLevel: org.riskLevel as import('$lib/data/types').HumanRiskLevel,
+    orgRiskScore12mAgo: org.orgRiskScore12mAgo,
+    phishPronePct: +org.phishPronePct,
+    phishPronePct12mAgo: +org.phishPronePct12mAgo,
+    industryPhishPronePct: +org.industryPhishPronePct,
+    trainingCompletionPct: +org.trainingCompletionPct,
+    usersAtHighRisk: org.usersAtHighRisk,
+    usersAtCriticalRisk: org.usersAtCriticalRisk,
+    campaignsRun12m: org.campaignsRun12m,
+    reportingRatePct: +org.reportingRatePct,
+    riskScoreHistory: Array.isArray(org.riskScoreHistory) ? org.riskScoreHistory : [],
+    quant: q ? {
+      aro: +q.aro,
+      perIncidentMeanSgd: q.perIncidentMeanSgd,
+      perIncidentStdevSgd: q.perIncidentStdevSgd,
+      aleSgd: q.aleSgd,
+      aleSgd12mAgo: q.aleSgd12mAgo,
+      aleReducedSgd: q.aleReducedSgd,
+      riskId: q.riskId,
+      scenarioId: q.scenarioId
+    } : fallbackQuant
+  };
 }
 
 export async function getHumanRiskUsers(tenantId?: string): Promise<HumanRiskUser[]> {
-  return mock.humanRiskUsers(tenantId ?? 't_maybank');
+  const tid = tenantId ?? 't_maybank';
+  if (!isPgMode()) return mock.humanRiskUsers(tid);
+  const rows = await safeQuery<HumanRiskUser>(
+    `SELECT id, tenant_id AS "tenantId", name, email, department,
+            job_title AS "jobTitle",
+            risk_score AS "riskScore",
+            risk_level AS "riskLevel",
+            risk_score_30d_delta AS "riskScore30dDelta",
+            phishing_sent AS "phishingSent",
+            phishing_clicked AS "phishingClicked",
+            phishing_reported AS "phishingReported",
+            phishing_data_entered AS "phishingDataEntered",
+            last_phish_result AS "lastPhishResult",
+            last_phish_at AS "lastPhishAt",
+            training_assigned AS "trainingAssigned",
+            training_completed AS "trainingCompleted",
+            training_completion_pct AS "trainingCompletionPct",
+            last_training_at AS "lastTrainingAt",
+            mfa_enabled AS "mfaEnabled",
+            privileged_access AS "privilegedAccess",
+            risk_history AS "riskHistory"
+       FROM human_risk.users WHERE tenant_id = $1 ORDER BY risk_score DESC`,
+    [tid]
+  );
+  return rows.length ? rows : mock.humanRiskUsers(tid);
 }
 
 export async function getHumanRiskUser(id: string): Promise<HumanRiskUser | undefined> {
-  return mock.humanRiskUser(id);
+  if (!isPgMode()) return mock.humanRiskUser(id);
+  const rows = await safeQuery<HumanRiskUser>(
+    `SELECT id, tenant_id AS "tenantId", name, email, department,
+            job_title AS "jobTitle",
+            risk_score AS "riskScore",
+            risk_level AS "riskLevel",
+            risk_score_30d_delta AS "riskScore30dDelta",
+            phishing_sent AS "phishingSent",
+            phishing_clicked AS "phishingClicked",
+            phishing_reported AS "phishingReported",
+            phishing_data_entered AS "phishingDataEntered",
+            last_phish_result AS "lastPhishResult",
+            last_phish_at AS "lastPhishAt",
+            training_assigned AS "trainingAssigned",
+            training_completed AS "trainingCompleted",
+            training_completion_pct AS "trainingCompletionPct",
+            last_training_at AS "lastTrainingAt",
+            mfa_enabled AS "mfaEnabled",
+            privileged_access AS "privilegedAccess",
+            risk_history AS "riskHistory"
+       FROM human_risk.users WHERE id = $1`,
+    [id]
+  );
+  return rows[0] ?? mock.humanRiskUser(id);
 }
 
 export async function getHumanRiskDepartments(tenantId?: string): Promise<HumanRiskDepartment[]> {
-  return mock.humanRiskDepartments(tenantId ?? 't_maybank');
+  const tid = tenantId ?? 't_maybank';
+  if (!isPgMode()) return mock.humanRiskDepartments(tid);
+  const rows = await safeQuery<HumanRiskDepartment>(
+    `SELECT tenant_id AS "tenantId", department,
+            headcount,
+            avg_risk_score AS "avgRiskScore",
+            risk_level AS "riskLevel",
+            phish_prone_pct AS "phishPronePct",
+            training_completion_pct AS "trainingCompletionPct",
+            high_risk_users AS "highRiskUsers"
+       FROM human_risk.departments WHERE tenant_id = $1 ORDER BY avg_risk_score DESC`,
+    [tid]
+  );
+  return rows.length ? rows : mock.humanRiskDepartments(tid);
 }
 
 export async function getPhishingCampaigns(tenantId?: string): Promise<PhishingCampaign[]> {

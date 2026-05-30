@@ -61,6 +61,19 @@
   import type { AuditWorkpaper } from '$lib/data/types';
   $: workpapers = data.workpapers as AuditWorkpaper[];
 
+  function downloadWorkpaper(wp: AuditWorkpaper) {
+    const blob = new Blob([wp.contentMd], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${wp.title.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-${wp.createdAt.slice(0, 10)}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    addToast('success', `Downloaded "${wp.title}"`);
+  }
+
   function fmtDate(iso?: string): string {
     return iso ? iso.slice(0, 10) : '—';
   }
@@ -193,7 +206,7 @@
                 <div class="font-semibold text-grc-ink">{wp.title}</div>
                 <div class="mt-0.5 text-xs text-slate-500">{wp.createdAt.slice(0, 10)}</div>
               </div>
-              <button class="btn-ghost p-1" on:click={() => addToast('info', `Opening ${wp.title}`)}>
+              <button class="btn-ghost p-1" on:click={() => downloadWorkpaper(wp)}>
                 <Download class="h-4 w-4" />
               </button>
             </div>

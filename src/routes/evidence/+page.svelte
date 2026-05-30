@@ -69,9 +69,8 @@
   $: visiblePage = filtered.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
   $: if (page >= pageCount) page = 0;
 
-  // Heuristic linked control count per item — for display only.
   function linkedControlsCount(id: number): number {
-    return (id % 4) + 1;
+    return (data.controlCounts as Record<number, number>)[id] ?? 0;
   }
 
   function kindCls(k: EvidenceKind): string {

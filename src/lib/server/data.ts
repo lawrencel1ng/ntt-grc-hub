@@ -12,7 +12,7 @@ import type {
   Tenant, Agent, AgentRun, AgentDecision, AgentFleetSummary, CostLedgerEntry, AgentTool,
   Risk, FAIRRun, AppetiteStatement, HeatmapCell,
   Framework, Requirement, FrameworkScore,
-  Control, ControlTestRun,
+  Control, ControlMapping, ControlTest, ControlException, ControlTestRun,
   EvidenceItem,
   AuditEngagement, AuditFinding,
   Policy, PolicyVersion,
@@ -70,6 +70,8 @@ export async function getTenantSummaries(): Promise<Tenant[]> {
     `SELECT id, name, industry, region, classified,
             sla_tier AS "slaTier", primary_framework AS "primaryFramework",
             headquartered_in AS "headquarteredIn", mrr_sgd AS "mrrSgd",
+            COALESCE(ai_provider, 'anthropic') AS "aiProvider",
+            COALESCE(data_residency, 'SG') AS "dataResidency",
             created_at AS "createdAt"
      FROM platform.tenants ORDER BY name`
   );
@@ -466,6 +468,62 @@ export async function getControlTestRuns(controlId: string, limit = 20): Promise
   const c = mock.getControlById(controlId);
   if (!c) return [];
   return mock.recentControlTestRuns(c.tenantId, limit).filter((r) => r.controlId === controlId);
+}
+
+export async function getControlMappings(controlId: string): Promise<ControlMapping[]> {
+  if (!isPgMode()) return [];
+  return safeQuery<ControlMapping>(
+    `SELECT id, control_id AS "controlId", framework_id AS "frameworkId",
+            requirement_id AS "requirementId", coverage_pct AS "coveragePct", notes
+     FROM control.mappings WHERE control_id = $1 ORDER BY framework_id`,
+    [controlId]
+  );
+}
+
+export async function getControlTests(controlId: string): Promise<ControlTest[]> {
+  if (!isPgMode()) return [];
+  return safeQuery<ControlTest>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", control_id AS "controlId",
+            name, kind::text AS kind, schedule_cron AS "scheduleCron", procedure_md AS "procedureMd"
+     FROM control.tests WHERE control_id = $1 ORDER BY name`,
+    [controlId]
+  );
+}
+
+export async function getControlExceptions(controlId: string): Promise<ControlException[]> {
+  if (!isPgMode()) return [];
+  return safeQuery<ControlException>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", control_id AS "controlId",
+            justification, granted, expires_at AS "expiresAt", created_at AS "createdAt"
+     FROM control.exceptions WHERE control_id = $1 ORDER BY created_at DESC`,
+    [controlId]
+  );
+}
+
+export async function getEvidenceControlCounts(tenantId?: string): Promise<Record<number, number>> {
+  if (!isPgMode()) return {};
+  const where = tenantId ? 'WHERE tenant_id = $1 AND evidence_item_id IS NOT NULL' : 'WHERE evidence_item_id IS NOT NULL';
+  const params = tenantId ? [tenantId] : [];
+  const rows = await safeQuery<{ evidenceItemId: number; cnt: number }>(
+    `SELECT evidence_item_id AS "evidenceItemId", COUNT(DISTINCT control_id) AS cnt
+     FROM control.test_runs ${where} GROUP BY evidence_item_id`,
+    params
+  );
+  return Object.fromEntries(rows.map((r) => [r.evidenceItemId, Number(r.cnt)]));
+}
+
+export async function getControlMappingsByTenant(tenantId?: string): Promise<ControlMapping[]> {
+  if (!isPgMode()) return [];
+  const where = tenantId
+    ? `WHERE cm.control_id IN (SELECT id FROM control.library WHERE tenant_id = $1)`
+    : '';
+  const params = tenantId ? [tenantId] : [];
+  return safeQuery<ControlMapping>(
+    `SELECT cm.id, cm.control_id AS "controlId", cm.framework_id AS "frameworkId",
+            cm.requirement_id AS "requirementId", cm.coverage_pct AS "coveragePct", cm.notes
+     FROM control.mappings cm ${where} ORDER BY cm.framework_id`,
+    params
+  );
 }
 
 export async function getRecentTestRuns(tenantId?: string, limit = 30): Promise<ControlTestRun[]> {

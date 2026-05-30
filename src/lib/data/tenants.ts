@@ -24,6 +24,8 @@ export const TENANTS: Tenant[] = [
     primaryFramework: 'im8',
     headquarteredIn: 'Singapore',
     mrrSgd: 120000,
+    aiProvider: 'tsuzumi',
+    dataResidency: 'SG',
     createdAt: '2023-11-02T08:00:00+08:00'
   },
   {

@@ -7,31 +7,20 @@
   import Sparkline from '$lib/components/Sparkline.svelte';
   import { addToast } from '$lib/stores/toast';
   import { Bot, Play, ShieldCheck, Calendar, Activity, Layers, AlertCircle, FileLock2 } from 'lucide-svelte';
-  import type { ControlTestResult, Control } from '$lib/data/types';
+  import type { ControlTestResult, ControlMapping, ControlTest, ControlException } from '$lib/data/types';
 
   export let data;
 
-  // ---------- Synthesised mappings (heuristic) ----------
-  function controlFrameworks(c: Control): string[] {
-    const fwIds = ['soc2', 'iso-27001', 'mas-trm', 'pci-dss-4', 'gdpr', 'nist-csf'];
-    const seed = c.id.charCodeAt(c.id.length - 1);
-    return [fwIds[seed % fwIds.length], fwIds[(seed + 3) % fwIds.length]];
-  }
-  $: mappings = controlFrameworks(data.control).map((fid, i) => {
-    const fw = data.frameworks.find((f) => f.id === fid);
-    const seed = data.control.id.charCodeAt(data.control.id.length - 1 - i);
-    return {
-      framework: fw,
-      requirementCode: fw ? `${fw.id.toUpperCase()}-${String((seed % 60) + 1).padStart(3, '0')}` : '—',
-      coverage: 60 + (seed % 40)
-    };
-  }).filter((m) => m.framework);
+  // ---------- Real mappings from control.mappings ----------
+  $: mappings = (data.mappings as ControlMapping[]).map((m) => ({
+    mapping: m,
+    framework: data.frameworks.find((f) => f.id === m.frameworkId),
+    requirementCode: m.requirementId ?? `${m.frameworkId.toUpperCase()}-???`,
+    coverage: m.coveragePct
+  })).filter((m) => m.framework);
 
-  // ---------- Synthesised tests (3) ----------
-  $: tests = [
-    { id: `tst_${data.control.id}_1`, name: `${data.control.title} — automated check`, kind: data.control.automated ? 'automated' : 'manual', schedule: data.control.frequency, lastResult: data.runs[0]?.result ?? 'pass' as ControlTestResult },
-    { id: `tst_${data.control.id}_2`, name: `${data.control.title} — quarterly attestation`, kind: 'manual', schedule: 'quarterly', lastResult: 'pass' as ControlTestResult }
-  ];
+  // ---------- Real tests from control.tests ----------
+  $: tests = data.tests as ControlTest[];
 
   // ---------- Sparkline of last 30 runs ----------
   $: sparkData = (() => {
@@ -43,10 +32,8 @@
   let visible = 20;
   $: visibleRuns = data.runs.slice(0, visible);
 
-  // ---------- Synthesised exceptions ----------
-  $: exceptions = data.control.title.toLowerCase().includes('encrypt')
-    ? [{ id: 'exc_1', title: 'Legacy archive bucket grandfathered until 2026-09-30', approvedBy: 'CISO', expiresAt: '2026-09-30' }]
-    : [];
+  // ---------- Real exceptions from control.exceptions ----------
+  $: exceptions = data.exceptions as ControlException[];
 
   function fmtRel(iso?: string): string {
     if (!iso) return '—';
@@ -156,13 +143,16 @@
         </thead>
         <tbody>
           {#each tests as t}
+            {@const lastRun = data.runs.find((r) => r.testId === t.id)}
             <tr class="tr">
               <td class="td">{t.name}</td>
               <td class="td"><span class="tag tag-slate">{t.kind}</span></td>
-              <td class="td text-xs text-slate-500">{t.schedule}</td>
-              <td class="td"><StatusDot status={t.lastResult} withLabel /></td>
+              <td class="td text-xs text-slate-500">{t.scheduleCron ?? '—'}</td>
+              <td class="td">{#if lastRun}<StatusDot status={lastRun.result} withLabel />{:else}<span class="text-xs text-slate-400">no runs</span>{/if}</td>
               <td class="td w-40"><Sparkline data={sparkData} /></td>
             </tr>
+          {:else}
+            <tr><td colspan="5" class="px-4 py-6 text-center text-sm text-slate-500">No test definitions on record.</td></tr>
           {/each}
         </tbody>
       </table>
@@ -247,8 +237,8 @@
       <ul class="space-y-2 text-sm">
         {#each exceptions as exc}
           <li class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-            <div class="font-medium text-amber-900">{exc.title}</div>
-            <div class="mt-1 text-xs text-amber-700">Approved by {exc.approvedBy} · expires {exc.expiresAt}</div>
+            <div class="font-medium text-amber-900">{exc.justification}</div>
+            <div class="mt-1 text-xs text-amber-700">{exc.granted ? 'Granted' : 'Pending'} · expires {exc.expiresAt ? exc.expiresAt.slice(0, 10) : 'no expiry'}</div>
           </li>
         {/each}
       </ul>

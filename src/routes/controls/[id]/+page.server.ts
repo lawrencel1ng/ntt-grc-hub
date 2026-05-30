@@ -5,17 +5,23 @@
 
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { getControl, getControlTestRuns, getFrameworks, getEvidence } from '$lib/server/data';
+import {
+  getControl, getControlTestRuns, getControlMappings, getControlTests,
+  getControlExceptions, getFrameworks, getEvidence
+} from '$lib/server/data';
 
 export const load: PageServerLoad = async ({ params }) => {
   const control = await getControl(params.id);
   if (!control) throw error(404, 'Control not found');
 
-  const [runs, frameworks, evidence] = await Promise.all([
+  const [runs, mappings, tests, exceptions, frameworks, evidence] = await Promise.all([
     getControlTestRuns(control.id, 30),
+    getControlMappings(control.id),
+    getControlTests(control.id),
+    getControlExceptions(control.id),
     getFrameworks(),
     getEvidence(control.tenantId, 12)
   ]);
 
-  return { control, runs, frameworks, evidence };
+  return { control, runs, mappings, tests, exceptions, frameworks, evidence };
 };

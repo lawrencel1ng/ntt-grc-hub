@@ -38,10 +38,10 @@
     if (region === 'APAC') return 'bg-blue-50 text-blue-700 ring-blue-200';
     return 'bg-slate-100 text-slate-700 ring-slate-200';
   }
-  function dataResidency(tenantId: string): string {
-    // Hard-coded for the demo; aligns with /admin/settings dropdown.
-    if (tenantId === 't_mindef') return 'SG (sovereign · NTT Tsuzumi)';
-    return 'SG';
+  import type { Tenant } from '$lib/data/types';
+  function dataResidency(t: Tenant): string {
+    const base = t.dataResidency ?? 'SG';
+    return t.aiProvider === 'tsuzumi' ? `${base} (sovereign · NTT Tsuzumi)` : base;
   }
 
 </script>
@@ -211,7 +211,7 @@
                     </div>
                     <div class="rounded-lg bg-white p-3 ring-1 ring-inset ring-slate-200">
                       <div class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Data Residency</div>
-                      <div class="mt-1 text-sm font-medium text-slate-800">{dataResidency(t.id)}</div>
+                      <div class="mt-1 text-sm font-medium text-slate-800">{dataResidency(t)}</div>
                     </div>
                   </div>
                   <div class="mt-3 flex items-center gap-2 text-xs text-slate-500">

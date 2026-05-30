@@ -4,7 +4,7 @@
   import StatusDot from '$lib/components/StatusDot.svelte';
   import FrameworkBadge from '$lib/components/FrameworkBadge.svelte';
   import { ShieldCheck, Bot, CheckCircle2, AlertTriangle, Search, ChevronRight, User as UserIcon } from 'lucide-svelte';
-  import type { Control, ControlType, ControlTestResult } from '$lib/data/types';
+  import type { Control, ControlMapping, ControlType, ControlTestResult } from '$lib/data/types';
 
   export let data;
 
@@ -57,13 +57,16 @@
     { id: 'manual', label: 'Manual' }
   ];
 
-  // Heuristic framework mapping per control — derived deterministically
-  // from the id; in pg-mode this comes from control_mappings.
-  function controlFrameworks(c: Control): string[] {
-    const fwIds = ['soc2', 'iso-27001', 'mas-trm', 'pci-dss-4', 'gdpr', 'nist-csf'];
-    const seed = c.id.charCodeAt(c.id.length - 1);
-    return [fwIds[seed % fwIds.length], fwIds[(seed + 3) % fwIds.length]];
-  }
+  // Real framework mapping from control.mappings (keyed by controlId).
+  $: mappingsByControl = (() => {
+    const map = new Map<string, string[]>();
+    for (const m of data.mappings as ControlMapping[]) {
+      const existing = map.get(m.controlId) ?? [];
+      if (!existing.includes(m.frameworkId)) existing.push(m.frameworkId);
+      map.set(m.controlId, existing);
+    }
+    return map;
+  })();
 
   $: filtered = data.controls.filter((c) => {
     if (typeFilter !== 'all' && c.type !== typeFilter) return false;
@@ -75,7 +78,7 @@
       const last = lastResultByControl.get(c.id);
       if (last !== statusFilter) return false;
     }
-    if (frameworkFilter !== 'all' && !controlFrameworks(c).includes(frameworkFilter)) return false;
+    if (frameworkFilter !== 'all' && !(mappingsByControl.get(c.id) ?? []).includes(frameworkFilter)) return false;
     if (search.trim()) {
       const q = search.toLowerCase();
       if (!c.code.toLowerCase().includes(q) && !c.title.toLowerCase().includes(q)) return false;
@@ -193,7 +196,7 @@
           {#each visibleRows as c (c.id)}
             {@const last = lastResultByControl.get(c.id)}
             {@const lastTs = lastRunByControl.get(c.id)}
-            {@const fwIds = controlFrameworks(c)}
+            {@const fwIds = mappingsByControl.get(c.id) ?? []}
             <tr class="tr">
               <td class="td font-mono text-xs text-slate-500">
                 <a href="/controls/{c.id}" class="text-grc-primary hover:underline">{c.code}</a>

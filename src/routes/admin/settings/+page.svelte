@@ -20,13 +20,11 @@
   $: if (form?.brandingUpdated) addToast('success', `Accent colour updated to ${form.accentColor}.`);
   $: if (form?.brandingError) addToast('error', form.brandingError);
 
-  // ---------- Tenant settings local state ----------
-  // Default the AI provider to NTT Tsuzumi (sovereign) for MINDEF.
-  $: defaultProvider = data.tenant?.id === 't_mindef' ? 'tsuzumi' : 'anthropic';
-  $: defaultResidency = data.tenant?.id === 't_mindef' ? 'SG' : 'SG';
+  // ---------- Tenant settings local state — read from DB ----------
+  $: defaultProvider = data.tenant?.aiProvider ?? 'anthropic';
+  $: defaultResidency = data.tenant?.dataResidency ?? 'SG';
   let residency: string;
   let provider: string;
-  // Sync local state when the tenant changes (e.g. via TenantSwitcher).
   $: { residency = defaultResidency; provider = defaultProvider; }
 
   // ---------- New token creation state ----------
@@ -148,12 +146,12 @@
       </label>
       <label class="block">
         <span class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">AI Provider</span>
-        <select bind:value={provider} class="input" disabled={data.tenant?.id === 't_mindef'}>
+        <select bind:value={provider} class="input" disabled={provider === 'tsuzumi' && defaultProvider === 'tsuzumi'}>
           <option value="tsuzumi">NTT Tsuzumi (sovereign)</option>
           <option value="anthropic">Anthropic Claude</option>
           <option value="openai">OpenAI</option>
         </select>
-        {#if data.tenant?.id === 't_mindef'}
+        {#if defaultProvider === 'tsuzumi'}
           <p class="mt-1 text-[11px] text-rose-700">Sovereign tenant — provider locked to NTT Tsuzumi.</p>
         {/if}
       </label>

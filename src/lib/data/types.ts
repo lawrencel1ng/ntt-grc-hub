@@ -118,6 +118,8 @@ export interface Tenant {
   primaryFramework: string;
   headquarteredIn: string;
   mrrSgd: number;
+  aiProvider?: string;
+  dataResidency?: string;
   createdAt: string;
 }
 
@@ -238,6 +240,16 @@ export interface ControlTest {
   kind: ControlTestKind;
   scheduleCron?: string;
   procedureMd?: string;
+}
+
+export interface ControlException {
+  id: string;
+  tenantId: string;
+  controlId: string;
+  justification: string;
+  granted: boolean;
+  expiresAt?: string;
+  createdAt: string;
 }
 
 export interface ControlTestRun {

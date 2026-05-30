@@ -11,8 +11,16 @@
     GitFork, AlertTriangle, ShieldCheck, Mail, Tag as TagIcon, Layers, DollarSign
   } from 'lucide-svelte';
   import type { Vendor, VendorContract, VendorTier, VendorCriticality, VendorStatus, Questionnaire } from '$lib/data/types';
+  import { enhance } from '$app/forms';
 
   export let data;
+  export let form: { statusUpdated?: boolean; newStatus?: string; statusError?: string } | null = null;
+
+  $: if (form?.statusUpdated && form.newStatus) {
+    data = { ...data, vendor: { ...data.vendor, status: form.newStatus as VendorStatus } };
+    addToast('success', `Vendor status updated to "${form.newStatus}".`);
+  }
+  $: if (form?.statusError) addToast('error', form.statusError);
 
   // ---------- Computed ----------
   function residualScore(v: Vendor): number {
@@ -156,7 +164,14 @@
     <span class="tag tag-slate">{data.vendor.category}</span>
     <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset {tierCls(data.vendor.tier)}">Tier {data.vendor.tier}</span>
     <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset {critCls(data.vendor.criticality)}">{data.vendor.criticality}</span>
-    <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset {statusCls(data.vendor.status)}">{data.vendor.status}</span>
+    <form method="POST" action="?/updateStatus" use:enhance class="flex items-center gap-1">
+      <select name="status" class="input py-1 text-xs" value={data.vendor.status}>
+        <option value="active">active</option>
+        <option value="onboarding">onboarding</option>
+        <option value="offboarded">offboarded</option>
+      </select>
+      <button type="submit" class="btn-secondary py-1 text-xs">Update</button>
+    </form>
     <button class="btn-primary" on:click={sendQuestionnaire}>
       <Send class="h-4 w-4" />
       <span>Send Questionnaire</span>

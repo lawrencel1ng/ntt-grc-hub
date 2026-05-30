@@ -4,10 +4,19 @@
   import ConfidenceBar from '$lib/components/ConfidenceBar.svelte';
   import EvidenceChip from '$lib/components/EvidenceChip.svelte';
   import AgentTypeBadge from '$lib/components/AgentTypeBadge.svelte';
+  import { addToast } from '$lib/stores/toast';
   import { Bot, Building } from 'lucide-svelte';
   import type { QuestionnaireStatus, QuestionnaireResponse } from '$lib/data/types';
+  import { enhance } from '$app/forms';
 
   export let data;
+  export let form: { statusUpdated?: boolean; newStatus?: string; statusError?: string } | null = null;
+
+  $: if (form?.statusUpdated && form.newStatus) {
+    data = { ...data, questionnaire: { ...data.questionnaire, status: form.newStatus as QuestionnaireStatus } };
+    addToast('success', `Questionnaire status updated to "${form.newStatus}".`);
+  }
+  $: if (form?.statusError) addToast('error', form.statusError);
 
   // ---------- Helpers ----------
   function templateCls(t: 'SIG' | 'CAIQ' | 'Custom'): string {
@@ -65,7 +74,14 @@
 >
   <svelte:fragment slot="actions">
     <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset {templateCls(data.questionnaire.template)}">{data.questionnaire.template}</span>
-    <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset {statusCls(data.questionnaire.status)}">{data.questionnaire.status}</span>
+    <form method="POST" action="?/updateStatus" use:enhance class="flex items-center gap-1">
+      <select name="status" class="input py-1 text-xs" value={data.questionnaire.status}>
+        <option value="sent">sent</option>
+        <option value="in-progress">in-progress</option>
+        <option value="complete">complete</option>
+      </select>
+      <button type="submit" class="btn-secondary py-1 text-xs">Update</button>
+    </form>
   </svelte:fragment>
 </PageHeader>
 

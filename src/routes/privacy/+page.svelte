@@ -2,6 +2,8 @@
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Kpi from '$lib/components/Kpi.svelte';
   import ProgressBar from '$lib/components/ProgressBar.svelte';
+  import { enhance } from '$app/forms';
+  import { addToast } from '$lib/stores/toast';
   import {
     Lock, FileText, Mail, Globe, AlertTriangle,
     ScrollText, ClipboardCheck, Users as UsersIcon, ShieldAlert
@@ -12,6 +14,32 @@
   } from '$lib/data/types';
 
   export let data;
+  export let form: {
+    dpiaUpdated?: boolean; dpiaId?: string; newStatus?: string; dpiaError?: string;
+    srUpdated?: boolean; requestId?: string; srError?: string;
+  } | null = null;
+
+  $: if (form?.dpiaUpdated && form.dpiaId && form.newStatus) {
+    data = {
+      ...data,
+      dpias: data.dpias.map((d: DPIA) =>
+        d.id === form!.dpiaId ? { ...d, status: form!.newStatus as DPIA['status'] } : d
+      )
+    };
+    addToast('success', `DPIA status updated to "${form.newStatus}".`);
+  }
+  $: if (form?.dpiaError) addToast('error', form.dpiaError);
+
+  $: if (form?.srUpdated && form.requestId && form.newStatus) {
+    data = {
+      ...data,
+      requests: data.requests.map((r: SubjectRequest) =>
+        r.id === form!.requestId ? { ...r, status: form!.newStatus as SubjectRequestStatus } : r
+      )
+    };
+    addToast('success', `Request status updated to "${form.newStatus}".`);
+  }
+  $: if (form?.srError) addToast('error', form.srError);
 
   // ---------- KPIs ----------
   $: activitiesCount = data.activities.length;
@@ -226,7 +254,16 @@
                 <div class="truncate font-semibold text-grc-ink">{d.activityName ?? '(unknown activity)'}</div>
                 <div class="mt-0.5 text-xs text-slate-500">DPIA · conducted {fmtDate(d.conductedAt)}</div>
               </div>
-              <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {dpiaStatusCls(d.status)}">{d.status}</span>
+              <form method="POST" action="?/updateDpiaStatus" use:enhance class="flex items-center gap-1">
+                <input type="hidden" name="dpiaId" value={d.id} />
+                <select name="status" class="input py-0.5 text-[11px]" value={d.status}>
+                  <option value="draft">draft</option>
+                  <option value="in-review">in-review</option>
+                  <option value="approved">approved</option>
+                  <option value="retired">retired</option>
+                </select>
+                <button type="submit" class="btn-ghost p-1 text-[11px]">✓</button>
+              </form>
             </div>
             <div class="mt-3 flex items-center justify-between">
               <span class="text-[11px] uppercase tracking-wider text-slate-500">Residual risk</span>
@@ -286,7 +323,16 @@
                   </div>
                 </td>
                 <td class="td">
-                  <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {srStatusCls(r.status)}">{r.status}</span>
+                  <form method="POST" action="?/updateSubjectRequestStatus" use:enhance class="flex items-center gap-1">
+                    <input type="hidden" name="requestId" value={r.id} />
+                    <select name="status" class="input py-0.5 text-[11px]" value={r.status}>
+                      <option value="received">received</option>
+                      <option value="in-progress">in-progress</option>
+                      <option value="resolved">resolved</option>
+                      <option value="rejected">rejected</option>
+                    </select>
+                    <button type="submit" class="btn-ghost p-1 text-[11px]">✓</button>
+                  </form>
                 </td>
                 <td class="td font-mono text-xs text-slate-500">{fmtDate(r.resolvedAt)}</td>
               </tr>

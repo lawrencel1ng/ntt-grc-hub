@@ -47,6 +47,13 @@ export const actions: Actions = {
     const mrrSgd = isNaN(mrrRaw) ? 0 : mrrRaw;
 
     if (!name || !industry) return fail(400, { tenantError: 'Name and industry are required.' });
+    if (name.length > 128) return fail(400, { tenantError: 'Name must be 128 characters or fewer.' });
+    if (industry.length > 128) return fail(400, { tenantError: 'Industry must be 128 characters or fewer.' });
+    if (region.length > 16) return fail(400, { tenantError: 'Region code must be 16 characters or fewer.' });
+    if (headquarteredIn.length > 128) return fail(400, { tenantError: 'Headquartered-in must be 128 characters or fewer.' });
+    const VALID_SLA_TIERS = ['standard', 'premium', 'enterprise'];
+    if (!VALID_SLA_TIERS.includes(slaTier)) return fail(400, { tenantError: 'Invalid SLA tier.' });
+    if (primaryFramework && primaryFramework.length > 64) return fail(400, { tenantError: 'Primary framework must be 64 characters or fewer.' });
 
     // Derive a URL-safe tenant ID from the name
     const slug = name.toLowerCase()

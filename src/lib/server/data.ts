@@ -110,7 +110,7 @@ export async function getUsers(tenantId?: string): Promise<import('$lib/data/typ
 export async function getLiveAgentCount(): Promise<number> {
   if (!isPgMode()) return mock.liveAgentCount();
   const rows = await safeQuery<{ n: string }>(`SELECT COUNT(*)::text AS n FROM agent.agents WHERE status = 'running'`);
-  return rows.length ? Number(rows[0].n) : mock.liveAgentCount();
+  return rows.length ? Number(rows[0].n) : 0;
 }
 
 export async function getNavBadgeCounts(): Promise<{ agents: number; frameworks: number; connectors: number }> {

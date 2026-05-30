@@ -119,7 +119,7 @@
       {#if ssoUnavailable}
         <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
           <strong>{PROVIDER_LABEL[ssoUnavailable] ?? ssoUnavailable}</strong> SSO isn't configured
-          in this environment. Sign in with your work email below, or pick a demo account.
+          in this environment. Sign in with your work email below{#if !data.pgMode}, or pick a demo account{/if}.
         </div>
       {/if}
 

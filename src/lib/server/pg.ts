@@ -27,8 +27,9 @@ export function getPool(): pg.Pool {
   if (!pool) {
     pool = new Pool({
       connectionString: env.DATABASE_URL ?? 'postgres://localhost:5432/ntt_grc_hub',
-      max: 8,
-      idleTimeoutMillis: 30_000
+      max: 10,
+      idleTimeoutMillis: 30_000,
+      connectionTimeoutMillis: 5_000  // fail fast if DB is unreachable
     });
     pool.on('error', (err) => {
       // Don't crash the server on a stale pool client; log and let the

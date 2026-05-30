@@ -101,11 +101,11 @@
       </label>
       <label class="block">
         <span class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">New Password</span>
-        <input type="password" name="newPassword" required minlength="8" class="input" autocomplete="new-password" />
+        <input type="password" name="newPassword" required minlength="10" class="input" autocomplete="new-password" />
       </label>
       <label class="block">
         <span class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Confirm New Password</span>
-        <input type="password" name="confirmPassword" required minlength="8" class="input" autocomplete="new-password" />
+        <input type="password" name="confirmPassword" required minlength="10" class="input" autocomplete="new-password" />
       </label>
       {#if form?.pwError}
         <p class="text-xs text-red-600">{form.pwError}</p>

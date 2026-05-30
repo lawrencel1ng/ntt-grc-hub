@@ -102,7 +102,7 @@ export const actions: Actions = {
 
     if (!current || !next || !confirm) return fail(400, { pwError: 'All fields are required.' });
     if (next !== confirm) return fail(400, { pwError: 'New passwords do not match.' });
-    if (next.length < 8 || next.length > 128) return fail(400, { pwError: 'New password must be 8–128 characters.' });
+    if (next.length < 10 || next.length > 128) return fail(400, { pwError: 'New password must be 10–128 characters.' });
 
     const verified = await verifyCredentials(locals.user.email, current);
     if (!verified) return fail(401, { pwError: 'Current password is incorrect.' });

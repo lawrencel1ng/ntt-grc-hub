@@ -27,6 +27,8 @@ interface KnowBe4User {
   phishing_click_count?: number;
   phishing_report_count?: number;
   mobile_phishing_click_count?: number;
+  // Some KnowBe4 tiers expose total emails sent per user; use when available.
+  phishing_email_sent_count?: number;
   training_assignments?: number;
   training_completions_count?: number;
   mfa_enrolled?: boolean;
@@ -142,7 +144,8 @@ export const POST: RequestHandler = async ({ locals }) => {
           u.department ?? '',
           u.job_title ?? '',
           riskScore, riskLevel,
-          u.phishing_click_count ?? 0,
+          // phishing_sent: use dedicated field when API exposes it; fall back to 0.
+          u.phishing_email_sent_count ?? 0,
           (u.phishing_click_count ?? 0) + (u.mobile_phishing_click_count ?? 0),
           u.phishing_report_count ?? 0,
           u.training_assignments ?? 0,

@@ -240,7 +240,7 @@
               <ProgressBar value={d.status === 'approved' ? 100 : d.status === 'in-review' ? 75 : d.status === 'draft' ? 35 : 100} color={d.status === 'approved' ? 'bg-violet-500' : d.status === 'in-review' ? 'bg-blue-500' : 'bg-amber-500'} />
             </div>
             <div class="mt-3 text-xs text-slate-500">
-              Conducted by: <span class="font-medium text-slate-700">DPO Office</span>
+              Conducted by: <span class="font-medium text-slate-700">{d.conductedByEmail ?? 'DPO Office'}</span>
             </div>
           </div>
         {:else}

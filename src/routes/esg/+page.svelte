@@ -25,7 +25,7 @@
 
   // ---------- Targets / On-Target % ----------
   // Current value: sum latest-period metrics that match the target's unit/scope.
-  function currentValue(t: ESGTarget): number {
+  function currentValue(t: ESGTarget): number | null {
     const unit = t.metric.toLowerCase().includes('co2') ? 'tCO2e'
                : t.metric.toLowerCase().includes('gj') ? 'GJ'
                : t.metric.toLowerCase().includes('kwh') ? 'kWh' : null;
@@ -35,20 +35,23 @@
     const matching = (data.metrics as ESGMetric[]).filter((m) =>
       (!unit || m.unit === unit) && (!scope || m.scope === scope)
     );
-    if (matching.length === 0) return Math.round(t.baselineValue * 0.65);
+    if (matching.length === 0) return null;
     const latestPeriod = matching.reduce((a, b) => a.period > b.period ? a : b).period;
     const sum = matching.filter((m) => m.period === latestPeriod).reduce((s, m) => s + m.value, 0);
     return Math.round(sum);
   }
-  function onTrack(t: ESGTarget): boolean {
+  function onTrack(t: ESGTarget): boolean | null {
+    const cur = currentValue(t);
+    if (cur === null) return null;
     const baseYear = parseInt(t.baselinePeriod, 10) || 2024;
     const targetYear = parseInt(t.targetPeriod, 10) || 2030;
     const elapsedFrac = (2026 - baseYear) / Math.max(1, targetYear - baseYear);
-    const valueFrac = (t.baselineValue - currentValue(t)) / Math.max(1, (t.baselineValue - t.targetValue));
+    const valueFrac = (t.baselineValue - cur) / Math.max(1, (t.baselineValue - t.targetValue));
     return valueFrac >= elapsedFrac * 0.85;
   }
-  $: onTargetPct = data.targets.length
-    ? Math.round((data.targets.filter(onTrack).length / data.targets.length) * 100)
+  $: measuredTargets = data.targets.filter((t: ESGTarget) => currentValue(t) !== null);
+  $: onTargetPct = measuredTargets.length
+    ? Math.round((measuredTargets.filter((t: ESGTarget) => onTrack(t) === true).length / measuredTargets.length) * 100)
     : 0;
 
   // ---------- Hero LineChart: emissions trend from real metrics ----------
@@ -79,13 +82,25 @@
     const s1map = buildEmissionMap('scope1');
     const s2map = buildEmissionMap('scope2');
     const s3map = buildEmissionMap('scope3');
-    const targetPerPeriod = (scope12Target || 2400) / Math.max(chartPeriods.length, 1);
-    return [
+    const series = [
       { name: 'Scope 1', color: '#8b5cf6', data: chartPeriods.map((p) => Math.round(s1map.get(p) ?? 0)), area: false },
       { name: 'Scope 2', color: '#3b82f6', data: chartPeriods.map((p) => Math.round(s2map.get(p) ?? 0)), area: false },
       { name: 'Scope 3', color: '#6366f1', data: chartPeriods.map((p) => Math.round(s3map.get(p) ?? 0)), area: false },
-      { name: 'Target',  color: '#ef4444', data: chartPeriods.map((_, i) => Math.round(targetPerPeriod * (1 - i * 0.012))) }
     ];
+    // Only add a Target line if real scope 1/2 target data exists in the DB
+    const s12Targets = (data.targets as ESGTarget[]).filter((t) => /Scope 1|Scope 2/i.test(t.metric));
+    if (s12Targets.length > 0) {
+      const baseVal = s12Targets.reduce((s, t) => s + t.baselineValue, 0);
+      const targetVal = s12Targets.reduce((s, t) => s + t.targetValue, 0);
+      const baseYear = parseInt(s12Targets[0].baselinePeriod, 10) || 2020;
+      const targetYear = parseInt(s12Targets[0].targetPeriod, 10) || 2030;
+      series.push({ name: 'Target', color: '#ef4444', area: false, data: chartPeriods.map((p) => {
+        const year = parseInt(p, 10) || baseYear;
+        const frac = Math.min(1, Math.max(0, (year - baseYear) / Math.max(1, targetYear - baseYear)));
+        return Math.round(baseVal + (targetVal - baseVal) * frac);
+      })});
+    }
+    return series;
   })();
 
   // ---------- Tabs ----------
@@ -232,7 +247,7 @@
             </div>
             <p class="mt-3 text-xs leading-relaxed text-slate-600">
               {d.framework} {d.period} report covering Scope 1/2/3 emissions, energy intensity, water stewardship,
-              and board oversight of climate-related risks per TCFD pillars. Assured by KPMG (limited assurance).
+              and board oversight of climate-related risks per TCFD pillars.
             </p>
             <div class="mt-3 flex items-center gap-2 text-xs">
               <button type="button" class="text-grc-primary hover:underline">View report →</button>
@@ -266,8 +281,8 @@
             {#each data.targets as t (t.id)}
               {@const cur = currentValue(t)}
               {@const reduction = t.baselineValue - t.targetValue}
-              {@const achieved = t.baselineValue - cur}
-              {@const pct = reduction > 0 ? Math.max(0, Math.min(100, (achieved / reduction) * 100)) : 0}
+              {@const achieved = cur !== null ? t.baselineValue - cur : null}
+              {@const pct = achieved !== null && reduction > 0 ? Math.max(0, Math.min(100, (achieved / reduction) * 100)) : null}
               {@const track = onTrack(t)}
               <tr class="tr">
                 <td class="td"><FrameworkBadge name={t.framework} region="ESG" /></td>
@@ -276,21 +291,27 @@
                 <td class="td font-mono text-xs text-slate-500">{t.baselinePeriod}</td>
                 <td class="td text-right font-mono text-xs">{t.targetValue.toLocaleString()}</td>
                 <td class="td font-mono text-xs text-slate-500">{t.targetPeriod}</td>
-                <td class="td text-xs text-slate-600">CSO Office</td>
+                <td class="td text-xs text-slate-500">{t.ownerEmail ?? '—'}</td>
                 <td class="td">
-                  <div class="space-y-1">
-                    <div class="flex items-center gap-2">
-                      <ProgressBar value={pct} color={track ? 'bg-violet-500' : 'bg-amber-500'} />
-                      <span class="font-mono text-[10px] text-slate-500">{Math.round(pct)}%</span>
+                  {#if pct !== null && cur !== null}
+                    <div class="space-y-1">
+                      <div class="flex items-center gap-2">
+                        <ProgressBar value={pct} color={track ? 'bg-violet-500' : 'bg-amber-500'} />
+                        <span class="font-mono text-[10px] text-slate-500">{Math.round(pct)}%</span>
+                      </div>
+                      <div class="text-[10px] text-slate-500">current: <span class="font-mono">{cur.toLocaleString()}</span></div>
                     </div>
-                    <div class="text-[10px] text-slate-500">current: <span class="font-mono">{cur.toLocaleString()}</span></div>
-                  </div>
+                  {:else}
+                    <span class="text-xs text-slate-400">No data</span>
+                  {/if}
                 </td>
                 <td class="td text-center">
-                  {#if track}
+                  {#if track === true}
                     <span class="inline-flex items-center rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-700 ring-1 ring-inset ring-violet-200">on-track</span>
-                  {:else}
+                  {:else if track === false}
                     <span class="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700 ring-1 ring-inset ring-amber-200">at-risk</span>
+                  {:else}
+                    <span class="text-xs text-slate-400">—</span>
                   {/if}
                 </td>
               </tr>

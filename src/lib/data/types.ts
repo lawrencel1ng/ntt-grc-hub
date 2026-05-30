@@ -485,6 +485,7 @@ export interface DPIA {
   status: 'draft' | 'in-review' | 'approved' | 'retired';
   residualRiskSeverity: RiskSeverity;
   conductedAt?: string;
+  conductedByEmail?: string;
 }
 
 export interface SubjectRequest {
@@ -543,6 +544,7 @@ export interface ESGTarget {
   baselinePeriod: string;
   targetValue: number;
   targetPeriod: string;
+  ownerEmail?: string;
 }
 
 // -------------------- AI Governance --------------------

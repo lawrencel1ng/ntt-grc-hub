@@ -40,9 +40,9 @@
               data.vendor.category === 'consulting' ? 'Professional Services' :
               data.vendor.category === 'security' ? 'Cyber Security' : 'Technology',
     region: data.vendor.hqCountry === 'SG' ? 'APAC' : data.vendor.hqCountry === 'US' ? 'Americas' : 'EMEA',
-    employees: data.vendor.employeeCount ?? null,
-    tags: ['SOC 2', 'ISO 27001', data.vendor.tier === '1' ? 'critical-path' : 'monitored'].slice(0, 3)
+    employees: data.vendor.employeeCount ?? null
   };
+  $: contractValue = contracts.reduce((s, c) => s + (c.valueSgd ?? 0), 0);
 
   $: contracts = data.contracts as VendorContract[];
 
@@ -166,7 +166,7 @@
     <Kpi label="4th-Parties" value={data.fourthParties.length.toString()}>
       <GitFork slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
-    <Kpi label="Contract Value" value={fmtMoney(data.vendor.contractValueSgd ?? 0)}>
+    <Kpi label="Contract Value" value={fmtMoney(contractValue)}>
       <DollarSign slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
   </div>
@@ -236,11 +236,9 @@
             </dl>
           </div>
           <div>
-            <div class="section-title text-xs">Tags</div>
-            <div class="mt-2 flex flex-wrap gap-1.5">
-              {#each facts.tags as t}
-                <span class="tag tag-emerald inline-flex items-center gap-1"><TagIcon class="h-3 w-3" />{t}</span>
-              {/each}
+            <div class="section-title text-xs">Tier</div>
+            <div class="mt-2">
+              <span class="tag tag-slate">Tier {data.vendor.tier}</span>
             </div>
           </div>
         </div>

@@ -1075,9 +1075,11 @@ export async function getDPIAs(tenantId?: string): Promise<DPIA[]> {
     `SELECT d.id::text AS id, d.tenant_id AS "tenantId",
             d.activity_id::text AS "activityId", a.name AS "activityName",
             d.status, d.residual_risk_severity::text AS "residualRiskSeverity",
-            d.conducted_at AS "conductedAt"
+            d.conducted_at AS "conductedAt",
+            u.email AS "conductedByEmail"
      FROM privacy.dpias d
      JOIN privacy.processing_activities a ON a.id = d.activity_id
+     LEFT JOIN platform.users u ON u.id::text = d.conducted_by::text
      ${where} ORDER BY d.created_at DESC`,
     params
   );
@@ -1145,10 +1147,13 @@ export async function getESGTargets(tenantId?: string): Promise<ESGTarget[]> {
   const where = tenantId ? 'WHERE tenant_id = $1' : '';
   const params = tenantId ? [tenantId] : [];
   const rows = await safeQuery<ESGTarget>(
-    `SELECT id::text AS id, tenant_id AS "tenantId", framework, metric,
-            baseline_value AS "baselineValue", baseline_period AS "baselinePeriod",
-            target_value AS "targetValue", target_period AS "targetPeriod"
-     FROM esg.targets ${where} ORDER BY framework, metric`,
+    `SELECT t.id::text AS id, t.tenant_id AS "tenantId", t.framework, t.metric,
+            t.baseline_value AS "baselineValue", t.baseline_period AS "baselinePeriod",
+            t.target_value AS "targetValue", t.target_period AS "targetPeriod",
+            u.email AS "ownerEmail"
+     FROM esg.targets t
+     LEFT JOIN platform.users u ON u.id = t.owner_user_id
+     ${where.replace('tenant_id', 't.tenant_id')} ORDER BY t.framework, t.metric`,
     params
   );
   return rows.length ? rows : mock.esgTargetsForTenant(tenantId ?? 't_maybank');

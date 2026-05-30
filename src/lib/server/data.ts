@@ -28,7 +28,8 @@ import type {
   Connector,
   AuditLogEntry,
   KpiSnapshot,
-  HumanRiskSummary, HumanRiskUser, HumanRiskDepartment, PhishingCampaign, TrainingCampaign
+  HumanRiskSummary, HumanRiskUser, HumanRiskDepartment, PhishingCampaign, TrainingCampaign,
+  ComplianceGap, ComplianceAttestation, RequirementCoverage
 } from '$lib/data/types';
 
 const HERO_TENANTS = ['t_maybank', 't_mindef', 't_grab'] as const;
@@ -391,6 +392,91 @@ export async function getRequirementsForFramework(id: string): Promise<Requireme
   return rows.length ? rows : mock.getRequirementsForFramework(id);
 }
 
+export async function getComplianceGaps(frameworkId: string, tenantId?: string): Promise<ComplianceGap[]> {
+  if (!isPgMode()) return [];
+  const params: unknown[] = [frameworkId];
+  const tenantClause = tenantId ? ` AND g.tenant_id = $2` : '';
+  if (tenantId) params.push(tenantId);
+  return safeQuery<ComplianceGap>(
+    `SELECT g.id, g.tenant_id AS "tenantId", g.assessment_id AS "assessmentId",
+            g.requirement_id AS "requirementId",
+            r.code AS "requirementCode", r.title AS "requirementTitle",
+            g.severity::text AS severity, g.remediation_plan AS "remediationPlan",
+            g.target_date AS "targetDate", g.owner_user_id AS "ownerUserId",
+            g.created_at AS "createdAt"
+     FROM compliance.gaps g
+     JOIN compliance.assessments a ON a.id = g.assessment_id
+     JOIN compliance.requirements r ON r.id = g.requirement_id
+     WHERE a.framework_id = $1${tenantClause}
+     ORDER BY g.created_at DESC`, params
+  );
+}
+
+export async function getComplianceAttestations(frameworkId: string, tenantId?: string): Promise<ComplianceAttestation[]> {
+  if (!isPgMode()) return [];
+  const params: unknown[] = [frameworkId];
+  const tenantClause = tenantId ? ` AND tenant_id = $2` : '';
+  if (tenantId) params.push(tenantId);
+  return safeQuery<ComplianceAttestation>(
+    `SELECT id, tenant_id AS "tenantId", framework_id AS "frameworkId",
+            signed_by_user_id AS "signedByUserId", signed_at AS "signedAt",
+            valid_until AS "validUntil", attestation_text AS "attestationText",
+            created_at AS "createdAt"
+     FROM compliance.attestations
+     WHERE framework_id = $1${tenantClause}
+     ORDER BY signed_at DESC`, params
+  );
+}
+
+export async function getRequirementCoverage(frameworkId: string, tenantId?: string): Promise<RequirementCoverage[]> {
+  if (!isPgMode()) return [];
+  const params: unknown[] = [frameworkId];
+  const tenantJoin = tenantId
+    ? `JOIN control.library cl ON cl.id = m.control_id AND cl.tenant_id = $2`
+    : `JOIN control.library cl ON cl.id = m.control_id`;
+  if (tenantId) params.push(tenantId);
+  return safeQuery<RequirementCoverage>(
+    `SELECT m.requirement_id AS "requirementId",
+            ROUND(AVG(m.coverage_pct)) AS "coveragePct",
+            COUNT(DISTINCT m.control_id)::int AS "controlCount"
+     FROM control.mappings m
+     ${tenantJoin}
+     WHERE m.framework_id = $1 AND m.requirement_id IS NOT NULL
+     GROUP BY m.requirement_id`, params
+  );
+}
+
+export async function getControlsByFramework(frameworkId: string, tenantId?: string): Promise<Control[]> {
+  if (!isPgMode()) return [];
+  const params: unknown[] = [frameworkId];
+  const tenantClause = tenantId ? ` AND cl.tenant_id = $2` : '';
+  if (tenantId) params.push(tenantId);
+  return safeQuery<Control>(
+    `SELECT DISTINCT cl.id, cl.tenant_id AS "tenantId", cl.code, cl.title,
+            cl.description, cl.type::text AS type, cl.family, cl.frequency,
+            cl.automated, cl.maturity::text AS maturity
+     FROM control.library cl
+     JOIN control.mappings m ON m.control_id = cl.id AND m.framework_id = $1
+     WHERE TRUE${tenantClause}
+     ORDER BY cl.code`, params
+  );
+}
+
+export async function getRecentlyTestedControls(tenantId: string, limit = 6): Promise<Control[]> {
+  if (!isPgMode()) return [];
+  return safeQuery<Control>(
+    `SELECT DISTINCT ON (cl.id) cl.id, cl.tenant_id AS "tenantId", cl.code, cl.title,
+            cl.description, cl.type::text AS type, cl.family, cl.frequency,
+            cl.automated, cl.maturity::text AS maturity
+     FROM control.library cl
+     JOIN control.test_runs tr ON tr.control_id = cl.id
+     WHERE cl.tenant_id = $1
+       AND tr.ran_at > now() - interval '90 days'
+     ORDER BY cl.id, tr.ran_at DESC
+     LIMIT $2`, [tenantId, limit]
+  );
+}
+
 export async function getFrameworkScores(tenantId?: string): Promise<FrameworkScore[]> {
   if (!isPgMode()) {
     // Synthesize scores per tenant from FRAMEWORKS list for top 8.
@@ -723,6 +809,16 @@ export async function getPolicyVersions(id: string): Promise<PolicyVersion[]> {
      FROM policy.versions WHERE document_id = $1 ORDER BY version_no`, [id]
   );
   return rows.length ? rows : mock.policyVersions(id);
+}
+
+export async function getPolicyAckCount(tenantId?: string): Promise<number> {
+  if (!isPgMode()) return 0;
+  const params = tenantId ? [tenantId] : [];
+  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const rows = await safeQuery<{ count: string }>(
+    `SELECT COUNT(*)::text AS count FROM policy.acknowledgements ${where}`, params
+  );
+  return parseInt(rows[0]?.count ?? '0', 10);
 }
 
 // =====================================================================

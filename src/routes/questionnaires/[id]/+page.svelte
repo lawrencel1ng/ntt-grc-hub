@@ -34,11 +34,9 @@
     return iso.replace('T', ' ').slice(0, 16) + ' UTC';
   }
 
-  // Pseudo evidence linkage: attach an evidence item to roughly 60% of
-  // responses. Stable per response id so the page is deterministic.
   function evidenceFor(r: QuestionnaireResponse) {
-    if (r.id % 5 === 0 || data.evidence.length === 0) return null;
-    return data.evidence[r.id % data.evidence.length];
+    if (!r.sourceEvidenceItemId || data.evidence.length === 0) return null;
+    return data.evidence.find((e) => e.id === r.sourceEvidenceItemId) ?? null;
   }
 
   // ---------- Pagination ----------

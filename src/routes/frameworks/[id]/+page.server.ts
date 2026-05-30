@@ -10,7 +10,8 @@ import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import {
   getFramework, getRequirementsForFramework, getFrameworkScores,
-  getControls, getEvidence
+  getEvidence, getComplianceGaps, getComplianceAttestations,
+  getRequirementCoverage, getControlsByFramework
 } from '$lib/server/data';
 import { ALL_TENANTS_ID } from '$lib/stores/tenant';
 
@@ -21,14 +22,17 @@ export const load: PageServerLoad = async ({ params, locals }) => {
   const tenantId = locals.tenantId ?? ALL_TENANTS_ID;
   const effective = tenantId === ALL_TENANTS_ID ? undefined : tenantId;
 
-  const [requirements, scores, controls, evidence] = await Promise.all([
+  const [requirements, scores, evidence, gaps, attestations, coverage, mappedControls] = await Promise.all([
     getRequirementsForFramework(framework.id),
-    getFrameworkScores(tenantId === ALL_TENANTS_ID ? undefined : tenantId),
-    getControls(effective),
-    getEvidence(effective, 30)
+    getFrameworkScores(effective),
+    getEvidence(effective, 30),
+    getComplianceGaps(framework.id, effective),
+    getComplianceAttestations(framework.id, effective),
+    getRequirementCoverage(framework.id, effective),
+    getControlsByFramework(framework.id, effective)
   ]);
 
   const score = scores.find((s) => s.frameworkId === framework.id);
 
-  return { framework, requirements, score, controls, evidence, isAll: tenantId === ALL_TENANTS_ID };
+  return { framework, requirements, score, evidence, gaps, attestations, coverage, mappedControls, isAll: tenantId === ALL_TENANTS_ID };
 };

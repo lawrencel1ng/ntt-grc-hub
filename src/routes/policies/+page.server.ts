@@ -5,7 +5,7 @@
 
 import type { PageServerLoad, Actions } from './$types';
 import { fail } from '@sveltejs/kit';
-import { getPolicies, getPolicyVersions } from '$lib/server/data';
+import { getPolicies, getPolicyVersions, getPolicyAckCount } from '$lib/server/data';
 import { ALL_TENANTS_ID } from '$lib/stores/tenant';
 import type { PolicyVersion } from '$lib/data/types';
 import { isPgMode, getPool } from '$lib/server/pg';
@@ -14,14 +14,17 @@ import { writeAuditLog } from '$lib/server/auth';
 export const load: PageServerLoad = async ({ locals }) => {
   const tenantId = locals.tenantId ?? ALL_TENANTS_ID;
   const effective = tenantId === ALL_TENANTS_ID ? undefined : tenantId;
-  const policies = await getPolicies(effective);
+  const [policies, totalAcks] = await Promise.all([
+    getPolicies(effective),
+    getPolicyAckCount(effective)
+  ]);
   const versionPairs = await Promise.all(policies.map((p) => getPolicyVersions(p.id).then((v) => ({ id: p.id, v }))));
   const currentByPolicy: Record<string, PolicyVersion | undefined> = {};
   for (const { id, v } of versionPairs) {
     const current = v.find((x) => x.status === 'approved') ?? v[v.length - 1];
     currentByPolicy[id] = current;
   }
-  return { policies, currentByPolicy, isAll: tenantId === ALL_TENANTS_ID };
+  return { policies, currentByPolicy, totalAcks, isAll: tenantId === ALL_TENANTS_ID };
 };
 
 export const actions: Actions = {

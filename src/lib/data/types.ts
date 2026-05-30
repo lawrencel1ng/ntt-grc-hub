@@ -942,3 +942,34 @@ export interface KpiSnapshot {
   agentFteSaved30d: number;
   evidenceItems30d: number;
 }
+
+export interface ComplianceGap {
+  id: string;
+  tenantId: string;
+  assessmentId: string;
+  requirementId: string;
+  requirementCode: string;
+  requirementTitle: string;
+  severity: RiskSeverity;
+  remediationPlan?: string;
+  targetDate?: string;
+  ownerUserId?: string;
+  createdAt: string;
+}
+
+export interface ComplianceAttestation {
+  id: string;
+  tenantId: string;
+  frameworkId: string;
+  signedByUserId?: string;
+  signedAt: string;
+  validUntil?: string;
+  attestationText: string;
+  createdAt: string;
+}
+
+export interface RequirementCoverage {
+  requirementId: string;
+  coveragePct: number;
+  controlCount: number;
+}

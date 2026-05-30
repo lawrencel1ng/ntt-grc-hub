@@ -1,7 +1,6 @@
 <script lang="ts">
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Kpi from '$lib/components/Kpi.svelte';
-  import ProgressBar from '$lib/components/ProgressBar.svelte';
   import AgentTypeBadge from '$lib/components/AgentTypeBadge.svelte';
   import { enhance } from '$app/forms';
   import { addToast } from '$lib/stores/toast';
@@ -26,16 +25,10 @@
     return 'draft';
   }
 
-  // Inject demo variety: rotate a few policies into other buckets so all
-  // four columns are populated.
   $: bucketed = (() => {
     const out: Record<StatusBucket, Policy[]> = { approved: [], 'in-review': [], draft: [], retired: [] };
-    data.policies.forEach((p, i) => {
-      let s = policyStatus(p);
-      if (i % 11 === 3) s = 'in-review';
-      else if (i % 13 === 5) s = 'draft';
-      else if (i % 17 === 7) s = 'retired';
-      out[s].push(p);
+    data.policies.forEach((p) => {
+      out[policyStatus(p)].push(p);
     });
     return out;
   })();
@@ -43,7 +36,7 @@
   // ---------- KPIs ----------
   $: totalPolicies = data.policies.length;
   $: inReview = bucketed['in-review'].length;
-  $: pendingAcks = Math.round(totalPolicies * 12.4); // ~12 pending acks per policy avg
+  $: pendingAcks = data.totalAcks as number;
   $: recentUpdates = data.policies.filter((p) => {
     const v = data.currentByPolicy[p.id];
     if (!v?.effectiveAt) return false;
@@ -75,12 +68,6 @@
       retired: bucketed.retired.filter(filter)
     };
   })();
-
-  function ackRate(p: Policy): number {
-    // Light heuristic: 0.78 for hero tenants, 0.92 otherwise; vary slightly per policy.
-    const base = ['t_maybank','t_grab','t_mindef'].includes(p.tenantId) ? 0.78 : 0.92;
-    return Math.min(1, base + ((p.id.length % 7) - 3) * 0.02);
-  }
 
   function jurisdictionCls(_j: string): string {
     return 'bg-violet-50 text-violet-700 ring-violet-200';
@@ -187,7 +174,6 @@
           <div class="divide-y divide-slate-100">
             {#each items as p (p.id)}
               {@const ver = data.currentByPolicy[p.id]}
-              {@const rate = ackRate(p)}
               <a href="/policies/{p.id}" class="block px-4 py-3 hover:bg-slate-50">
                 <div class="flex items-start justify-between">
                   <div class="min-w-0 flex-1">
@@ -198,10 +184,6 @@
                       {#if ver}
                         <span>v{ver.versionNo.replace(/^v/, '')}</span>
                       {/if}
-                    </div>
-                    <div class="mt-2 flex items-center gap-2">
-                      <ProgressBar value={rate * 100} />
-                      <span class="font-mono text-xs text-slate-500 w-10 text-right">{Math.round(rate * 100)}%</span>
                     </div>
                     {#if ver?.draftedByAgentId}
                       <div class="mt-1.5 flex items-center gap-1.5">

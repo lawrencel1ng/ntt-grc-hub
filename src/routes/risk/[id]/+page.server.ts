@@ -6,24 +6,19 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import {
-  getRisk, getFairScenariosForRisk, getFairRun, getIssues, getControls
+  getRisk, getFairScenariosForRisk, getFairRun, getIssues, getRecentlyTestedControls
 } from '$lib/server/data';
 
 export const load: PageServerLoad = async ({ params }) => {
   const risk = await getRisk(params.id);
   if (!risk) throw error(404, 'Risk not found');
 
-  const [scenarios, fair, issues, controls] = await Promise.all([
+  const [scenarios, fair, issues, linkedControls] = await Promise.all([
     getFairScenariosForRisk(risk.id),
     getFairRun(risk.id),
     getIssues(risk.tenantId),
-    getControls(risk.tenantId)
+    getRecentlyTestedControls(risk.tenantId, 6)
   ]);
-
-  // Heuristic linkage: pick the controls whose family touches the risk
-  // category (e.g. "cyber" → "access-control" / "encryption"). The pg
-  // version would join risk_control_links; mock returns top 6 by code.
-  const linkedControls = controls.slice(0, 6);
 
   const openIssues = issues.filter((i) =>
     i.status === 'open' || i.status === 'in-progress'

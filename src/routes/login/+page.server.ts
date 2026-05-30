@@ -53,7 +53,7 @@ export const load: PageServerLoad = async ({ locals, url }) => {
   // Already logged in — skip login page
   if (locals.user) throw redirect(303, sanitiseNext(url.searchParams.get('next')));
   const { frameworks: frameworkCount, agents: agentCount } = await getNavBadgeCounts();
-  return { next: sanitiseNext(url.searchParams.get('next')), frameworkCount, agentCount };
+  return { next: sanitiseNext(url.searchParams.get('next')), frameworkCount, agentCount, pgMode: isPgMode() };
 };
 
 export const actions: Actions = {
@@ -78,21 +78,24 @@ export const actions: Actions = {
       });
     }
 
-    // ── Demo accounts (explicit email+password pairs) ────────────────────
-    const demo = findDemoLogin(email);
-    if (demo && password === demo.password) {
-      clearFailures(ip);
-      cookies.set(DEMO_USER_COOKIE, email.toLowerCase(), {
-        path: '/', httpOnly: true, sameSite: 'lax',
-        maxAge: DEMO_COOKIE_MAX_AGE,
-        secure: process.env.NODE_ENV === 'production'
-      });
-      cookies.set(TENANT_COOKIE, demo.tenantId, {
-        path: '/', httpOnly: false, sameSite: 'lax',
-        maxAge: DEMO_COOKIE_MAX_AGE,
-        secure: process.env.NODE_ENV === 'production'
-      });
-      throw redirect(303, next);
+    // ── Demo accounts (mock mode only) ───────────────────────────────────
+    // In pg mode demo credentials go through the real DB session path below.
+    if (!isPgMode()) {
+      const demo = findDemoLogin(email);
+      if (demo && password === demo.password) {
+        clearFailures(ip);
+        cookies.set(DEMO_USER_COOKIE, email.toLowerCase(), {
+          path: '/', httpOnly: true, sameSite: 'lax',
+          maxAge: DEMO_COOKIE_MAX_AGE,
+          secure: process.env.NODE_ENV === 'production'
+        });
+        cookies.set(TENANT_COOKIE, demo.tenantId, {
+          path: '/', httpOnly: false, sameSite: 'lax',
+          maxAge: DEMO_COOKIE_MAX_AGE,
+          secure: process.env.NODE_ENV === 'production'
+        });
+        throw redirect(303, next);
+      }
     }
 
     // ── Postgres mode (real bcrypt) ─────────────────────────────────────

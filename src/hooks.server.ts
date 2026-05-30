@@ -15,6 +15,22 @@ function addSecurityHeaders(response: Response): Response {
   response.headers.set('X-Content-Type-Options', 'nosniff');
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  // CSP: allow same-origin scripts/styles; fonts from Google; images from any HTTPS.
+  // upgrade-insecure-requests is omitted here so dev HTTP still works.
+  response.headers.set(
+    'Content-Security-Policy',
+    [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline'",      // SvelteKit injects inline scripts
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' https://fonts.gstatic.com data:",
+      "img-src 'self' data: https:",
+      "connect-src 'self'",
+      "frame-ancestors 'none'",
+      "base-uri 'self'",
+      "form-action 'self'"
+    ].join('; ')
+  );
   if (process.env.NODE_ENV === 'production') {
     response.headers.set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   }
@@ -29,25 +45,28 @@ export const handle: Handle = async ({ event, resolve }) => {
   const path = event.url.pathname;
   const isPublic = PUBLIC_PATHS.some((p) => path.startsWith(p));
 
-  // ── Demo-cookie identity ───────────────────────────────────────────────
-  // In pg mode only known demo accounts (explicit email+password pairs) are
-  // accepted via this cookie path; unrecognised cookies fall through to real
-  // session validation below. In mock mode any email stored in the cookie is
-  // accepted (there is no Postgres to validate against).
+  // ── Demo-cookie identity (mock mode only) ─────────────────────────────
+  // In pg mode all authentication goes through the real session cookie —
+  // the demo cookie is cleared immediately so it cannot be used to bypass
+  // the session check. In mock mode (no Postgres) any recognised email in
+  // the demo cookie is accepted since there is no DB to validate against.
   const demoEmail = event.cookies.get(DEMO_USER_COOKIE) ?? '';
-  if (demoEmail && !isPublic) {
-    const demo = findDemoLogin(demoEmail);
-    if (demo) {
-      event.locals.user = {
-        id: 'u_demo_' + demo.email.replace(/[^a-z0-9]/gi, '_'),
-        email: demo.email,
-        name: demo.name,
-        role: demo.role,
-        tenantId
-      };
-      return addSecurityHeaders(await resolve(event));
-    }
-    if (!isPgMode()) {
+  if (demoEmail) {
+    if (isPgMode()) {
+      // Always clear the demo cookie in pg mode — real sessions only.
+      event.cookies.delete(DEMO_USER_COOKIE, { path: '/' });
+    } else if (!isPublic) {
+      const demo = findDemoLogin(demoEmail);
+      if (demo) {
+        event.locals.user = {
+          id: 'u_demo_' + demo.email.replace(/[^a-z0-9]/gi, '_'),
+          email: demo.email,
+          name: demo.name,
+          role: demo.role,
+          tenantId
+        };
+        return addSecurityHeaders(await resolve(event));
+      }
       event.locals.user = {
         id: 'u_' + demoEmail.replace(/[^a-z0-9]/gi, '_'),
         email: demoEmail,
@@ -57,9 +76,6 @@ export const handle: Handle = async ({ event, resolve }) => {
       };
       return addSecurityHeaders(await resolve(event));
     }
-    // pg mode with an unrecognised demo cookie — clear it and validate the
-    // real session cookie below.
-    event.cookies.delete(DEMO_USER_COOKIE, { path: '/' });
   }
 
   // ── Mock mode (no Postgres, no demo cookie) ────────────────────────────

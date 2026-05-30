@@ -12,10 +12,10 @@
     Fingerprint
   } from 'lucide-svelte';
 
-  export let data: { next: string; frameworkCount: number; agentCount: number };
+  export let data: { next: string; frameworkCount: number; agentCount: number; pgMode: boolean };
   export let form: { error?: string } | null = null;
 
-  let email = 'admin@maybank.sg';
+  let email = '';
   let password = '';
   let remember = true;
   let showPw = false;
@@ -231,6 +231,7 @@
         </button>
       </div>
 
+      {#if !data.pgMode}
       <div class="mt-8 rounded-lg border border-slate-200 bg-slate-50 p-3">
         <div class="mb-2 flex items-center justify-between">
           <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Demo accounts</div>
@@ -252,6 +253,7 @@
           {/each}
         </div>
       </div>
+      {/if}
 
       <div class="mt-6 text-center text-[11px] text-slate-400">
         By signing in you agree to NTT Singapore's

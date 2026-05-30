@@ -111,6 +111,30 @@ export const actions: Actions = {
     return { findingCreated: true, findingId: rows[0].id };
   },
 
+  closeAudit: async ({ params, locals }) => {
+    if (!locals.user) return fail(401, { closeError: 'Not authenticated' });
+    if (!isPgMode()) return fail(400, { closeError: 'Requires Postgres mode' });
+
+    const pool = getPool();
+    const { rowCount } = await pool.query(
+      `UPDATE audit.engagements SET closed_at = now()
+       WHERE id = $1::uuid AND tenant_id = $2 AND closed_at IS NULL`,
+      [params.id, locals.user.tenantId]
+    );
+    if (!rowCount) return fail(404, { closeError: 'Engagement not found, already closed, or access denied' });
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: 'audit.engagement.closed',
+      target: `engagement:${params.id}`,
+      result: 'success'
+    });
+
+    return { auditClosed: true };
+  },
+
   updateFindingStatus: async ({ request, locals }) => {
     if (!locals.user) return fail(401, { findingError: 'Not authenticated' });
     if (!isPgMode()) return fail(400, { findingError: 'Requires Postgres mode' });

@@ -20,16 +20,42 @@ export const GET: RequestHandler = async ({ locals }) => {
 
   const pool = getPool();
   const tenantId = locals.user.tenantId;
+
+  const [regRows, ctRows, qRows] = await Promise.all([
+    pool.query<{ id: string; title: string; severity: string; published_at: string }>(
+      `SELECT id::text, title, severity::text, published_at::text
+       FROM regwatch.changes
+       WHERE severity IN ('critical','high')
+         AND published_at >= now() - interval '30 days'
+       ORDER BY published_at DESC LIMIT 3`
+    ).catch(() => ({ rows: [] as never[] })),
+
+    pool.query<{ control_id: string; code: string; ran_at: string; n: number }>(
+      `SELECT tr.control_id, cl.code, MAX(tr.ran_at)::text AS ran_at, COUNT(*)::int AS n
+       FROM control.test_runs tr
+       JOIN control.library cl ON cl.id = tr.control_id
+       WHERE tr.tenant_id = $1
+         AND tr.result IN ('fail','error')
+         AND tr.ran_at >= now() - interval '7 days'
+       GROUP BY tr.control_id, cl.code
+       ORDER BY ran_at DESC LIMIT 3`,
+      [tenantId]
+    ).catch(() => ({ rows: [] as never[] })),
+
+    pool.query<{ vendor_id: string; vendor_name: string; template: string; completed_at: string }>(
+      `SELECT q.vendor_id::text, v.name AS vendor_name, q.template, q.completed_at::text
+       FROM vendor.questionnaires q
+       JOIN vendor.vendors v ON v.id = q.vendor_id
+       WHERE q.tenant_id = $1
+         AND q.status = 'complete'
+         AND q.completed_at >= now() - interval '14 days'
+       ORDER BY q.completed_at DESC LIMIT 3`,
+      [tenantId]
+    ).catch(() => ({ rows: [] as never[] }))
+  ]);
+
   const notifications: Notification[] = [];
 
-  // Critical / high regulatory changes in last 30 days
-  const regRows = await pool.query<{ id: string; title: string; severity: string; published_at: string }>(
-    `SELECT id::text, title, severity::text, published_at::text
-     FROM regwatch.changes
-     WHERE severity IN ('critical','high')
-       AND published_at >= now() - interval '30 days'
-     ORDER BY published_at DESC LIMIT 3`
-  ).catch(() => ({ rows: [] as never[] }));
   for (const r of regRows.rows) {
     notifications.push({
       id: `reg-${r.id}`,
@@ -40,19 +66,6 @@ export const GET: RequestHandler = async ({ locals }) => {
       createdAt: r.published_at
     });
   }
-
-  // Failed control tests in last 7 days
-  const ctRows = await pool.query<{ control_id: string; code: string; ran_at: string; n: number }>(
-    `SELECT tr.control_id, cl.code, MAX(tr.ran_at)::text AS ran_at, COUNT(*)::int AS n
-     FROM control.test_runs tr
-     JOIN control.library cl ON cl.id = tr.control_id
-     WHERE tr.tenant_id = $1
-       AND tr.result IN ('fail','error')
-       AND tr.ran_at >= now() - interval '7 days'
-     GROUP BY tr.control_id, cl.code
-     ORDER BY ran_at DESC LIMIT 3`,
-    [tenantId]
-  ).catch(() => ({ rows: [] as never[] }));
   for (const r of ctRows.rows) {
     notifications.push({
       id: `ct-${r.control_id}`,
@@ -63,18 +76,6 @@ export const GET: RequestHandler = async ({ locals }) => {
       createdAt: r.ran_at
     });
   }
-
-  // Completed vendor questionnaires in last 14 days
-  const qRows = await pool.query<{ vendor_id: string; vendor_name: string; template: string; completed_at: string }>(
-    `SELECT q.vendor_id::text, v.name AS vendor_name, q.template, q.completed_at::text
-     FROM vendor.questionnaires q
-     JOIN vendor.vendors v ON v.id = q.vendor_id
-     WHERE q.tenant_id = $1
-       AND q.status = 'complete'
-       AND q.completed_at >= now() - interval '14 days'
-     ORDER BY q.completed_at DESC LIMIT 3`,
-    [tenantId]
-  ).catch(() => ({ rows: [] as never[] }));
   for (const r of qRows.rows) {
     notifications.push({
       id: `q-${r.vendor_id}`,
@@ -86,8 +87,6 @@ export const GET: RequestHandler = async ({ locals }) => {
     });
   }
 
-  // Sort by date, newest first
   notifications.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
   return json({ notifications: notifications.slice(0, 8) });
 };

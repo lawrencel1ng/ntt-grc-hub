@@ -1066,10 +1066,16 @@ export async function getVendorContracts(vendorId: string): Promise<VendorContra
   return rows;
 }
 
-export async function getQuestionnaires(tenantId?: string): Promise<Questionnaire[]> {
-  if (!isPgMode()) return tenantId ? mock.questionnairesForVendor(tenantId) : HERO_TENANTS.flatMap((t) => mock.questionnairesForVendor(t));
-  const where = tenantId ? 'WHERE q.tenant_id = $1' : '';
-  const params = tenantId ? [tenantId] : [];
+export async function getQuestionnaires(tenantId?: string, vendorId?: string): Promise<Questionnaire[]> {
+  if (!isPgMode()) {
+    const all = tenantId ? mock.questionnairesForVendor(tenantId) : HERO_TENANTS.flatMap((t) => mock.questionnairesForVendor(t));
+    return vendorId ? all.filter((q) => q.vendorId === vendorId) : all;
+  }
+  const clauses: string[] = [];
+  const params: unknown[] = [];
+  if (tenantId) { params.push(tenantId); clauses.push(`q.tenant_id = $${params.length}`); }
+  if (vendorId) { params.push(vendorId); clauses.push(`q.vendor_id = $${params.length}::uuid`); }
+  const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
   const rows = await safeQuery<Questionnaire>(
     `SELECT q.id::text AS id, q.tenant_id AS "tenantId", q.vendor_id::text AS "vendorId",
             v.name AS "vendorName", q.template, q.status::text AS status,
@@ -1109,10 +1115,16 @@ export async function getQuestionnaireResponses(questionnaireId: string): Promis
   return rows;
 }
 
-export async function getFourthParties(tenantId?: string): Promise<FourthParty[]> {
-  if (!isPgMode()) return tenantId ? mock.fourthPartiesForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.fourthPartiesForTenant(t));
-  const where = tenantId ? 'WHERE fp.tenant_id = $1' : '';
-  const params = tenantId ? [tenantId] : [];
+export async function getFourthParties(tenantId?: string, vendorId?: string): Promise<FourthParty[]> {
+  if (!isPgMode()) {
+    const all = tenantId ? mock.fourthPartiesForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.fourthPartiesForTenant(t));
+    return vendorId ? all.filter((fp) => fp.vendorId === vendorId) : all;
+  }
+  const clauses: string[] = [];
+  const params: unknown[] = [];
+  if (tenantId) { params.push(tenantId); clauses.push(`fp.tenant_id = $${params.length}`); }
+  if (vendorId) { params.push(vendorId); clauses.push(`fp.vendor_id = $${params.length}::uuid`); }
+  const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
   const rows = await safeQuery<FourthParty>(
     `SELECT fp.id::text AS id, fp.tenant_id AS "tenantId", fp.vendor_id::text AS "vendorId",
             v.name AS "vendorName", fp.name, fp.type, fp.region, fp.criticality::text AS criticality

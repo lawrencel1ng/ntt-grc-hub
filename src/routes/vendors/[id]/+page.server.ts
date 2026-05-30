@@ -18,16 +18,14 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     throw error(403, 'Access denied');
   }
 
-  const [contracts, allQuestionnaires, allFourthParties, vendorIssues, allEvidence] = await Promise.all([
+  const [contracts, questionnaires, fourthParties, vendorIssues, allEvidence] = await Promise.all([
     getVendorContracts(vendor.id),
-    getQuestionnaires(vendor.tenantId),
-    getFourthParties(vendor.tenantId),
+    getQuestionnaires(vendor.tenantId, vendor.id),
+    getFourthParties(vendor.tenantId, vendor.id),
     getVendorIssues(vendor.id),
     getEvidence(vendor.tenantId, 200)
   ]);
 
-  const questionnaires = allQuestionnaires.filter((q) => q.vendorId === vendor.id);
-  const fourthParties = allFourthParties.filter((fp) => fp.vendorId === vendor.id);
   const riskFindings = vendorIssues.slice(0, 4);
 
   // Vendor-specific evidence: SOC 2, attestations, scan results.

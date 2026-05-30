@@ -89,9 +89,8 @@
     return iso.replace('T', ' ').slice(0, 19);
   }
 
-  function isAgentEvidence(id: number): boolean {
-    // Hero & Maybank items are flagged as Evidence Collector collected.
-    return id >= 9_000_000;
+  function isAgentEvidence(e: { collectorId?: string }): boolean {
+    return !!e.collectorId;
   }
 </script>
 
@@ -103,7 +102,7 @@
     <Kpi label="Items in Vault" value={data.stats.total.toLocaleString()}>
       <FileLock2 slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
-    <Kpi label="Collected (24h)" value={data.stats.last24h.toLocaleString()} delta={18} hint="active collectors">
+    <Kpi label="Collected (24h)" value={data.stats.last24h.toLocaleString()} hint="last 24 hours">
       <Clock slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi
@@ -231,7 +230,7 @@
                 </span>
               </td>
               <td class="td">
-                {#if isAgentEvidence(e.id)}
+                {#if isAgentEvidence(e)}
                   <div class="flex items-center gap-1.5">
                     <AgentTypeBadge type="intelligent" />
                     <span class="text-[11px] text-slate-500">Evidence Collector</span>

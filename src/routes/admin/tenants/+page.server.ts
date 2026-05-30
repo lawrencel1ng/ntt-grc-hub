@@ -4,7 +4,7 @@
 // =====================================================================
 
 import type { PageServerLoad, Actions } from './$types';
-import { fail } from '@sveltejs/kit';
+import { fail, error } from '@sveltejs/kit';
 import {
   getTenantSummaries,
   getConnectors,
@@ -12,8 +12,13 @@ import {
 } from '$lib/server/data';
 import { writeAuditLog } from '$lib/server/auth';
 import { isPgMode, getPool } from '$lib/server/pg';
+import { ALL_TENANTS_ID } from '$lib/stores/tenant';
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ locals }) => {
+  if (!locals.user) throw error(401, 'Not authenticated');
+  if ((locals.tenantId ?? ALL_TENANTS_ID) !== ALL_TENANTS_ID) {
+    throw error(403, 'Tenant management requires platform-admin access');
+  }
   const [tenants, usersAll] = await Promise.all([getTenantSummaries(), getUsers()]);
 
   const enriched = await Promise.all(tenants.map(async (t) => {

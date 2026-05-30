@@ -1971,10 +1971,10 @@ async function computeVendorRiskIndex(tenantId?: string): Promise<number> {
     const sql = tenantId
       ? `SELECT ROUND(100 - COALESCE(AVG(q.score), 50))::int AS idx
            FROM vendor.questionnaires q
-          WHERE q.tenant_id = $1 AND q.status = 'completed' AND q.score IS NOT NULL`
+          WHERE q.tenant_id = $1 AND q.status = 'complete' AND q.score IS NOT NULL`
       : `SELECT ROUND(100 - COALESCE(AVG(q.score), 50))::int AS idx
            FROM vendor.questionnaires q
-          WHERE q.status = 'completed' AND q.score IS NOT NULL`;
+          WHERE q.status = 'complete' AND q.score IS NOT NULL`;
     const rows = await safeQuery<{ idx: number }>(sql, tenantId ? [tenantId] : []);
     const idx = rows[0]?.idx;
     return typeof idx === 'number' && !isNaN(idx) ? Math.min(100, Math.max(0, idx)) : 50;

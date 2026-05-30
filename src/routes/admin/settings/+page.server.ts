@@ -2,9 +2,10 @@
 import type { PageServerLoad, Actions } from './$types';
 import { fail } from '@sveltejs/kit';
 import { getTenantSummaries } from '$lib/server/data';
-import { hashPassword, verifyCredentials } from '$lib/server/auth';
+import { hashPassword, verifyCredentials, writeAuditLog } from '$lib/server/auth';
 import { ALL_TENANTS_ID } from '$lib/stores/tenant';
 import { isPgMode, getPool } from '$lib/server/pg';
+import { randomBytes } from 'crypto';
 
 export const load: PageServerLoad = async ({ locals }) => {
   const tenants = await getTenantSummaries();
@@ -95,5 +96,54 @@ export const actions: Actions = {
     ).catch(() => { /* audit log is best-effort */ });
 
     return { pwSuccess: true };
+  },
+
+  revokeToken: async ({ request, locals }) => {
+    if (!locals.user) return fail(401, { tokenError: 'Not authenticated' });
+    if (!isPgMode()) return fail(400, { tokenError: 'Token management requires Postgres mode.' });
+
+    const data = await request.formData();
+    const tokenId = String(data.get('tokenId') ?? '').trim();
+    if (!tokenId) return fail(400, { tokenError: 'Token ID required.' });
+
+    const pool = getPool();
+    // Verify ownership before deleting — must belong to same tenant
+    const check = await pool.query(
+      `SELECT t.id FROM platform.api_tokens t
+       JOIN platform.users u ON u.id = t.user_id
+       WHERE t.id = $1 AND u.tenant_id = $2`,
+      [tokenId, locals.user.tenantId]
+    );
+    if (!check.rows.length) return fail(404, { tokenError: 'Token not found.' });
+
+    await pool.query(`DELETE FROM platform.api_tokens WHERE id = $1`, [tokenId]);
+    writeAuditLog({ userId: locals.user.id, actorEmail: locals.user.email, tenantId: locals.user.tenantId, action: 'api_token.revoked', target: `token:${tokenId}`, result: 'success' });
+    return { tokenRevoked: true };
+  },
+
+  createToken: async ({ request, locals }) => {
+    if (!locals.user) return fail(401, { tokenError: 'Not authenticated' });
+    if (!isPgMode()) return fail(400, { tokenError: 'Token creation requires Postgres mode.' });
+
+    const data = await request.formData();
+    const name = String(data.get('tokenName') ?? '').trim();
+    const scope = String(data.get('tokenScope') ?? 'evidence:read').trim();
+    if (!name) return fail(400, { newTokenError: 'Token name is required.' });
+
+    const rawToken = 'ntt_grc_' + randomBytes(24).toString('hex');
+    const { createHash } = await import('crypto');
+    const tokenHash = createHash('sha256').update(rawToken).digest('hex');
+    const prefix = rawToken.slice(0, 16);
+    const expiresAt = new Date(Date.now() + 365 * 86_400_000);
+
+    const pool = getPool();
+    await pool.query(
+      `INSERT INTO platform.api_tokens (user_id, name, scope, prefix, token_hash, expires_at)
+       VALUES ($1, $2, $3, $4, $5, $6)`,
+      [locals.user.id, name, scope, prefix, tokenHash, expiresAt]
+    );
+    writeAuditLog({ userId: locals.user.id, actorEmail: locals.user.email, tenantId: locals.user.tenantId, action: 'api_token.created', target: `token:${prefix}`, result: 'success' });
+    // Return the raw token once for display — it cannot be recovered afterwards
+    return { newToken: rawToken, newTokenName: name };
   }
 };

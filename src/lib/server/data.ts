@@ -81,6 +81,25 @@ export async function getCurrentTenant(tenantId: string): Promise<Tenant | undef
   return all.find((t) => t.id === tenantId);
 }
 
+export async function getUsers(tenantId?: string): Promise<import('$lib/data/types').User[]> {
+  if (!isPgMode()) {
+    const { getUsersAll, getUsersForTenant } = await import('$lib/data/users');
+    return tenantId ? getUsersForTenant(tenantId) : getUsersAll();
+  }
+  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
+  const rows = await safeQuery<import('$lib/data/types').User>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", email, name,
+            role::text AS role, status::text AS status,
+            mfa_enabled AS "mfaEnabled",
+            last_login_at AS "lastLoginAt"
+     FROM platform.users ${where} ORDER BY name`, params
+  );
+  if (rows.length) return rows;
+  const { getUsersAll, getUsersForTenant } = await import('$lib/data/users');
+  return tenantId ? getUsersForTenant(tenantId) : getUsersAll();
+}
+
 // =====================================================================
 // Agents
 // =====================================================================
@@ -1432,11 +1451,43 @@ export async function getHumanRiskDepartments(tenantId?: string): Promise<HumanR
 }
 
 export async function getPhishingCampaigns(tenantId?: string): Promise<PhishingCampaign[]> {
-  return mock.phishingCampaigns(tenantId ?? 't_maybank');
+  const tid = tenantId ?? 't_maybank';
+  if (!isPgMode()) return mock.phishingCampaigns(tid);
+  const rows = await safeQuery<PhishingCampaign>(
+    `SELECT id, tenant_id AS "tenantId", name, template,
+            difficulty,
+            sent_at AS "sentAt",
+            recipients, delivered, opened, clicked,
+            data_entered AS "dataEntered",
+            reported,
+            phish_prone_pct AS "phishPronePct",
+            status::text AS status
+       FROM human_risk.phishing_campaigns
+      WHERE tenant_id = $1
+      ORDER BY sent_at DESC`,
+    [tid]
+  );
+  return rows.length ? rows : mock.phishingCampaigns(tid);
 }
 
 export async function getTrainingCampaigns(tenantId?: string): Promise<TrainingCampaign[]> {
-  return mock.trainingCampaigns(tenantId ?? 't_maybank');
+  const tid = tenantId ?? 't_maybank';
+  if (!isPgMode()) return mock.trainingCampaigns(tid);
+  const rows = await safeQuery<TrainingCampaign>(
+    `SELECT id, tenant_id AS "tenantId", name,
+            content_type::text AS "contentType",
+            framework_ref AS "frameworkRef",
+            enrolled, completed,
+            completion_pct AS "completionPct",
+            pass_rate AS "passRate",
+            due_at AS "dueAt",
+            status::text AS status
+       FROM human_risk.training_campaigns
+      WHERE tenant_id = $1
+      ORDER BY due_at ASC`,
+    [tid]
+  );
+  return rows.length ? rows : mock.trainingCampaigns(tid);
 }
 
 // =====================================================================

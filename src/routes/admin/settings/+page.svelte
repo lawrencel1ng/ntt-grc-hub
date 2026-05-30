@@ -11,6 +11,9 @@
 
   $: if (form?.profileSuccess) addToast('success', 'Profile updated.');
   $: if (form?.pwSuccess) addToast('success', 'Password changed successfully.');
+  $: if (form?.tokenRevoked) addToast('success', 'API token revoked.');
+  $: if (form?.tokenError) addToast('error', form.tokenError);
+  $: if (form?.newToken) { newTokenValue = form.newToken; newTokenName = form.newTokenName ?? ''; showNewToken = true; }
 
   // ---------- Tenant settings local state ----------
   // Default the AI provider to NTT Tsuzumi (sovereign) for MINDEF.
@@ -21,9 +24,14 @@
   // Sync local state when the tenant changes (e.g. via TenantSwitcher).
   $: { residency = defaultResidency; provider = defaultProvider; }
 
+  // ---------- New token creation state ----------
+  let showNewTokenForm = false;
+  let showNewToken = false;
+  let newTokenValue = '';
+  let newTokenName = '';
+
   // ---------- Actions ----------
   function toast(msg: string) { addToast('info', msg); }
-  function revoke(name: string) { addToast('warn', `Token "${name}" would be revoked (demo).`); }
   function saveTenant() { addToast('success', `Tenant settings saved for ${data.tenant?.name ?? 'tenant'}.`); }
 </script>
 
@@ -158,8 +166,41 @@
         <KeyRound class="h-4 w-4 text-grc-primary" />
         <h2 class="section-title">API Tokens</h2>
       </div>
-      <button class="btn-secondary" on:click={() => toast('Token creation flow would open (demo).')}>+ New Token</button>
+      <button class="btn-secondary" on:click={() => (showNewTokenForm = !showNewTokenForm)}>+ New Token</button>
     </div>
+
+    {#if showNewToken}
+      <div class="border-b border-green-200 bg-green-50 px-5 py-3">
+        <p class="mb-1 text-xs font-semibold text-green-800">Token created — copy it now. It will not be shown again.</p>
+        <code class="block break-all rounded bg-white px-3 py-2 text-xs font-mono text-green-900 ring-1 ring-green-200">{newTokenValue}</code>
+        <button class="mt-2 text-xs text-green-700 underline" on:click={() => { showNewToken = false; newTokenValue = ''; }}>Dismiss</button>
+      </div>
+    {/if}
+
+    {#if showNewTokenForm}
+      <form method="POST" action="?/createToken" class="border-b border-slate-100 bg-slate-50 px-5 py-3">
+        <div class="flex flex-wrap items-end gap-3">
+          <label class="block flex-1 min-w-[160px]">
+            <span class="mb-1 block text-xs font-medium text-slate-700">Token name</span>
+            <input name="tokenName" type="text" class="input" placeholder="e.g. CI pipeline" required />
+          </label>
+          <label class="block">
+            <span class="mb-1 block text-xs font-medium text-slate-700">Scope</span>
+            <select name="tokenScope" class="input">
+              <option value="evidence:read">evidence:read</option>
+              <option value="evidence:write">evidence:write</option>
+              <option value="report:read">report:read</option>
+              <option value="issue:write">issue:write</option>
+              <option value="*">* (all)</option>
+            </select>
+          </label>
+          <button type="submit" class="btn-primary">Create</button>
+          <button type="button" class="btn-secondary" on:click={() => (showNewTokenForm = false)}>Cancel</button>
+        </div>
+        {#if form?.newTokenError}<p class="mt-1 text-xs text-rose-600">{form.newTokenError}</p>{/if}
+      </form>
+    {/if}
+
     <div class="overflow-x-auto">
       <table class="min-w-full divide-y divide-slate-100 text-sm">
         <thead class="thead">
@@ -181,10 +222,17 @@
               <td class="td text-xs text-slate-500">{formatRelative(tok.lastUsedAt)}</td>
               <td class="td text-xs text-slate-500">{formatIsoSgt(tok.expiresAt).slice(0, 10)}</td>
               <td class="td text-right">
-                <button class="text-xs font-semibold text-rose-600 hover:underline" on:click={() => revoke(tok.name)}>Revoke</button>
+                <form method="POST" action="?/revokeToken" class="inline">
+                  <input type="hidden" name="tokenId" value={tok.id} />
+                  <button type="submit" class="text-xs font-semibold text-rose-600 hover:underline"
+                          on:click={(e) => { if (!confirm('Revoke this token? This cannot be undone.')) e.preventDefault(); }}>Revoke</button>
+                </form>
               </td>
             </tr>
           {/each}
+          {#if !data.apiTokens.length}
+            <tr><td colspan="6" class="td text-center text-xs text-slate-400">No API tokens.</td></tr>
+          {/if}
         </tbody>
       </table>
     </div>

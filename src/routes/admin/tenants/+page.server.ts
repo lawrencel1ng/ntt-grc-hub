@@ -6,13 +6,12 @@
 import type { PageServerLoad } from './$types';
 import {
   getTenantSummaries,
-  getConnectors
+  getConnectors,
+  getUsers
 } from '$lib/server/data';
-import { getUsersAll } from '$lib/data/users';
 
 export const load: PageServerLoad = async () => {
-  const tenants = await getTenantSummaries();
-  const usersAll = getUsersAll();
+  const [tenants, usersAll] = await Promise.all([getTenantSummaries(), getUsers()]);
 
   const enriched = await Promise.all(tenants.map(async (t) => {
     const connectors = await getConnectors(t.id);

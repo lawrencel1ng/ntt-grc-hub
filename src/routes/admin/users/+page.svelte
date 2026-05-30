@@ -9,6 +9,12 @@
   import type { Role, UserStatus, User } from '$lib/data/types';
 
   export let data;
+  export let form;
+
+  $: if (form?.inviteSuccess) { addToast('success', `Invitation sent to ${form.invitedEmail}.`); showInviteForm = false; }
+  $: if (form?.inviteError) addToast('error', form.inviteError);
+
+  let showInviteForm = false;
 
   // ---------- Filters ----------
   type RoleF = 'all' | Role;
@@ -67,19 +73,47 @@
     return c.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
   }
 
-  function invite() {
-    addToast('info', 'Invite-user form would open here (demo).');
-  }
 </script>
 
 <PageHeader title="Users & RBAC" subtitle="{total} users across {data.tenants.length} tenants · 6 platform roles">
   <svelte:fragment slot="actions">
-    <button class="btn-primary" on:click={invite}>
+    <button class="btn-primary" on:click={() => (showInviteForm = !showInviteForm)}>
       <Plus class="h-4 w-4" />
       <span>Invite User</span>
     </button>
   </svelte:fragment>
 </PageHeader>
+
+{#if showInviteForm}
+  <div class="card p-5">
+    <h3 class="mb-3 text-sm font-semibold text-grc-ink">Invite a new user</h3>
+    <form method="POST" action="?/inviteUser" class="flex flex-wrap items-end gap-3">
+      <label class="block flex-1 min-w-[160px]">
+        <span class="mb-1 block text-xs font-medium text-slate-700">Email</span>
+        <input name="email" type="email" class="input" placeholder="user@company.com" required />
+      </label>
+      <label class="block flex-1 min-w-[140px]">
+        <span class="mb-1 block text-xs font-medium text-slate-700">Full name</span>
+        <input name="name" type="text" class="input" placeholder="Given name" required />
+      </label>
+      <label class="block">
+        <span class="mb-1 block text-xs font-medium text-slate-700">Role</span>
+        <select name="role" class="input">
+          <option value="viewer">Viewer</option>
+          <option value="auditor">Auditor</option>
+          <option value="control-owner">Control Owner</option>
+          <option value="risk-owner">Risk Owner</option>
+          <option value="agent-operator">Agent Operator</option>
+          <option value="admin">Admin</option>
+        </select>
+      </label>
+      <div class="flex gap-2">
+        <button type="submit" class="btn-primary">Send invite</button>
+        <button type="button" class="btn-secondary" on:click={() => (showInviteForm = false)}>Cancel</button>
+      </div>
+    </form>
+  </div>
+{/if}
 
 <div class="space-y-6">
   <!-- KPI strip -->

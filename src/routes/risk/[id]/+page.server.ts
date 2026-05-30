@@ -12,9 +12,12 @@ import {
 import { isPgMode, getPool } from '$lib/server/pg';
 import { writeAuditLog } from '$lib/server/auth';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals }) => {
   const risk = await getRisk(params.id);
   if (!risk) throw error(404, 'Risk not found');
+  if (locals.user && risk.tenantId !== locals.user.tenantId && locals.user.tenantId !== '__all__') {
+    throw error(403, 'Access denied');
+  }
 
   const [scenarios, fair, issues, linkedControls, treatments, history] = await Promise.all([
     getFairScenariosForRisk(risk.id),

@@ -10,9 +10,12 @@ import { getQuestionnaire, getQuestionnaireResponses, getVendor, getEvidence } f
 import { isPgMode, getPool } from '$lib/server/pg';
 import { writeAuditLog } from '$lib/server/auth';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals }) => {
   const questionnaire = await getQuestionnaire(params.id);
   if (!questionnaire) throw error(404, 'Questionnaire not found');
+  if (locals.user && questionnaire.tenantId !== locals.user.tenantId && locals.user.tenantId !== '__all__') {
+    throw error(403, 'Access denied');
+  }
 
   const [responses, vendor, evidence] = await Promise.all([
     getQuestionnaireResponses(questionnaire.id),

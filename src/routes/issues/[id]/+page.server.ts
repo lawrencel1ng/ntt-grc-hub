@@ -9,9 +9,12 @@ import { getIssue, getIssueActions } from '$lib/server/data';
 import { isPgMode, getPool } from '$lib/server/pg';
 import { writeAuditLog } from '$lib/server/auth';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals }) => {
   const issue = await getIssue(params.id);
   if (!issue) throw error(404, 'Issue not found');
+  if (locals.user && issue.tenantId !== locals.user.tenantId && locals.user.tenantId !== '__all__') {
+    throw error(403, 'Access denied');
+  }
   const actions = await getIssueActions(issue.id);
   return { issue, actions };
 };

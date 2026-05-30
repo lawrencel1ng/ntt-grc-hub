@@ -11,9 +11,12 @@ import {
 import { isPgMode, getPool } from '$lib/server/pg';
 import { writeAuditLog } from '$lib/server/auth';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals }) => {
   const vendor = await getVendor(params.id);
   if (!vendor) throw error(404, 'Vendor not found');
+  if (locals.user && vendor.tenantId !== locals.user.tenantId && locals.user.tenantId !== '__all__') {
+    throw error(403, 'Access denied');
+  }
 
   const [contracts, allQuestionnaires, allFourthParties, vendorIssues, allEvidence] = await Promise.all([
     getVendorContracts(vendor.id),

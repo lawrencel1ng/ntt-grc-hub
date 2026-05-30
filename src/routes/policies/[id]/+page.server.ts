@@ -9,9 +9,12 @@ import { getPolicy, getPolicyVersions, getPolicyFrameworkMappings, getPolicyAcks
 import { isPgMode, getPool } from '$lib/server/pg';
 import { writeAuditLog } from '$lib/server/auth';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals }) => {
   const policy = await getPolicy(params.id);
   if (!policy) throw error(404, 'Policy not found');
+  if (locals.user && policy.tenantId !== locals.user.tenantId && locals.user.tenantId !== '__all__') {
+    throw error(403, 'Access denied');
+  }
   const [versions, policyFrameworks] = await Promise.all([
     getPolicyVersions(policy.id),
     getPolicyFrameworkMappings(policy.id)

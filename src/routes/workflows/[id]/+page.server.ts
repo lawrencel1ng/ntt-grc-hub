@@ -10,9 +10,12 @@ import { getWorkflow, getWorkflowExecutions } from '$lib/server/data';
 import { isPgMode, getPool } from '$lib/server/pg';
 import { writeAuditLog } from '$lib/server/auth';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals }) => {
   const workflow = await getWorkflow(params.id);
   if (!workflow) throw error(404, 'Workflow not found');
+  if (locals.user && workflow.tenantId !== locals.user.tenantId && locals.user.tenantId !== '__all__') {
+    throw error(403, 'Access denied');
+  }
 
   const allExecs = await getWorkflowExecutions(workflow.tenantId, 100);
   const executions = allExecs.filter((x) => x.workflowId === workflow.id);

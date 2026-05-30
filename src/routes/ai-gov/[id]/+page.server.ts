@@ -8,9 +8,12 @@ import {
   getAIModel, getModelRisks, getPromptsAudit
 } from '$lib/server/data';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals }) => {
   const model = await getAIModel(params.id);
   if (!model) throw error(404, `AI model ${params.id} not found`);
+  if (locals.user && model.tenantId !== locals.user.tenantId && locals.user.tenantId !== '__all__') {
+    throw error(403, 'Access denied');
+  }
 
   const [risks, prompts] = await Promise.all([
     getModelRisks(model.id),

@@ -11,9 +11,12 @@ import {
   getControlExceptions, getFrameworks, getEvidence
 } from '$lib/server/data';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals }) => {
   const control = await getControl(params.id);
   if (!control) throw error(404, 'Control not found');
+  if (locals.user && control.tenantId !== locals.user.tenantId && locals.user.tenantId !== '__all__') {
+    throw error(403, 'Access denied');
+  }
 
   const [runs, mappings, tests, exceptions, frameworks, evidence] = await Promise.all([
     getControlTestRuns(control.id, 30),

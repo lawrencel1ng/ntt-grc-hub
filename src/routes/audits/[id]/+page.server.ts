@@ -10,9 +10,12 @@ import { getAudit, getAuditFindings, getAuditWorkpapers, getEvidence } from '$li
 import { isPgMode, getPool } from '$lib/server/pg';
 import { writeAuditLog } from '$lib/server/auth';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals }) => {
   const audit = await getAudit(params.id);
   if (!audit) throw error(404, 'Engagement not found');
+  if (locals.user && audit.tenantId !== locals.user.tenantId && locals.user.tenantId !== '__all__') {
+    throw error(403, 'Access denied');
+  }
 
   const [findings, workpapers, evidence] = await Promise.all([
     getAuditFindings(audit.id),

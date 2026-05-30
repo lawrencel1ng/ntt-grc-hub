@@ -8,9 +8,12 @@ import {
   getBCMPlan, getBCMDependencies, getBCMTests, getBCMEscalationContacts, getRisks
 } from '$lib/server/data';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals }) => {
   const plan = await getBCMPlan(params.id);
   if (!plan) throw error(404, `BCM plan ${params.id} not found`);
+  if (locals.user && plan.tenantId !== locals.user.tenantId && locals.user.tenantId !== '__all__') {
+    throw error(403, 'Access denied');
+  }
 
   const [deps, tests, escalationContacts, risks] = await Promise.all([
     getBCMDependencies(plan.id),

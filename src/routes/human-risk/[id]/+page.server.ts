@@ -10,9 +10,12 @@ import {
   getHumanRiskUser, getHumanRiskUsers, getHumanRiskSummary
 } from '$lib/server/data';
 
-export const load: PageServerLoad = async ({ params }) => {
+export const load: PageServerLoad = async ({ params, locals }) => {
   const user = await getHumanRiskUser(params.id);
   if (!user) throw error(404, 'User risk profile not found');
+  if (locals.user && user.tenantId !== locals.user.tenantId && locals.user.tenantId !== '__all__') {
+    throw error(403, 'Access denied');
+  }
 
   const [summary, peers] = await Promise.all([
     getHumanRiskSummary(user.tenantId),

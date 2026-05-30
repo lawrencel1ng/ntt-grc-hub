@@ -1378,6 +1378,11 @@ export async function getIncidents(tenantId?: string): Promise<Incident[]> {
 }
 
 export async function getIncident(id: string): Promise<Incident | undefined> {
+  if (isPgMode()) {
+    const tid = await tenantOfRow('incident.incidents', id);
+    if (tid) return (await getIncidents(tid)).find((i) => i.id === id);
+    return undefined;
+  }
   const parts = id.split('_');
   if (parts.length < 3) return undefined;
   const tenantId = `${parts[1]}_${parts[2]}`;

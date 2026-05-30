@@ -98,7 +98,7 @@ export async function getUsers(tenantId?: string): Promise<import('$lib/data/typ
             role::text AS role, status::text AS status,
             mfa_enabled AS "mfaEnabled",
             last_login_at AS "lastLoginAt"
-     FROM platform.users ${where} ORDER BY name`, params
+     FROM platform.users ${where} ORDER BY name LIMIT 2000`, params
   );
   return rows;
 }
@@ -469,7 +469,7 @@ export async function getFrameworks(): Promise<Framework[]> {
   const rows = await safeQuery<Framework>(
     `SELECT id, name, version, regulator, region, jurisdiction,
             total_requirements AS "totalRequirements", tags
-     FROM compliance.frameworks ORDER BY name`
+     FROM compliance.frameworks ORDER BY name LIMIT 500`
   );
   return rows;
 }
@@ -933,7 +933,7 @@ export async function getPolicies(tenantId?: string): Promise<Policy[]> {
   const rows = await safeQuery<Policy>(
     `SELECT id::text AS id, tenant_id AS "tenantId", code, title, jurisdiction,
             current_version_id::text AS "currentVersionId"
-     FROM policy.documents ${where} ORDER BY code`, params
+     FROM policy.documents ${where} ORDER BY code LIMIT 1000`, params
   );
   return rows;
 }
@@ -1091,7 +1091,7 @@ export async function getQuestionnaires(tenantId?: string, vendorId?: string): P
             q.sent_at AS "sentAt", q.completed_at AS "completedAt",
             q.completed_by_agent_id AS "completedByAgentId", q.score
      FROM vendor.questionnaires q JOIN vendor.vendors v ON v.id = q.vendor_id
-     ${where} ORDER BY q.sent_at DESC`, params
+     ${where} ORDER BY q.sent_at DESC LIMIT 2000`, params
   );
   return rows;
 }
@@ -1230,7 +1230,7 @@ export async function getESGMetrics(tenantId?: string): Promise<ESGMetric[]> {
   const rows = await safeQuery<ESGMetric>(
     `SELECT id, tenant_id AS "tenantId", period, scope, category,
             metric, value, unit, framework
-     FROM esg.metrics ${where} ORDER BY period DESC, category, metric`,
+     FROM esg.metrics ${where} ORDER BY period DESC, category, metric LIMIT 5000`,
     params
   );
   return rows;
@@ -1280,7 +1280,7 @@ export async function getAIModels(tenantId?: string): Promise<AIModel[]> {
             m.training_data_summary AS "trainingDataSummary"
      FROM ai_gov.models m
      LEFT JOIN platform.users u ON u.id = m.owner_user_id
-     ${where} ORDER BY m.name`,
+     ${where} ORDER BY m.name LIMIT 500`,
     params
   );
   return rows;
@@ -1654,7 +1654,7 @@ export async function getWorkflows(tenantId?: string): Promise<Workflow[]> {
   const rows = await safeQuery<Workflow>(
     `SELECT id::text AS id, tenant_id AS "tenantId", name, description,
             steps, version, enabled
-     FROM workflow.definitions ${where} ORDER BY name`,
+     FROM workflow.definitions ${where} ORDER BY name LIMIT 500`,
     params
   );
   return rows;
@@ -1701,7 +1701,7 @@ export async function getConnectors(tenantId?: string): Promise<Connector[]> {
   const rows = await safeQuery<Connector>(
     `SELECT id::text AS id, tenant_id AS "tenantId", kind, name, status::text AS status,
             last_sync_at AS "lastSyncAt"
-     FROM integration.connectors ${where}`, params
+     FROM integration.connectors ${where} ORDER BY name LIMIT 500`, params
   );
   return rows;
 }

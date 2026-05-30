@@ -18,7 +18,7 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 
   const { rows: test } = await pool.query<{ id: string }>(
     `INSERT INTO bcm.tests (tenant_id, plan_id, kind, conducted_at, result, lessons_md)
-     VALUES ($1, $2::uuid, 'tabletop', now() + interval '7 days', 'pass', NULL)
+     VALUES ($1, $2::uuid, 'tabletop', now() + interval '7 days', 'partial', 'Tabletop scheduled — result pending completion')
      RETURNING id::text`,
     [locals.user.tenantId, params.id]
   );

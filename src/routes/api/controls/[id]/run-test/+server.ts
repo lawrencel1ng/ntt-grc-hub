@@ -19,7 +19,7 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 
   const { rows: run } = await pool.query<{ id: string }>(
     `INSERT INTO control.test_runs (tenant_id, control_id, result, notes)
-     VALUES ($1, $2, 'pass', 'Manual test run triggered via GRC Hub')
+     VALUES ($1, $2, 'partial', 'Manual test run initiated via GRC Hub — awaiting evaluation')
      RETURNING id::text`,
     [locals.user.tenantId, params.id]
   );

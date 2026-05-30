@@ -27,8 +27,55 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 };
 
 const VALID_FINDING_STATUSES = ['open', 'closed', 'accepted-risk'] as const;
+const VALID_SEVERITIES = ['critical', 'high', 'medium', 'low', 'info'] as const;
 
 export const actions: Actions = {
+  createFinding: async ({ params, request, locals }) => {
+    if (!locals.user) return fail(401, { findingError: 'Not authenticated' });
+    if (!isPgMode()) return fail(400, { findingError: 'Requires Postgres mode' });
+
+    const data = await request.formData();
+    const title = String(data.get('title') ?? '').trim();
+    const description = String(data.get('description') ?? '').trim() || null;
+    const severity = String(data.get('severity') ?? '').trim();
+    const dueAt = String(data.get('dueAt') ?? '').trim() || null;
+    const controlId = String(data.get('controlId') ?? '').trim() || null;
+
+    if (!title) return fail(400, { findingError: 'Title is required.' });
+    if (title.length > 256) return fail(400, { findingError: 'Title must be 256 characters or fewer.' });
+    if (description && description.length > 2048) return fail(400, { findingError: 'Description must be 2048 characters or fewer.' });
+    if (!VALID_SEVERITIES.includes(severity as typeof VALID_SEVERITIES[number])) {
+      return fail(400, { findingError: 'Invalid severity.' });
+    }
+
+    const pool = getPool();
+    const check = await pool.query<{ tenant_id: string }>(
+      `SELECT tenant_id FROM audit.engagements WHERE id = $1::uuid LIMIT 1`,
+      [params.id]
+    );
+    if (!check.rows.length) return fail(404, { findingError: 'Engagement not found' });
+    if (check.rows[0].tenant_id !== locals.user.tenantId) return fail(403, { findingError: 'Access denied' });
+
+    const { rows } = await pool.query<{ id: string }>(
+      `INSERT INTO audit.findings (tenant_id, engagement_id, severity, title, description, control_id, due_at, owner_user_id)
+       VALUES ($1, $2::uuid, $3::risk.severity, $4, $5, $6, $7, $8)
+       RETURNING id::text`,
+      [locals.user.tenantId, params.id, severity, title, description, controlId, dueAt, locals.user.id]
+    );
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: 'audit.finding.created',
+      target: `engagement:${params.id}`,
+      result: 'success',
+      metadata: { findingId: rows[0].id, severity, title }
+    });
+
+    return { findingCreated: true, findingId: rows[0].id };
+  },
+
   updateFindingStatus: async ({ request, locals }) => {
     if (!locals.user) return fail(401, { findingError: 'Not authenticated' });
     if (!isPgMode()) return fail(400, { findingError: 'Requires Postgres mode' });

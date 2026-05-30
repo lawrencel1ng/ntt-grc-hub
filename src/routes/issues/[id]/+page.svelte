@@ -7,9 +7,21 @@
 
   $: if (form?.statusUpdated) addToast('success', `Status updated to "${form.newStatus}".`);
   $: if (form?.statusError) addToast('error', form.statusError);
+  $: if (form?.actionAdded) { addToast('success', 'Action added.'); newActionDesc = ''; newActionDue = ''; }
+  $: if (form?.actionUpdated && form.actionId && form.status) {
+    data = { ...data, actions: data.actions.map((a) => a.id === form!.actionId ? { ...a, status: form!.status as typeof a.status } : a) };
+    addToast('success', `Action marked ${form.status}.`);
+  }
+  $: if (form?.actionError) addToast('error', form.actionError);
 
   export let data;
-  export let form: { statusUpdated?: boolean; newStatus?: string; statusError?: string } | null = null;
+  export let form: {
+    statusUpdated?: boolean; newStatus?: string; statusError?: string;
+    actionAdded?: boolean; actionUpdated?: boolean; actionId?: string; status?: string; actionError?: string;
+  } | null = null;
+
+  let newActionDesc = '';
+  let newActionDue = '';
 
   function sevCls(s: RiskSeverity): string {
     if (s === 'critical') return 'bg-rose-100 text-rose-800 ring-rose-200';
@@ -152,7 +164,15 @@
               <td class="td text-xs text-slate-500">{data.issue.ownerEmail ?? '—'}</td>
               <td class="td font-mono text-xs text-slate-500">{a.dueAt?.slice(0, 10) ?? '—'}</td>
               <td class="td">
-                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {actionCls(a.status)}">{a.status}</span>
+                <form method="POST" action="?/updateActionStatus" use:enhance class="flex items-center gap-1">
+                  <input type="hidden" name="actionId" value={a.id} />
+                  <select name="status" class="input py-0.5 text-[11px]" value={a.status}>
+                    <option value="not-started">not-started</option>
+                    <option value="in-progress">in-progress</option>
+                    <option value="done">done</option>
+                  </select>
+                  <button type="submit" class="btn-ghost p-1 text-[11px]">✓</button>
+                </form>
               </td>
             </tr>
           {:else}
@@ -161,6 +181,18 @@
         </tbody>
       </table>
     </div>
+    <!-- Add action form -->
+    <form method="POST" action="?/addAction" use:enhance class="flex flex-wrap items-end gap-2 border-t border-slate-100 px-5 py-3">
+      <div class="flex-1 min-w-[200px]">
+        <label for="action-desc" class="block text-[11px] text-slate-500 mb-0.5">Description</label>
+        <input id="action-desc" type="text" name="description" class="input py-1 text-xs w-full" placeholder="Describe the action…" bind:value={newActionDesc} maxlength="2048" required />
+      </div>
+      <div>
+        <label for="action-due" class="block text-[11px] text-slate-500 mb-0.5">Due date</label>
+        <input id="action-due" type="date" name="dueAt" class="input py-1 text-xs" bind:value={newActionDue} />
+      </div>
+      <button type="submit" class="btn-primary py-1 text-xs whitespace-nowrap">+ Add Action</button>
+    </form>
   </div>
 
   <!-- Mini Timeline -->

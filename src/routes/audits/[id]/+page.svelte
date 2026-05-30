@@ -9,7 +9,10 @@
   import type { EngagementType, AuditFinding } from '$lib/data/types';
 
   export let data;
-  export let form: { findingUpdated?: boolean; findingId?: string; newStatus?: string; findingError?: string } | null = null;
+  export let form: {
+    findingUpdated?: boolean; findingId?: string; newStatus?: string; findingError?: string;
+    findingCreated?: boolean;
+  } | null = null;
 
   // Optimistically update finding status in the local list on success
   $: if (form?.findingUpdated && form.findingId && form.newStatus) {
@@ -21,7 +24,11 @@
     };
     addToast('success', `Finding status updated to "${form.newStatus}".`);
   }
+  $: if (form?.findingCreated) { addToast('success', 'Finding recorded.'); showNewFinding = false; }
   $: if (form?.findingError) addToast('error', form.findingError);
+
+  let showNewFinding = false;
+  let nfTitle = '', nfDesc = '', nfSeverity = 'medium', nfDue = '';
 
   type Tab = 'findings' | 'workpapers' | 'pack';
   let tab: Tab = 'findings';
@@ -171,10 +178,42 @@
     <!-- Findings -->
     {#if tab === 'findings'}
       <div class="flex items-center justify-end gap-2 border-b border-slate-100 px-5 py-3">
+        <button class="btn-secondary py-1 text-xs" on:click={() => (showNewFinding = !showNewFinding)}>
+          + Add Finding
+        </button>
         <button class="btn-secondary py-1 text-xs" on:click={exportFindings}>
           <Download class="h-3 w-3" /> Export CSV
         </button>
       </div>
+      {#if showNewFinding}
+        <form method="POST" action="?/createFinding" use:enhance
+          class="flex flex-wrap items-end gap-2 border-b border-slate-100 bg-slate-50 px-5 py-3">
+          <div class="flex-1 min-w-[200px]">
+            <label for="nf-title" class="block text-[11px] text-slate-500 mb-0.5">Title *</label>
+            <input id="nf-title" type="text" name="title" class="input py-1 text-xs w-full" placeholder="Finding title…" bind:value={nfTitle} maxlength="256" required />
+          </div>
+          <div>
+            <label for="nf-severity" class="block text-[11px] text-slate-500 mb-0.5">Severity</label>
+            <select id="nf-severity" name="severity" class="input py-1 text-xs" bind:value={nfSeverity}>
+              <option value="critical">critical</option>
+              <option value="high">high</option>
+              <option value="medium">medium</option>
+              <option value="low">low</option>
+              <option value="info">info</option>
+            </select>
+          </div>
+          <div>
+            <label for="nf-due" class="block text-[11px] text-slate-500 mb-0.5">Due date</label>
+            <input id="nf-due" type="date" name="dueAt" class="input py-1 text-xs" bind:value={nfDue} />
+          </div>
+          <div class="w-full">
+            <label for="nf-desc" class="block text-[11px] text-slate-500 mb-0.5">Description</label>
+            <input id="nf-desc" type="text" name="description" class="input py-1 text-xs w-full" placeholder="Optional description…" bind:value={nfDesc} maxlength="2048" />
+          </div>
+          <button type="submit" class="btn-primary py-1 text-xs">Save Finding</button>
+          <button type="button" class="btn-secondary py-1 text-xs" on:click={() => (showNewFinding = false)}>Cancel</button>
+        </form>
+      {/if}
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-100 text-sm">
           <thead class="thead">

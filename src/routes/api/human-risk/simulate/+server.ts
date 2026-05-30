@@ -16,6 +16,8 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   const region = (env.KNOWBE4_REGION ?? 'us').toLowerCase();
   const baseUrl = region === 'eu' ? 'https://eu.api.knowbe4.com' : 'https://us.api.knowbe4.com';
 
+  if (!apiKey) console.warn('[human-risk/simulate] KNOWBE4_API_KEY not set — phishing simulation skipped');
+
   const kb4NumericId = userId.startsWith('hru_kb4_') ? userId.slice(8) : null;
 
   if (apiKey && kb4NumericId) {
@@ -45,7 +47,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
      VALUES ($1, $2, 'phishing_simulation', $3, 'Simulation queued via GRC Hub')
      ON CONFLICT DO NOTHING`,
     [locals.user.tenantId, userId, locals.user.id]
-  ).catch(() => { /* table may not exist yet */ });
+  );
 
   writeAuditLog({
     userId: locals.user.id,

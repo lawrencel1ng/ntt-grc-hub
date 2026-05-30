@@ -3,10 +3,15 @@
   import Kpi from '$lib/components/Kpi.svelte';
   import { addToast } from '$lib/stores/toast';
   import { downloadCsv } from '$lib/utils/csv';
-  import { ListChecks, AlertTriangle, CheckCircle2, Clock, Search, ChevronRight, Download, User as UserIcon } from 'lucide-svelte';
+  import { enhance } from '$app/forms';
+  import { ListChecks, AlertTriangle, CheckCircle2, Clock, Search, ChevronRight, Download, Plus, User as UserIcon } from 'lucide-svelte';
   import type { Issue, IssueSource, RiskSeverity, IssueStatus } from '$lib/data/types';
 
   export let data;
+  export let form;
+  $: if (form?.issueCreated) { addToast('success', 'Issue created.'); showForm = false; }
+  $: if (form?.issueError) addToast('error', form.issueError);
+  let showForm = false;
 
   // ---------- KPIs ----------
   $: open = data.issues.filter((i) => i.status === 'open' || i.status === 'in-progress').length;
@@ -122,12 +127,55 @@
 
 <PageHeader title="Issues & Incidents" subtitle="{data.issues.length.toLocaleString()} issues · {open} open · {overdue} overdue {data.isAll ? '· Maybank fallback' : ''}">
   <svelte:fragment slot="actions">
+    <button class="btn-primary" on:click={() => (showForm = !showForm)}>
+      <Plus class="h-4 w-4" />
+      <span>New Issue</span>
+    </button>
     <button class="btn-secondary" on:click={exportCsv}>
       <Download class="h-4 w-4" />
       <span>Export CSV</span>
     </button>
   </svelte:fragment>
 </PageHeader>
+
+{#if showForm}
+  <div class="card p-5">
+    <h3 class="mb-3 text-sm font-semibold text-grc-ink">New issue</h3>
+    <form method="POST" action="?/createIssue" use:enhance class="flex flex-wrap items-end gap-3">
+      <label class="block flex-1 min-w-[260px]">
+        <span class="mb-1 block text-xs font-medium text-slate-700">Title</span>
+        <input name="title" type="text" class="input" placeholder="Describe the issue…" required />
+      </label>
+      <label class="block">
+        <span class="mb-1 block text-xs font-medium text-slate-700">Source</span>
+        <select name="source" class="input">
+          <option value="audit">Audit</option>
+          <option value="risk-treatment">Risk Treatment</option>
+          <option value="incident">Incident</option>
+          <option value="control-test">Control Test</option>
+          <option value="regulatory">Regulatory</option>
+        </select>
+      </label>
+      <label class="block">
+        <span class="mb-1 block text-xs font-medium text-slate-700">Severity</span>
+        <select name="severity" class="input">
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium" selected>Medium</option>
+          <option value="low">Low</option>
+        </select>
+      </label>
+      <label class="block">
+        <span class="mb-1 block text-xs font-medium text-slate-700">Due date (optional)</span>
+        <input name="dueAt" type="date" class="input" />
+      </label>
+      <div class="flex gap-2">
+        <button type="submit" class="btn-primary">Create</button>
+        <button type="button" class="btn-secondary" on:click={() => (showForm = false)}>Cancel</button>
+      </div>
+    </form>
+  </div>
+{/if}
 
 <div class="space-y-6">
   <!-- KPI strip -->

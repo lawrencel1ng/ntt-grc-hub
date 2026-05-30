@@ -2,10 +2,15 @@
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Kpi from '$lib/components/Kpi.svelte';
   import { addToast } from '$lib/stores/toast';
+  import { enhance } from '$app/forms';
   import { ClipboardCheck, FileBarChart, CheckCircle2, AlertTriangle, Plus, ChevronRight, User as UserIcon } from 'lucide-svelte';
   import type { AuditEngagement, AuditFinding, EngagementType } from '$lib/data/types';
 
   export let data;
+  export let form;
+  $: if (form?.engagementCreated) { addToast('success', 'Engagement created.'); showForm = false; }
+  $: if (form?.engagementError) addToast('error', form.engagementError);
+  let showForm = false;
 
   // ---------- KPIs ----------
   $: active = data.audits.filter((a) => !a.closedAt);
@@ -45,20 +50,53 @@
   function fmtDate(iso: string): string {
     return iso.slice(0, 10);
   }
-
-  function newEngagement() {
-    addToast('info', 'New engagement workflow coming next phase.');
-  }
 </script>
 
 <PageHeader title="Audit Management" subtitle="External, internal, regulatory and customer engagements — orchestrated end-to-end.">
   <svelte:fragment slot="actions">
-    <button class="btn-primary" on:click={newEngagement}>
+    <button class="btn-primary" on:click={() => (showForm = !showForm)}>
       <Plus class="h-4 w-4" />
       <span>New Engagement</span>
     </button>
   </svelte:fragment>
 </PageHeader>
+
+{#if showForm}
+  <div class="card p-5">
+    <h3 class="mb-3 text-sm font-semibold text-grc-ink">New engagement</h3>
+    <form method="POST" action="?/createEngagement" use:enhance class="flex flex-wrap items-end gap-3">
+      <label class="block flex-1 min-w-[200px]">
+        <span class="mb-1 block text-xs font-medium text-slate-700">Engagement name</span>
+        <input name="name" type="text" class="input" placeholder="MAS TRM Annual Review 2026" required />
+      </label>
+      <label class="block">
+        <span class="mb-1 block text-xs font-medium text-slate-700">Type</span>
+        <select name="type" class="input">
+          <option value="internal">Internal</option>
+          <option value="external">External</option>
+          <option value="regulatory">Regulatory</option>
+          <option value="customer">Customer</option>
+        </select>
+      </label>
+      <label class="block flex-1 min-w-[160px]">
+        <span class="mb-1 block text-xs font-medium text-slate-700">Lead auditor</span>
+        <input name="leadAuditor" type="text" class="input" placeholder="Jane Lim" required />
+      </label>
+      <label class="block">
+        <span class="mb-1 block text-xs font-medium text-slate-700">Opening date</span>
+        <input name="openedAt" type="date" class="input" value={new Date().toISOString().slice(0, 10)} />
+      </label>
+      <label class="block flex-1 min-w-[200px]">
+        <span class="mb-1 block text-xs font-medium text-slate-700">Scope (optional)</span>
+        <input name="scope" type="text" class="input" placeholder="Scope of engagement…" />
+      </label>
+      <div class="flex gap-2">
+        <button type="submit" class="btn-primary">Create</button>
+        <button type="button" class="btn-secondary" on:click={() => (showForm = false)}>Cancel</button>
+      </div>
+    </form>
+  </div>
+{/if}
 
 <div class="space-y-6">
   <!-- KPI strip -->

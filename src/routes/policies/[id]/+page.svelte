@@ -3,11 +3,18 @@
   import ProgressBar from '$lib/components/ProgressBar.svelte';
   import FrameworkBadge from '$lib/components/FrameworkBadge.svelte';
   import AgentTypeBadge from '$lib/components/AgentTypeBadge.svelte';
+  import { enhance } from '$app/forms';
   import { addToast } from '$lib/stores/toast';
   import { FileText, History, UserCheck, AlertCircle, Library, Edit, ScrollText } from 'lucide-svelte';
   import type { PolicyVersion, PolicyVersionStatus } from '$lib/data/types';
 
   export let data;
+  export let form;
+  $: if (form?.editSuccess) { addToast('success', 'Policy saved.'); editing = false; }
+  $: if (form?.editError) addToast('error', form.editError);
+  let editing = false;
+  let editContent = '';
+  let editStatus = 'draft';
 
   type Tab = 'current' | 'history' | 'acks' | 'exceptions' | 'mappings';
   let tab: Tab = 'current';
@@ -78,8 +85,10 @@
     return [...new Set(ids)].map((id) => data.frameworks.find((f) => f.id === id)).filter(Boolean);
   })();
 
-  function editPolicy() {
-    addToast('info', 'Policy editor coming next phase.');
+  function startEdit() {
+    editContent = current?.contentMd ?? '';
+    editStatus = current?.status ?? 'draft';
+    editing = true;
   }
 </script>
 
@@ -89,7 +98,7 @@
 >
   <svelte:fragment slot="actions">
     <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {statusCls(current?.status)}">{current?.status ?? 'draft'}</span>
-    <button class="btn-primary" on:click={editPolicy}>
+    <button class="btn-primary" on:click={startEdit}>
       <Edit class="h-4 w-4" />
       <span>Edit</span>
     </button>
@@ -136,28 +145,55 @@
 
     <!-- Current Version -->
     {#if tab === 'current'}
-      <div class="space-y-4 p-5">
-        {#if current?.draftedByAgentId}
-          <div class="flex items-start gap-3 rounded-xl border-2 border-violet-200 bg-violet-50 px-4 py-3">
-            <AgentTypeBadge type="intelligent" />
-            <div class="flex-1 text-sm">
-              <div class="font-semibold text-violet-900">Drafted by Policy Drafter agent</div>
-              <div class="mt-0.5 text-xs text-violet-700">Generated from current framework baseline; HITL approved.</div>
-            </div>
+      {#if editing}
+        <form method="POST" action="?/updatePolicy" use:enhance class="space-y-4 p-5">
+          <input type="hidden" name="versionId" value={current?.id ?? ''} />
+          <div>
+            <label class="mb-1 block text-xs font-medium text-slate-700">Status</label>
+            <select name="status" class="input w-40" bind:value={editStatus}>
+              <option value="draft">Draft</option>
+              <option value="in-review">In Review</option>
+              <option value="approved">Approved</option>
+              <option value="retired">Retired</option>
+            </select>
           </div>
-        {/if}
-        <article class="prose prose-slate max-w-none">
-          {#each blocks as b}
-            {#if b.kind === 'h1'}
-              <h1 class="mt-4 text-2xl font-bold text-grc-ink">{b.text}</h1>
-            {:else if b.kind === 'h2'}
-              <h2 class="mt-4 text-lg font-semibold text-grc-ink">{b.text}</h2>
-            {:else}
-              <p class="mt-2 text-sm leading-relaxed text-slate-700">{b.text}</p>
-            {/if}
-          {/each}
-        </article>
-      </div>
+          <div>
+            <label class="mb-1 block text-xs font-medium text-slate-700">Content (Markdown)</label>
+            <textarea
+              name="contentMd"
+              class="input min-h-[320px] w-full font-mono text-xs"
+              bind:value={editContent}
+            ></textarea>
+          </div>
+          <div class="flex gap-2">
+            <button type="submit" class="btn-primary">Save</button>
+            <button type="button" class="btn-secondary" on:click={() => (editing = false)}>Cancel</button>
+          </div>
+        </form>
+      {:else}
+        <div class="space-y-4 p-5">
+          {#if current?.draftedByAgentId}
+            <div class="flex items-start gap-3 rounded-xl border-2 border-violet-200 bg-violet-50 px-4 py-3">
+              <AgentTypeBadge type="intelligent" />
+              <div class="flex-1 text-sm">
+                <div class="font-semibold text-violet-900">Drafted by Policy Drafter agent</div>
+                <div class="mt-0.5 text-xs text-violet-700">Generated from current framework baseline; HITL approved.</div>
+              </div>
+            </div>
+          {/if}
+          <article class="prose prose-slate max-w-none">
+            {#each blocks as b}
+              {#if b.kind === 'h1'}
+                <h1 class="mt-4 text-2xl font-bold text-grc-ink">{b.text}</h1>
+              {:else if b.kind === 'h2'}
+                <h2 class="mt-4 text-lg font-semibold text-grc-ink">{b.text}</h2>
+              {:else}
+                <p class="mt-2 text-sm leading-relaxed text-slate-700">{b.text}</p>
+              {/if}
+            {/each}
+          </article>
+        </div>
+      {/if}
 
     <!-- Version History -->
     {:else if tab === 'history'}

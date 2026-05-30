@@ -1,10 +1,15 @@
 <script lang="ts">
   import PageHeader from '$lib/components/PageHeader.svelte';
   import { addToast } from '$lib/stores/toast';
+  import { enhance } from '$app/forms';
   import { Plus, MoreHorizontal, Play as PlayIcon, Pause, AlertTriangle, Bot, Plug, User as UserIcon, GitBranch } from 'lucide-svelte';
   import type { WorkflowExecutionStatus, WorkflowStepDef } from '$lib/data/types';
 
   export let data;
+  export let form;
+  $: if (form?.workflowCreated) { addToast('success', `Workflow "${form.workflowName}" created.`); showForm = false; }
+  $: if (form?.workflowError) addToast('error', form.workflowError);
+  let showForm = false;
 
   type StatusFilter = 'all' | 'active' | 'paused' | 'failing';
   let statusFilter: StatusFilter = 'all';
@@ -36,10 +41,6 @@
     }
   }
 
-  function newWorkflow() {
-    addToast('info', 'Workflow builder coming next phase.');
-  }
-
   const STATUS_FILTERS: { id: StatusFilter; label: string }[] = [
     { id: 'all', label: 'All' },
     { id: 'active', label: 'Active' },
@@ -50,12 +51,32 @@
 
 <PageHeader title="Workflows" subtitle="Cross-agent orchestration — chain agents, APIs and humans into auditable pipelines.">
   <svelte:fragment slot="actions">
-    <button class="btn-primary" on:click={newWorkflow}>
+    <button class="btn-primary" on:click={() => (showForm = !showForm)}>
       <Plus class="h-4 w-4" />
       <span>New Workflow</span>
     </button>
   </svelte:fragment>
 </PageHeader>
+
+{#if showForm}
+  <div class="card p-5">
+    <h3 class="mb-3 text-sm font-semibold text-grc-ink">New workflow</h3>
+    <form method="POST" action="?/createWorkflow" use:enhance class="flex flex-wrap items-end gap-3">
+      <label class="block flex-1 min-w-[200px]">
+        <span class="mb-1 block text-xs font-medium text-slate-700">Name</span>
+        <input name="name" type="text" class="input" placeholder="Evidence collection — MAS TRM" required />
+      </label>
+      <label class="block flex-1 min-w-[240px]">
+        <span class="mb-1 block text-xs font-medium text-slate-700">Description (optional)</span>
+        <input name="description" type="text" class="input" placeholder="Describe what this workflow does…" />
+      </label>
+      <div class="flex gap-2">
+        <button type="submit" class="btn-primary">Create</button>
+        <button type="button" class="btn-secondary" on:click={() => (showForm = false)}>Cancel</button>
+      </div>
+    </form>
+  </div>
+{/if}
 
 <div class="space-y-6">
   <div class="card flex flex-wrap items-center gap-3 px-4 py-3">

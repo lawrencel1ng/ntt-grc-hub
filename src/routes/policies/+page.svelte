@@ -3,11 +3,16 @@
   import Kpi from '$lib/components/Kpi.svelte';
   import ProgressBar from '$lib/components/ProgressBar.svelte';
   import AgentTypeBadge from '$lib/components/AgentTypeBadge.svelte';
+  import { enhance } from '$app/forms';
   import { addToast } from '$lib/stores/toast';
   import { ScrollText, FileEdit, UserCheck, Calendar, Plus, ChevronRight } from 'lucide-svelte';
   import type { PolicyVersionStatus, Policy } from '$lib/data/types';
 
   export let data;
+  export let form;
+  $: if (form?.policyCreated) { addToast('success', `Policy ${form.policyCode} created.`); showForm = false; }
+  $: if (form?.policyError) addToast('error', form.policyError);
+  let showForm = false;
 
   type StatusBucket = 'approved' | 'in-review' | 'draft' | 'retired';
 
@@ -81,9 +86,7 @@
     return 'bg-violet-50 text-violet-700 ring-violet-200';
   }
 
-  function newPolicy() {
-    addToast('info', 'Policy Drafter agent ready — request queued.');
-  }
+  // newPolicy handled by form
 
   const COLUMNS: { id: StatusBucket; title: string; dot: string }[] = [
     { id: 'approved',  title: 'Approved',   dot: 'bg-violet-500' },
@@ -95,12 +98,42 @@
 
 <PageHeader title="Policy Management" subtitle="{totalPolicies} policies tracked — drafted, reviewed, acknowledged.">
   <svelte:fragment slot="actions">
-    <button class="btn-primary" on:click={newPolicy}>
+    <button class="btn-primary" on:click={() => (showForm = !showForm)}>
       <Plus class="h-4 w-4" />
       <span>New Policy</span>
     </button>
   </svelte:fragment>
 </PageHeader>
+
+{#if showForm}
+  <div class="card p-5">
+    <h3 class="mb-3 text-sm font-semibold text-grc-ink">New policy</h3>
+    <form method="POST" action="?/createPolicy" use:enhance class="flex flex-wrap items-end gap-3">
+      <label class="block">
+        <span class="mb-1 block text-xs font-medium text-slate-700">Code</span>
+        <input name="code" type="text" class="input w-28" placeholder="POL-001" required />
+      </label>
+      <label class="block flex-1 min-w-[200px]">
+        <span class="mb-1 block text-xs font-medium text-slate-700">Title</span>
+        <input name="title" type="text" class="input" placeholder="Information Security Policy" required />
+      </label>
+      <label class="block">
+        <span class="mb-1 block text-xs font-medium text-slate-700">Jurisdiction</span>
+        <select name="jurisdiction" class="input">
+          <option value="Global">Global</option>
+          <option value="SG">Singapore</option>
+          <option value="MY">Malaysia</option>
+          <option value="AU">Australia</option>
+          <option value="EU">European Union</option>
+        </select>
+      </label>
+      <div class="flex gap-2">
+        <button type="submit" class="btn-primary">Create</button>
+        <button type="button" class="btn-secondary" on:click={() => (showForm = false)}>Cancel</button>
+      </div>
+    </form>
+  </div>
+{/if}
 
 <div class="space-y-6">
   <!-- KPI strip -->

@@ -2,6 +2,7 @@
   import PageHeader from '$lib/components/PageHeader.svelte';
   import { addToast } from '$lib/stores/toast';
   import { formatRelative, formatIsoSgt } from '$lib/utils/dates';
+  import { enhance } from '$app/forms';
   import {
     User, Settings as SettingsIcon, KeyRound, Lock, Palette, ShieldCheck, Cpu, ShieldAlert
   } from 'lucide-svelte';
@@ -14,6 +15,10 @@
   $: if (form?.tokenRevoked) addToast('success', 'API token revoked.');
   $: if (form?.tokenError) addToast('error', form.tokenError);
   $: if (form?.newToken) { newTokenValue = form.newToken; newTokenName = form.newTokenName ?? ''; showNewToken = true; }
+  $: if (form?.mfaToggled) { addToast('success', form.mfaEnabled ? 'MFA enabled.' : 'MFA disabled.'); }
+  $: if (form?.mfaError) addToast('error', form.mfaError);
+  $: if (form?.brandingUpdated) addToast('success', `Accent colour updated to ${form.accentColor}.`);
+  $: if (form?.brandingError) addToast('error', form.brandingError);
 
   // ---------- Tenant settings local state ----------
   // Default the AI provider to NTT Tsuzumi (sovereign) for MINDEF.
@@ -244,14 +249,28 @@
       <Lock class="h-4 w-4 text-grc-primary" />
       <h2 class="section-title">Multi-Factor Authentication</h2>
     </div>
-    <div class="rounded-xl bg-violet-50/70 p-4 ring-1 ring-inset ring-violet-200">
-      <div class="flex items-center gap-2">
-        <ShieldCheck class="h-5 w-5 text-violet-700" />
-        <span class="font-semibold text-violet-900">MFA enabled</span>
+    {#if data.mfaEnabled}
+      <div class="rounded-xl bg-violet-50/70 p-4 ring-1 ring-inset ring-violet-200">
+        <div class="flex items-center gap-2">
+          <ShieldCheck class="h-5 w-5 text-violet-700" />
+          <span class="font-semibold text-violet-900">MFA enabled</span>
+        </div>
+        <p class="mt-1 text-xs text-violet-800">TOTP authenticator app enrolled.</p>
       </div>
-      <p class="mt-1 text-xs text-violet-800">TOTP authenticator app · last enrolled 18 Apr 2026 · 2 backup codes remaining.</p>
-    </div>
-    <button class="btn-secondary mt-3" on:click={() => toast('MFA management dialog would open (demo).')}>Manage MFA</button>
+    {:else}
+      <div class="rounded-xl bg-slate-50 p-4 ring-1 ring-inset ring-slate-200">
+        <div class="flex items-center gap-2">
+          <ShieldCheck class="h-5 w-5 text-slate-400" />
+          <span class="font-semibold text-slate-600">MFA not enabled</span>
+        </div>
+        <p class="mt-1 text-xs text-slate-500">Enable MFA for additional login security.</p>
+      </div>
+    {/if}
+    <form method="POST" action="?/toggleMfa" use:enhance class="mt-3">
+      <button type="submit" class="btn-secondary">
+        {data.mfaEnabled ? 'Disable MFA' : 'Enable MFA'}
+      </button>
+    </form>
   </div>
 
   <!-- Branding -->
@@ -261,13 +280,16 @@
       <h2 class="section-title">Branding</h2>
     </div>
     <div class="flex items-center gap-3">
-      <div class="h-12 w-12 rounded-lg shadow-card ring-1 ring-inset ring-slate-200" style="background:#6d28d9"></div>
+      <div class="h-12 w-12 rounded-lg shadow-card ring-1 ring-inset ring-slate-200" style="background:{data.accentColor ?? '#6d28d9'}"></div>
       <div>
         <div class="text-sm font-medium text-grc-ink">Primary colour</div>
-        <div class="font-mono text-xs text-slate-500">#6d28d9 · NTT Violet</div>
+        <div class="font-mono text-xs text-slate-500">{data.accentColor ?? '#6d28d9'} · NTT Violet</div>
       </div>
-      <button class="btn-secondary ml-auto" on:click={() => toast('Branding customiser would open (demo).')}>Customise</button>
     </div>
+    <form method="POST" action="?/updateBranding" use:enhance class="flex items-center gap-3 mt-3">
+      <input name="accentColor" type="color" class="h-9 w-16 cursor-pointer rounded border border-slate-200 p-0.5" value={data.accentColor ?? '#6d28d9'} />
+      <button type="submit" class="btn-secondary">Save</button>
+    </form>
     <p class="mt-3 text-[11px] text-slate-400">Branding tokens (logo, accent colour, dark-mode toggle) apply tenant-wide.</p>
   </div>
 

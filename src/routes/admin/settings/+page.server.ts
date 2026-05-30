@@ -45,7 +45,25 @@ export const load: PageServerLoad = async ({ locals }) => {
     }
   }
 
-  return { tenants, tenant, apiTokens, user: locals.user };
+  let mfaEnabled = false;
+  if (isPgMode() && locals.user) {
+    try {
+      const pool = getPool();
+      const r = await pool.query(`SELECT mfa_enabled FROM platform.users WHERE id = $1`, [locals.user.id]);
+      mfaEnabled = r.rows[0]?.mfa_enabled ?? false;
+    } catch { /* ignore */ }
+  }
+
+  let accentColor = '#6d28d9';
+  if (isPgMode() && effective) {
+    try {
+      const pool = getPool();
+      const r = await pool.query(`SELECT accent_color FROM platform.tenants WHERE id = $1`, [effective]);
+      accentColor = r.rows[0]?.accent_color ?? '#6d28d9';
+    } catch { /* column may not exist yet */ }
+  }
+
+  return { tenants, tenant, apiTokens, user: locals.user, mfaEnabled, accentColor };
 };
 
 export const actions: Actions = {
@@ -145,5 +163,63 @@ export const actions: Actions = {
     writeAuditLog({ userId: locals.user.id, actorEmail: locals.user.email, tenantId: locals.user.tenantId, action: 'api_token.created', target: `token:${prefix}`, result: 'success' });
     // Return the raw token once for display — it cannot be recovered afterwards
     return { newToken: rawToken, newTokenName: name };
+  },
+
+  toggleMfa: async ({ locals }) => {
+    if (!locals.user) return fail(401, { mfaError: 'Not authenticated.' });
+    if (!isPgMode()) return fail(400, { mfaError: 'Requires Postgres mode.' });
+
+    const pool = getPool();
+    const result = await pool.query(
+      `UPDATE platform.users SET mfa_enabled = NOT mfa_enabled
+       WHERE id = $1 RETURNING mfa_enabled`,
+      [locals.user.id]
+    );
+    const enabled = result.rows[0]?.mfa_enabled ?? false;
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: enabled ? 'mfa.enabled' : 'mfa.disabled',
+      target: `user:${locals.user.id}`,
+      result: 'success'
+    });
+
+    return { mfaToggled: true, mfaEnabled: enabled };
+  },
+
+  updateBranding: async ({ request, locals }) => {
+    if (!locals.user) return fail(401, { brandingError: 'Not authenticated.' });
+    if (locals.user.role !== 'admin') return fail(403, { brandingError: 'Admin role required.' });
+    if (!isPgMode()) return fail(400, { brandingError: 'Requires Postgres mode.' });
+
+    const data = await request.formData();
+    const accentColor = String(data.get('accentColor') ?? '').trim();
+    if (!accentColor || !/^#[0-9a-fA-F]{6}$/.test(accentColor)) {
+      return fail(400, { brandingError: 'Invalid hex color (e.g. #6d28d9).' });
+    }
+
+    const pool = getPool();
+    try {
+      await pool.query(
+        `UPDATE platform.tenants SET accent_color = $1 WHERE id = $2`,
+        [accentColor, locals.user.tenantId]
+      );
+    } catch {
+      // Column may not exist yet (migration not run)
+      return fail(500, { brandingError: 'Branding column not found. Run migration 006.' });
+    }
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: 'tenant.branding.updated',
+      target: `tenant:${locals.user.tenantId}`,
+      result: 'success'
+    });
+
+    return { brandingUpdated: true, accentColor };
   }
 };

@@ -27,8 +27,8 @@ export const actions: Actions = {
     const confirm = String(data.get('confirm') ?? '');
 
     if (!token) return fail(400, { error: 'Missing reset token.' });
-    if (!password || password.length < 10) {
-      return fail(400, { error: 'Password must be at least 10 characters.', token });
+    if (!password || password.length < 10 || password.length > 128) {
+      return fail(400, { error: 'Password must be 10–128 characters.', token });
     }
     if (password !== confirm) {
       return fail(400, { error: 'Passwords do not match.', token });

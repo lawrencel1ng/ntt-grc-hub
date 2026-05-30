@@ -7,7 +7,7 @@
   import ProgressBar from '$lib/components/ProgressBar.svelte';
   import { addToast } from '$lib/stores/toast';
   import { downloadCsv } from '$lib/utils/csv';
-  import { FileBarChart, ShieldCheck, FileLock2, AlertTriangle, Stamp, Download } from 'lucide-svelte';
+  import { FileBarChart, ShieldCheck, FileLock2, AlertTriangle, Stamp, Download, X, Loader2 } from 'lucide-svelte';
   import type { Requirement, Control, EvidenceItem, RequirementCoverage, ComplianceGap, ComplianceAttestation } from '$lib/data/types';
 
   export let data;
@@ -72,21 +72,42 @@
   // ---------- Real attestations from DB ----------
   $: attestations = data.attestations as ComplianceAttestation[];
 
+  let packSummary: string | null = null;
+  let packGenerating = false;
+
   async function generatePack() {
+    if (packGenerating) return;
+    packGenerating = true;
+    packSummary = null;
     try {
       const res = await fetch(`/api/frameworks/${data.framework.id}/generate-pack`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' }
       });
       if (res.ok) {
-        addToast('success', `Audit Companion queued · generating evidence pack for ${data.framework.name}.`);
+        const body = await res.json().catch(() => ({}));
+        packSummary = body.summary ?? null;
+        addToast('success', `Evidence pack generated for ${data.framework.name}.`);
       } else {
         const msg = await res.text().catch(() => '');
-        addToast('error', msg || 'Failed to queue evidence pack generation.');
+        addToast('error', msg || 'Failed to generate evidence pack.');
       }
     } catch {
       addToast('error', 'Network error — check your connection and try again.');
+    } finally {
+      packGenerating = false;
     }
+  }
+
+  function downloadPackAsTxt() {
+    if (!packSummary) return;
+    const blob = new Blob([packSummary], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `compliance-pack-${data.framework.id}-${new Date().toISOString().slice(0, 10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   function downloadAttestation(a: ComplianceAttestation) {
@@ -107,12 +128,36 @@
 >
   <svelte:fragment slot="actions">
     <FrameworkBadge name={data.framework.name} version={data.framework.version} region={data.framework.region} />
-    <button class="btn-primary" on:click={generatePack}>
-      <Download class="h-4 w-4" />
-      <span>Generate Audit Pack</span>
+    <button class="btn-primary" on:click={generatePack} disabled={packGenerating}>
+      {#if packGenerating}
+        <Loader2 class="h-4 w-4 animate-spin" />
+        <span>Generating…</span>
+      {:else}
+        <Download class="h-4 w-4" />
+        <span>Generate Audit Pack</span>
+      {/if}
     </button>
   </svelte:fragment>
 </PageHeader>
+
+{#if packSummary}
+  <div class="card border-l-4 border-violet-400 p-5">
+    <div class="flex items-center justify-between">
+      <h2 class="section-title text-sm">Generated Compliance Pack</h2>
+      <div class="flex items-center gap-2">
+        <button class="btn-secondary py-1 text-xs" on:click={downloadPackAsTxt}>
+          <Download class="h-3 w-3" /> Download .txt
+        </button>
+        <button class="text-slate-400 hover:text-slate-600" on:click={() => (packSummary = null)} aria-label="Dismiss">
+          <X class="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+    <div class="mt-3 whitespace-pre-wrap rounded-lg bg-slate-50 px-4 py-3 font-mono text-xs leading-relaxed text-slate-700 ring-1 ring-inset ring-slate-200">
+      {packSummary}
+    </div>
+  </div>
+{/if}
 
 <div class="space-y-6">
   <!-- Header card with metadata + gauge -->

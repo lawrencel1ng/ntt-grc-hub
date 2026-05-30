@@ -16,7 +16,7 @@ import type {
   EvidenceItem,
   AuditEngagement, AuditFinding,
   Policy, PolicyVersion,
-  Vendor, Questionnaire, FourthParty, Concentration, QuestionnaireResponse,
+  Vendor, VendorContract, Questionnaire, FourthParty, Concentration, QuestionnaireResponse,
   PrivacyActivity, DPIA, SubjectRequest, Breach,
   ESGMetric, ESGDisclosure, ESGTarget,
   AIModel, ModelRisk, PromptAuditEntry,
@@ -695,6 +695,19 @@ export async function getVendor(id: string): Promise<Vendor | undefined> {
   if (parts.length < 3) return undefined;
   const tenantId = `${parts[1]}_${parts[2]}`;
   return (await getVendors(tenantId)).find((v) => v.id === id);
+}
+
+export async function getVendorContracts(vendorId: string): Promise<VendorContract[]> {
+  if (!isPgMode()) return [];
+  const rows = await safeQuery<VendorContract>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", vendor_id::text AS "vendorId",
+            contract_no AS "contractNo", value_sgd::float AS "valueSgd",
+            starts_at AS "startsAt", ends_at AS "endsAt",
+            renewal_window_days AS "renewalWindowDays"
+     FROM vendor.contracts WHERE vendor_id = $1::uuid ORDER BY starts_at DESC`,
+    [vendorId]
+  );
+  return rows;
 }
 
 export async function getQuestionnaires(tenantId?: string): Promise<Questionnaire[]> {

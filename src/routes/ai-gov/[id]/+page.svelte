@@ -12,7 +12,6 @@
   import type {
     AIModel, AIRiskTier, ISO42001Status, AIModelKind, ModelRisk, PromptAuditEntry, RiskSeverity, ModelRiskType
   } from '$lib/data/types';
-  import { hashStringToInt, mulberry32 } from '$lib/data/rng';
 
   export let data;
 
@@ -82,10 +81,13 @@
     }
   }
 
-  // ---------- Drift score (synthesised) ----------
+  // ---------- Drift score — coefficient of variation of tokensOut ----------
   $: driftScore = (() => {
-    const rng = mulberry32(hashStringToInt(`drift:${data.model.id}`));
-    return +(rng() * 0.18).toFixed(3); // 0 — 0.18
+    const tokens = (data.prompts as PromptAuditEntry[]).map((p) => p.tokensOut).filter((t) => t > 0);
+    if (tokens.length < 2) return 0;
+    const mean = tokens.reduce((a, b) => a + b, 0) / tokens.length;
+    const variance = tokens.reduce((a, b) => a + (b - mean) ** 2, 0) / tokens.length;
+    return mean > 0 ? +(Math.sqrt(variance) / mean).toFixed(3) : 0;
   })();
 
   // ---------- Prompts in last 24h ----------
@@ -120,20 +122,7 @@
     }
   }
 
-  // ---------- Drift sparklines + monitoring chart ----------
-  function monitoring(seedKey: string, base: number, jitter: number, n = 30): number[] {
-    const rng = mulberry32(hashStringToInt(`mon:${data.model.id}:${seedKey}`));
-    const out: number[] = [];
-    let v = base;
-    for (let i = 0; i < n; i++) {
-      v = Math.max(0.5, Math.min(1.0, v + (rng() - 0.5) * jitter));
-      out.push(+v.toFixed(4));
-    }
-    return out;
-  }
-  $: accuracySeries = monitoring('acc', 0.93, 0.012);
-  $: confidenceSeries = monitoring('cnf', 0.86, 0.020);
-
+  // ---------- Confidence sparkline — daily avg from real prompts ----------
   const DAYS_30 = (() => {
     const out: string[] = [];
     for (let i = 29; i >= 0; i--) {
@@ -141,6 +130,32 @@
       out.push(`${d.getMonth() + 1}/${d.getDate()}`);
     }
     return out;
+  })();
+
+  // Daily avg tokensOut normalized to [0,1] relative to max observed day
+  $: confidenceSeries = (() => {
+    const buckets: number[] = Array(30).fill(0);
+    const counts: number[] = Array(30).fill(0);
+    for (const p of data.prompts as PromptAuditEntry[]) {
+      const daysAgo = Math.floor((Date.now() - new Date(p.capturedAt).getTime()) / 86_400_000);
+      const idx = 29 - daysAgo;
+      if (idx >= 0 && idx < 30) { buckets[idx] += p.tokensOut; counts[idx]++; }
+    }
+    const avgs = buckets.map((sum, i) => counts[i] > 0 ? sum / counts[i] : 0);
+    const maxAvg = Math.max(...avgs, 1);
+    return avgs.map((v) => +(v / maxAvg).toFixed(4));
+  })();
+
+  // Daily prompt volume normalized to [0,1] relative to peak day
+  $: accuracySeries = (() => {
+    const counts: number[] = Array(30).fill(0);
+    for (const p of data.prompts as PromptAuditEntry[]) {
+      const daysAgo = Math.floor((Date.now() - new Date(p.capturedAt).getTime()) / 86_400_000);
+      const idx = 29 - daysAgo;
+      if (idx >= 0 && idx < 30) counts[idx]++;
+    }
+    const maxCount = Math.max(...counts, 1);
+    return counts.map((v) => +(v / maxCount).toFixed(4));
   })();
 
   // ---------- Actions ----------

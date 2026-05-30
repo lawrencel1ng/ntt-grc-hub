@@ -42,45 +42,42 @@
     ? Math.round((data.targets.filter(onTrack).length / data.targets.length) * 100)
     : 0;
 
-  // ---------- Hero LineChart: 24-month emissions trend ----------
-  const MONTHS_24 = (() => {
-    const out: string[] = [];
-    const d = new Date();
-    for (let i = 23; i >= 0; i--) {
-      const m = new Date(d.getFullYear(), d.getMonth() - i, 1);
-      out.push(m.toLocaleString('en', { month: 'short', year: '2-digit' }));
+  // ---------- Hero LineChart: emissions trend from real metrics ----------
+  // Aggregate tCO2e values by (period, scope) from the DB-loaded metrics.
+  function buildEmissionMap(scope: 'scope1' | 'scope2' | 'scope3'): Map<string, number> {
+    const map = new Map<string, number>();
+    for (const m of data.metrics as ESGMetric[]) {
+      if (m.scope !== scope || m.unit !== 'tCO2e') continue;
+      map.set(m.period, (map.get(m.period) ?? 0) + m.value);
     }
-    return out;
+    return map;
+  }
+
+  $: chartPeriods = (() => {
+    const periodsSet = new Set<string>();
+    for (const m of data.metrics as ESGMetric[]) {
+      if (m.unit === 'tCO2e') periodsSet.add(m.period);
+    }
+    return [...periodsSet].sort();
   })();
 
-  function emissionSeries(scope: 'scope1' | 'scope2' | 'scope3', base: number): number[] {
-    const rng = mulberry32(hashStringToInt(`em:${scope}:${data.effectiveTenantId}`));
-    const out: number[] = [];
-    // Start higher and trend downward to "base" by month 24.
-    const start = base * (scope === 'scope3' ? 1.4 : 1.25);
-    for (let i = 0; i < 24; i++) {
-      const t = i / 23;
-      const trend = start - (start - base) * t;
-      const jitter = (rng() - 0.5) * base * 0.08;
-      out.push(Math.max(0, Math.round((trend + jitter) / 24)));
-    }
-    return out;
-  }
-  // Target line: assume net-zero glide (scope1+2 target value / 12 per month)
   $: scope12Target = data.targets
     .filter((t: ESGTarget) => /Scope 1|Scope 2/i.test(t.metric))
     .reduce((s: number, t: ESGTarget) => s + t.targetValue, 0);
-  function targetLine(): number[] {
-    const t = (scope12Target || 1800) / 12; // monthly target
-    return Array.from({ length: 24 }).map((_, i) => Math.round(t * (1 - i * 0.012)));
-  }
 
-  $: heroSeries = [
-    { name: 'Scope 1', color: '#8b5cf6', data: emissionSeries('scope1', Math.max(scope1, 600)), area: false },
-    { name: 'Scope 2', color: '#3b82f6', data: emissionSeries('scope2', Math.max(scope2, 1800)), area: false },
-    { name: 'Scope 3', color: '#8b5cf6', data: emissionSeries('scope3', Math.max(scope3, 4000)), area: false },
-    { name: 'Target',  color: '#ef4444', data: targetLine() }
-  ];
+  $: heroSeries = (() => {
+    if (chartPeriods.length === 0) return [];
+    const s1map = buildEmissionMap('scope1');
+    const s2map = buildEmissionMap('scope2');
+    const s3map = buildEmissionMap('scope3');
+    const targetPerPeriod = (scope12Target || 2400) / Math.max(chartPeriods.length, 1);
+    return [
+      { name: 'Scope 1', color: '#8b5cf6', data: chartPeriods.map((p) => Math.round(s1map.get(p) ?? 0)), area: false },
+      { name: 'Scope 2', color: '#3b82f6', data: chartPeriods.map((p) => Math.round(s2map.get(p) ?? 0)), area: false },
+      { name: 'Scope 3', color: '#6366f1', data: chartPeriods.map((p) => Math.round(s3map.get(p) ?? 0)), area: false },
+      { name: 'Target',  color: '#ef4444', data: chartPeriods.map((_, i) => Math.round(targetPerPeriod * (1 - i * 0.012))) }
+    ];
+  })();
 
   // ---------- Tabs ----------
   type Tab = 'metrics' | 'disclosures' | 'targets';
@@ -155,7 +152,7 @@
         <TrendingDown class="h-3 w-3" /> trending down
       </span>
     </div>
-    <LineChart labels={MONTHS_24} series={heroSeries} height={280} unit=" t" />
+    <LineChart labels={chartPeriods} series={heroSeries} height={280} unit=" t" />
   </div>
 
   <!-- Tabs -->

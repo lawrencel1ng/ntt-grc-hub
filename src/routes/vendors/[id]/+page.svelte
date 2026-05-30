@@ -10,7 +10,7 @@
     Send, BookOpen, FileText, FileQuestion,
     GitFork, AlertTriangle, ShieldCheck, Mail, Tag as TagIcon, Layers, DollarSign
   } from 'lucide-svelte';
-  import type { Vendor, VendorTier, VendorCriticality, VendorStatus, Questionnaire } from '$lib/data/types';
+  import type { Vendor, VendorContract, VendorTier, VendorCriticality, VendorStatus, Questionnaire } from '$lib/data/types';
   import { hashStringToInt, mulberry32 } from '$lib/data/rng';
 
   export let data;
@@ -59,26 +59,7 @@
     };
   })();
 
-  // Synthesised contracts (stable per vendor).
-  $: contracts = (() => {
-    const rng = mulberry32(hashStringToInt(`contracts:${data.vendor.id}`));
-    const n = data.vendor.tier === '1' ? 3 : 2;
-    const out: { id: string; contractNo: string; value: number; startsAt: string; endsAt: string }[] = [];
-    for (let i = 0; i < n; i++) {
-      const startDays = Math.floor(rng() * 720) + 180; // 180–900d ago
-      const lenDays = 365 * (1 + Math.floor(rng() * 3));
-      const start = new Date(Date.now() - startDays * 86_400_000);
-      const end = new Date(start.getTime() + lenDays * 86_400_000);
-      out.push({
-        id: `cnt_${data.vendor.id}_${i}`,
-        contractNo: `MSA-${String(hashStringToInt(`cn:${data.vendor.id}:${i}`) % 100000).padStart(5, '0')}`,
-        value: Math.round(((data.vendor.contractValueSgd ?? 250_000) / n) * (0.8 + rng() * 0.4)),
-        startsAt: start.toISOString().slice(0, 10),
-        endsAt: end.toISOString().slice(0, 10)
-      });
-    }
-    return out;
-  })();
+  $: contracts = data.contracts as VendorContract[];
 
   // ---------- Tabs ----------
   type Tab = 'overview' | 'contracts' | 'questionnaires' | 'fourth' | 'risks' | 'evidence';
@@ -295,16 +276,22 @@
           </thead>
           <tbody>
             {#each contracts as c (c.id)}
-              {@const d = daysUntil(c.endsAt)}
+              {@const d = c.endsAt ? daysUntil(c.endsAt) : null}
               <tr class="tr">
                 <td class="td font-mono text-xs">{c.contractNo}</td>
-                <td class="td text-right font-mono">{fmtMoney(c.value)}</td>
-                <td class="td font-mono text-xs">{c.startsAt}</td>
-                <td class="td font-mono text-xs">{c.endsAt}</td>
+                <td class="td text-right font-mono">{fmtMoney(c.valueSgd)}</td>
+                <td class="td font-mono text-xs">{fmtDate(c.startsAt)}</td>
+                <td class="td font-mono text-xs">{fmtDate(c.endsAt)}</td>
                 <td class="td">
-                  <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {renewalCls(d)}">{renewalLabel(d)}</span>
+                  {#if d !== null}
+                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {renewalCls(d)}">{renewalLabel(d)}</span>
+                  {:else}
+                    <span class="text-slate-400 text-xs">open-ended</span>
+                  {/if}
                 </td>
               </tr>
+            {:else}
+              <tr><td colspan="5" class="px-4 py-6 text-center text-sm text-slate-500">No contracts on record.</td></tr>
             {/each}
           </tbody>
         </table>

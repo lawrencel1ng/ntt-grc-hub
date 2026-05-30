@@ -394,6 +394,17 @@ export interface Vendor {
   lastQuestionnaireScore?: number;
 }
 
+export interface VendorContract {
+  id: string;
+  tenantId: string;
+  vendorId: string;
+  contractNo: string;
+  valueSgd: number;
+  startsAt: string;
+  endsAt?: string;
+  renewalWindowDays: number;
+}
+
 export interface Questionnaire {
   id: string;
   tenantId: string;

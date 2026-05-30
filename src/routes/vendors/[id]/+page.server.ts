@@ -6,14 +6,15 @@
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import {
-  getVendor, getQuestionnaires, getFourthParties, getIssues, getEvidence
+  getVendor, getVendorContracts, getQuestionnaires, getFourthParties, getIssues, getEvidence
 } from '$lib/server/data';
 
 export const load: PageServerLoad = async ({ params }) => {
   const vendor = await getVendor(params.id);
   if (!vendor) throw error(404, 'Vendor not found');
 
-  const [allQuestionnaires, allFourthParties, allIssues, allEvidence] = await Promise.all([
+  const [contracts, allQuestionnaires, allFourthParties, allIssues, allEvidence] = await Promise.all([
+    getVendorContracts(vendor.id),
     getQuestionnaires(vendor.tenantId),
     getFourthParties(vendor.tenantId),
     getIssues(vendor.tenantId),
@@ -34,5 +35,5 @@ export const load: PageServerLoad = async ({ params }) => {
     .filter((e) => e.kind === 'attestation' || e.kind === 'document' || e.kind === 'scan-result')
     .slice(0, 6);
 
-  return { vendor, questionnaires, fourthParties, riskFindings, vendorEvidence };
+  return { vendor, contracts, questionnaires, fourthParties, riskFindings, vendorEvidence };
 };

@@ -11,6 +11,7 @@ declare global {
         tenantId: string;
       };
       tenantId?: string;
+      requestId?: string;
     }
     interface PageData {}
     interface Error {}

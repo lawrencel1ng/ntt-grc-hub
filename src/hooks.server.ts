@@ -8,7 +8,7 @@ import { DEMO_USER_COOKIE, DEFAULT_DEMO_LOGIN, findDemoLogin } from '$lib/data/d
 const TENANT_COOKIE = 'grc_tenant';
 const ALL_TENANTS_ID = '__all__';
 
-const PUBLIC_PATHS = ['/login', '/logout', '/forgot', '/reset'];
+const PUBLIC_PATHS = ['/login', '/logout', '/forgot', '/reset', '/api/health'];
 
 function addSecurityHeaders(response: Response): Response {
   response.headers.set('X-Frame-Options', 'DENY');
@@ -37,7 +37,14 @@ function addSecurityHeaders(response: Response): Response {
   return response;
 }
 
+function withRequestId(response: Response, requestId: string): Response {
+  response.headers.set('X-Request-ID', requestId);
+  return response;
+}
+
 export const handle: Handle = async ({ event, resolve }) => {
+  const requestId = crypto.randomUUID();
+  event.locals.requestId = requestId;
   const tenantCookie = event.cookies.get(TENANT_COOKIE);
   const tenantId = tenantCookie && tenantCookie.length > 0 ? tenantCookie : ALL_TENANTS_ID;
   event.locals.tenantId = tenantId;
@@ -65,7 +72,7 @@ export const handle: Handle = async ({ event, resolve }) => {
           role: demo.role,
           tenantId
         };
-        return addSecurityHeaders(await resolve(event));
+        return withRequestId(addSecurityHeaders(await resolve(event)), requestId);
       }
       event.locals.user = {
         id: 'u_' + demoEmail.replace(/[^a-z0-9]/gi, '_'),
@@ -74,13 +81,13 @@ export const handle: Handle = async ({ event, resolve }) => {
         role: DEFAULT_DEMO_LOGIN.role,
         tenantId
       };
-      return addSecurityHeaders(await resolve(event));
+      return withRequestId(addSecurityHeaders(await resolve(event)), requestId);
     }
   }
 
   // ── Mock mode (no Postgres, no demo cookie) ────────────────────────────
   if (!isPgMode()) {
-    if (isPublic) return addSecurityHeaders(await resolve(event));
+    if (isPublic) return withRequestId(addSecurityHeaders(await resolve(event)), requestId);
     throw redirect(303, `/login?next=${encodeURIComponent(path)}`);
   }
 
@@ -97,5 +104,5 @@ export const handle: Handle = async ({ event, resolve }) => {
     }
   }
 
-  return addSecurityHeaders(await resolve(event));
+  return withRequestId(addSecurityHeaders(await resolve(event)), requestId);
 };

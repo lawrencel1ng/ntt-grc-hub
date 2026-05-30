@@ -1,7 +1,7 @@
 // =====================================================================
 //  /resilience — Operational Resilience (DORA · APRA CPS 230 · MAS 658).
 //  Uses BCM plans as a proxy for "Important Business Services" with
-//  dependency + test data wired in. MSSP rollup falls back to Maybank.
+//  dependency + test data wired in. Tenant-scoped.
 // =====================================================================
 
 import type { PageServerLoad } from './$types';

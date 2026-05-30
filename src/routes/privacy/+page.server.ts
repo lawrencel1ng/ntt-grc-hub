@@ -1,6 +1,6 @@
 // =====================================================================
 //  /privacy — GDPR · PDPA · PIPL · CCPA · HIPAA.
-//  Tenant-scoped; MSSP rollup falls back to Maybank.
+//  Tenant-scoped.
 // =====================================================================
 
 import type { PageServerLoad } from './$types';

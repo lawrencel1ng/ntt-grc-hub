@@ -1,6 +1,5 @@
 // =====================================================================
-//  /controls — Controls Library index. Tenant-scoped; when "All tenants"
-//  is active we display the Maybank hero catalog so the page is full.
+//  /controls — Controls Library index. Tenant-scoped.
 // =====================================================================
 
 import type { PageServerLoad } from './$types';

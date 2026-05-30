@@ -1,6 +1,5 @@
 // =====================================================================
-//  /sox — SOX & Financial Controls.
-//  Synthesised entirely on the fly (no seed-source); Maybank-flavoured.
+//  /sox — SOX & Financial Controls. Tenant-scoped.
 // =====================================================================
 
 import type { PageServerLoad } from './$types';

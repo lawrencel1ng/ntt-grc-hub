@@ -1,7 +1,7 @@
 // =====================================================================
 //  /fourth-party — Concentration map. Builds a Sankey across
 //  Vendor → 4th-party → Cloud/Region capped to ~60 nodes so the
-//  hero supply-chain story stays legible. Maybank fallback in MSSP mode.
+//  hero supply-chain story stays legible. Tenant-scoped.
 // =====================================================================
 
 import type { PageServerLoad } from './$types';

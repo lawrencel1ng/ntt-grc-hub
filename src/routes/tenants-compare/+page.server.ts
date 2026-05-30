@@ -40,7 +40,7 @@ interface ShallowSnapshot {
 export const load: PageServerLoad = async () => {
   const tenants = await getTenantSummaries();
 
-  // ---------- Hero snapshots (Maybank / MINDEF / Grab) ----------
+  // ---------- Per-tenant snapshots ----------
   const heroes: HeroSnapshot[] = await Promise.all(
     HERO_TENANT_IDS.map(async (tid) => {
       const [kpi, vendors, audits, ledger, scores, risks] = await Promise.all([

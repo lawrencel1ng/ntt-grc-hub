@@ -1,9 +1,7 @@
 // =====================================================================
-//  /frameworks/[id] — Framework detail. Loads requirements, then for
-//  the tab pages we also pull controls + evidence under the active
-//  tenant so the Mappings / Evidence tabs are populated. When no tenant
-//  is selected we fall back to the Maybank hero data so the page still
-//  feels alive instead of empty.
+//  /frameworks/[id] — Framework detail. Loads requirements, controls,
+//  and evidence scoped to the active tenant. All-tenants mode loads
+//  cross-tenant aggregated compliance data.
 // =====================================================================
 
 import { error } from '@sveltejs/kit';

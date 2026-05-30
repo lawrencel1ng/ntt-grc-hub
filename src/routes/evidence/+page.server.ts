@@ -1,7 +1,5 @@
 // =====================================================================
-//  /evidence — Evidence Vault. Tenant-scoped; we fall back to the
-//  Maybank hero tenant in MSSP rollup mode so the page shows real
-//  content and the chain-integrity banner stays meaningful.
+//  /evidence — Evidence Vault. Tenant-scoped.
 // =====================================================================
 
 import type { PageServerLoad } from './$types';

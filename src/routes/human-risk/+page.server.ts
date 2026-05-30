@@ -1,8 +1,7 @@
 // =====================================================================
 //  /human-risk — Human Risk Management (KnowBe4 Virtual Risk Officer).
 //  Per-user risk scoring → org Human Risk Score → quantified FAIR ALE
-//  feeding the enterprise risk register. Tenant-scoped; MSSP rollup
-//  falls back to Maybank so the page is always populated.
+//  feeding the enterprise risk register. Tenant-scoped.
 // =====================================================================
 
 import type { PageServerLoad } from './$types';

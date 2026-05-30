@@ -121,8 +121,8 @@
         <form method="POST" action="?/updatePolicy" use:enhance class="space-y-4 p-5">
           <input type="hidden" name="versionId" value={current?.id ?? ''} />
           <div>
-            <label class="mb-1 block text-xs font-medium text-slate-700">Status</label>
-            <select name="status" class="input w-40" bind:value={editStatus}>
+            <label for="policy-status" class="mb-1 block text-xs font-medium text-slate-700">Status</label>
+            <select id="policy-status" name="status" class="input w-40" bind:value={editStatus}>
               <option value="draft">Draft</option>
               <option value="in-review">In Review</option>
               <option value="approved">Approved</option>
@@ -130,8 +130,9 @@
             </select>
           </div>
           <div>
-            <label class="mb-1 block text-xs font-medium text-slate-700">Content (Markdown)</label>
+            <label for="policy-content" class="mb-1 block text-xs font-medium text-slate-700">Content (Markdown)</label>
             <textarea
+              id="policy-content"
               name="contentMd"
               class="input min-h-[320px] w-full font-mono text-xs"
               bind:value={editContent}

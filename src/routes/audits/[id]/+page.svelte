@@ -5,7 +5,7 @@
   import { addToast } from '$lib/stores/toast';
   import { downloadCsv } from '$lib/utils/csv';
   import { enhance } from '$app/forms';
-  import { Download, FileBarChart, FileText, Package, Zap, ClipboardCheck, Pencil } from 'lucide-svelte';
+  import { Download, FileBarChart, FileText, Package, Zap, ClipboardCheck, Pencil, XCircle } from 'lucide-svelte';
   import type { EngagementType, AuditFinding } from '$lib/data/types';
 
   export let data;
@@ -13,6 +13,7 @@
     findingUpdated?: boolean; findingId?: string; newStatus?: string; findingError?: string;
     findingCreated?: boolean;
     editSuccess?: boolean; editError?: string;
+    auditClosed?: boolean; closeError?: string;
   } | null = null;
 
   // Optimistically update finding status in the local list on success
@@ -29,6 +30,8 @@
   $: if (form?.findingError) addToast('error', form.findingError);
   $: if (form?.editSuccess) { addToast('success', 'Engagement updated.'); showEditForm = false; }
   $: if (form?.editError) addToast('error', form.editError);
+  $: if (form?.auditClosed) addToast('success', 'Engagement closed.');
+  $: if (form?.closeError) addToast('error', form.closeError);
 
   let showNewFinding = false;
   let showEditForm = false;
@@ -124,6 +127,15 @@
       <Pencil class="h-4 w-4" />
       <span>Edit</span>
     </button>
+    {#if !data.audit.closedAt}
+      <form method="POST" action="?/closeAudit" use:enhance>
+        <button type="submit" class="btn-secondary py-1 text-xs text-rose-600 hover:text-rose-700"
+          onclick="return confirm('Close this engagement? This cannot be undone.')">
+          <XCircle class="h-4 w-4" />
+          Close Engagement
+        </button>
+      </form>
+    {/if}
   </svelte:fragment>
 </PageHeader>
 

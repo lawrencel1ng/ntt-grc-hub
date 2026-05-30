@@ -5,7 +5,7 @@
   import { addToast } from '$lib/stores/toast';
   import { enhance } from '$app/forms';
   import {
-    Play, Bot, Plug, User as UserIcon, GitBranch, CheckCircle2, Workflow as WorkflowIcon, Clock, Pencil
+    Play, Bot, Plug, User as UserIcon, GitBranch, CheckCircle2, Workflow as WorkflowIcon, Clock, Pencil, ThumbsUp, ThumbsDown
   } from 'lucide-svelte';
   import type { WorkflowExecutionStatus, WorkflowStepDef } from '$lib/data/types';
 
@@ -13,6 +13,7 @@
   export let form: {
     toggled?: boolean; enabled?: boolean; toggleError?: string;
     editSuccess?: boolean; editError?: string;
+    approveSuccess?: boolean; approveError?: string; executionId?: number; stepNo?: number; approved?: boolean;
   } | null = null;
 
   $: if (form?.toggled) {
@@ -22,6 +23,26 @@
   $: if (form?.toggleError) addToast('error', form.toggleError);
   $: if (form?.editSuccess) { addToast('success', 'Workflow updated.'); showEditForm = false; }
   $: if (form?.editError) addToast('error', form.editError);
+  $: if (form?.approveSuccess) {
+    addToast('success', form.approved ? `Step ${form.stepNo} approved.` : `Step ${form.stepNo} rejected — execution halted.`);
+  }
+  $: if (form?.approveError) addToast('error', form.approveError);
+
+  // Derive pending approval steps per running execution
+  $: pendingByExec = (() => {
+    const decided = new Set(
+      (data.decidedApprovals ?? []).map((a: { executionId: string; stepNo: number }) => `${a.executionId}:${a.stepNo}`)
+    );
+    const result: Record<string, { stepNo: number; label: string }[]> = {};
+    for (const exec of data.executions) {
+      if (exec.status !== 'running') continue;
+      const steps = data.workflow.steps
+        .map((s: WorkflowStepDef, i: number) => ({ ...s, idx: i }))
+        .filter((s: WorkflowStepDef & { idx: number }) => s.requiresApproval && !decided.has(`${exec.id}:${s.idx}`));
+      if (steps.length > 0) result[exec.id] = steps.map((s: WorkflowStepDef & { idx: number }) => ({ stepNo: s.idx, label: s.label }));
+    }
+    return result;
+  })();
 
   let showEditForm = false;
 
@@ -268,11 +289,13 @@
             <th class="px-4 py-2 text-left">Trigger</th>
             <th class="px-4 py-2 text-left">Status</th>
             <th class="px-4 py-2 text-right">Duration</th>
+            <th class="px-4 py-2 text-left">Pending Approval</th>
           </tr>
         </thead>
         <tbody>
           {#each data.executions.slice(0, 20) as e (e.id)}
             {@const dur = e.endedAt ? new Date(e.endedAt).getTime() - new Date(e.startedAt).getTime() : 0}
+            {@const pendingSteps = pendingByExec[e.id] ?? []}
             <tr class="tr">
               <td class="td font-mono text-xs text-slate-500">{e.startedAt.replace('T', ' ').slice(0, 19)}</td>
               <td class="td">{e.trigger}</td>
@@ -282,9 +305,38 @@
                 </span>
               </td>
               <td class="td text-right font-mono text-xs">{fmtDuration(dur)}</td>
+              <td class="td">
+                {#if pendingSteps.length > 0}
+                  <div class="flex flex-col gap-1">
+                    {#each pendingSteps as step}
+                      <div class="flex items-center gap-1.5">
+                        <span class="max-w-[120px] truncate text-[11px] text-slate-600">{step.label}</span>
+                        <form method="POST" action="?/approveStep" use:enhance class="contents">
+                          <input type="hidden" name="executionId" value={e.id} />
+                          <input type="hidden" name="stepNo" value={step.stepNo} />
+                          <input type="hidden" name="approved" value="true" />
+                          <button type="submit" class="inline-flex items-center gap-0.5 rounded bg-violet-50 px-1.5 py-0.5 text-[10px] font-semibold text-violet-700 ring-1 ring-inset ring-violet-200 hover:bg-violet-100" title="Approve step">
+                            <ThumbsUp class="h-3 w-3" /> Approve
+                          </button>
+                        </form>
+                        <form method="POST" action="?/approveStep" use:enhance class="contents">
+                          <input type="hidden" name="executionId" value={e.id} />
+                          <input type="hidden" name="stepNo" value={step.stepNo} />
+                          <input type="hidden" name="approved" value="false" />
+                          <button type="submit" class="inline-flex items-center gap-0.5 rounded bg-rose-50 px-1.5 py-0.5 text-[10px] font-semibold text-rose-700 ring-1 ring-inset ring-rose-200 hover:bg-rose-100" title="Reject step">
+                            <ThumbsDown class="h-3 w-3" /> Reject
+                          </button>
+                        </form>
+                      </div>
+                    {/each}
+                  </div>
+                {:else}
+                  <span class="text-xs text-slate-300">—</span>
+                {/if}
+              </td>
             </tr>
           {:else}
-            <tr><td colspan="4" class="px-4 py-6 text-center text-sm text-slate-500">No executions yet.</td></tr>
+            <tr><td colspan="5" class="px-4 py-6 text-center text-sm text-slate-500">No executions yet.</td></tr>
           {/each}
         </tbody>
       </table>

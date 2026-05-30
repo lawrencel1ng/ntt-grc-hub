@@ -186,7 +186,7 @@
 
   <!-- KPI strip -->
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-    <Kpi label="Owner" value={data.risk.ownerUserId ?? '—'}>
+    <Kpi label="Owner" value={data.risk.ownerEmail ?? '—'}>
       <UserIcon slot="icon" class="h-4 w-4 text-slate-500" />
     </Kpi>
     <Kpi label="Next Review" value={fmtRel(data.risk.nextReviewAt)}>

@@ -190,13 +190,13 @@
 <div class="space-y-6">
   <!-- KPI strip -->
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-    <Kpi label="Total Connected" value={`${connected}/${total}`} delta={4} hint="active integrations">
+    <Kpi label="Total Connected" value={`${connected}/${total}`} hint="active integrations">
       <Container slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
-    <Kpi label="Degraded" value={String(degraded)} delta={0} tone="bad" hint="elevated error rate">
+    <Kpi label="Degraded" value={String(degraded)} tone="bad" hint="elevated error rate">
       <AlertTriangle slot="icon" class="h-4 w-4 text-amber-500" />
     </Kpi>
-    <Kpi label="Disconnected" value={String(disconnected)} delta={-1} tone="bad" hint="needs reauth">
+    <Kpi label="Disconnected" value={String(disconnected)} tone="bad" hint="needs reauth">
       <XCircle slot="icon" class="h-4 w-4 text-rose-500" />
     </Kpi>
     <Kpi label="Last Sync" value={fmtRelTs(mostRecentSync)} hint="any connector">

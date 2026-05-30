@@ -121,7 +121,7 @@
     <Kpi label="Automated" value={automatedPct.toFixed(0)} suffix="%" hint="{automatedCount.toLocaleString()} controls">
       <Bot slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
-    <Kpi label="Pass Rate (30d)" value={passRate30d.toFixed(1)} suffix="%" delta={2}>
+    <Kpi label="Pass Rate (30d)" value={passRate30d.toFixed(1)} suffix="%">
       <CheckCircle2 slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Failing Now" value={failingNow.toString()} tone="bad">

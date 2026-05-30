@@ -159,6 +159,7 @@ export interface Risk {
   description?: string;
   category: string;
   ownerUserId?: string;
+  ownerEmail?: string;
   inherentSeverity: RiskSeverity;
   inherentLikelihood: RiskLikelihood;
   residualSeverity: RiskSeverity;
@@ -631,6 +632,7 @@ export interface Issue {
   severity: RiskSeverity;
   status: IssueStatus;
   ownerUserId?: string;
+  ownerEmail?: string;
   dueAt?: string;
   createdAt?: string;
 }

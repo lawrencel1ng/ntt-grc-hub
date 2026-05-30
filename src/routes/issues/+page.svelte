@@ -118,7 +118,7 @@
   }
   function exportCsv() {
     const headers = ['id','source','source_id','title','severity','status','owner','due_at'];
-    const rows = filtered.map((i) => [i.id, i.source, i.sourceId, i.title, i.severity, i.status, i.ownerUserId ?? '', i.dueAt ?? '']);
+    const rows = filtered.map((i) => [i.id, i.source, i.sourceId, i.title, i.severity, i.status, i.ownerEmail ?? '', i.dueAt ?? '']);
     const csv = [headers.join(','), ...rows.map((r) => r.map(escapeCsv).join(','))].join('\n');
     downloadCsv(`issues-${new Date().toISOString().slice(0, 10)}.csv`, csv);
     addToast('success', `Issues CSV exported (${rows.length} rows).`);
@@ -268,7 +268,7 @@
               <td class="td">
                 <div class="flex items-center gap-1.5 text-xs text-slate-500">
                   <UserIcon class="h-3 w-3" />
-                  <span>{i.ownerUserId ?? 'unassigned'}</span>
+                  <span>{i.ownerEmail ?? '—'}</span>
                 </div>
               </td>
               <td class="td text-xs {dueCls(i)}">{fmtRel(i.dueAt)}</td>

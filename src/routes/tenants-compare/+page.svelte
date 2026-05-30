@@ -70,7 +70,7 @@
     <Kpi label="Total Tenants" value={data.aggregate.totalTenants.toString()} hint="across APAC">
       <Building2 slot="icon" class="h-4 w-4 text-grc-primary" />
     </Kpi>
-    <Kpi label="Avg Compliance" value={data.aggregate.avgComplianceScore.toFixed(1)} suffix="/100" delta={2}>
+    <Kpi label="Avg Compliance" value={data.aggregate.avgComplianceScore.toFixed(1)} suffix="/100">
       <ShieldCheck slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Open Critical Risks" value={data.aggregate.totalOpenCritical.toString()} tone="bad" hint="across all tenants">
@@ -79,7 +79,7 @@
     <Kpi label="Active Audits" value={data.aggregate.totalActiveAudits.toString()} hint="in progress">
       <ClipboardCheck slot="icon" class="h-4 w-4 text-grc-primary" />
     </Kpi>
-    <Kpi label="Agent FTE Saved (30d)" value={data.aggregate.totalFte30d.toFixed(1)} suffix="FTE" delta={18} hint="all tenants">
+    <Kpi label="Agent FTE Saved (30d)" value={data.aggregate.totalFte30d.toFixed(1)} suffix="FTE" hint="all tenants">
       <Bot slot="icon" class="h-4 w-4 text-violet-500" />
     </Kpi>
   </div>

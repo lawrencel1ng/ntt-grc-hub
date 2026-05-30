@@ -392,7 +392,7 @@
               <td class="td">
                 <div class="flex items-center gap-1.5 text-xs text-slate-500">
                   <UserIcon class="h-3 w-3" />
-                  <span>{r.ownerUserId ?? 'unassigned'}</span>
+                  <span>{r.ownerEmail ?? '—'}</span>
                 </div>
               </td>
               <td class="td">

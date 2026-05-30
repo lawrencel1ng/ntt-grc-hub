@@ -143,7 +143,7 @@
 
     <!-- KPI strip (6) -->
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-      <Kpi label="Runs (30d)" value={data.runs30d.toLocaleString()} delta={11}>
+      <Kpi label="Runs (30d)" value={data.runs30d.toLocaleString()}>
         <Bot slot="icon" class="h-4 w-4 text-violet-600" />
       </Kpi>
       <Kpi label="Avg Confidence" value={(avgConfidence * 100).toFixed(1)} suffix="%">

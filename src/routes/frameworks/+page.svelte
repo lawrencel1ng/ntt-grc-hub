@@ -132,7 +132,7 @@
     <Kpi label="Active Frameworks" value={activeCount.toString()} hint="across all regions">
       <Library slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
-    <Kpi label="Avg Score" value={avgScore.toFixed(1)} suffix="%" delta={3}>
+    <Kpi label="Avg Score" value={avgScore.toFixed(1)} suffix="%">
       <TrendingUp slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
     <Kpi label="Due in 60 days" value={dueIn60.toString()} hint="assessment refresh">

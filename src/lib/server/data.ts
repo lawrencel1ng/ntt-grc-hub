@@ -596,7 +596,7 @@ export async function getControl(id: string): Promise<Control | undefined> {
             family, frequency, automated, maturity::text AS maturity
      FROM control.library WHERE id = $1`, [id]
   );
-  return rows[0] ?? mock.getControlById(id);
+  return rows[0] ?? undefined;
 }
 
 export async function getControlTestRuns(controlId: string, limit = 20): Promise<ControlTestRun[]> {
@@ -1382,7 +1382,7 @@ export async function getPostmortem(incidentId: string): Promise<Postmortem | nu
      FROM incident.postmortems WHERE incident_id = $1::uuid LIMIT 1`,
     [incidentId]
   );
-  return rows[0] ?? mock.postmortemForIncident(incidentId);
+  return rows[0] ?? null;
 }
 
 export async function getIssues(tenantId?: string): Promise<Issue[]> {
@@ -1390,11 +1390,13 @@ export async function getIssues(tenantId?: string): Promise<Issue[]> {
   const where = tenantId ? 'WHERE tenant_id = $1' : '';
   const params = tenantId ? [tenantId] : [];
   const rows = await safeQuery<Issue>(
-    `SELECT id::text AS id, tenant_id AS "tenantId", source::text AS source,
-            source_id AS "sourceId", title, description, severity::text AS severity,
-            status::text AS status, owner_user_id AS "ownerUserId", due_at AS "dueAt",
-            created_at AS "createdAt"
-     FROM issue.issues ${where} ORDER BY due_at`, params
+    `SELECT i.id::text AS id, i.tenant_id AS "tenantId", i.source::text AS source,
+            i.source_id AS "sourceId", i.title, i.description, i.severity::text AS severity,
+            i.status::text AS status, i.owner_user_id AS "ownerUserId", u.email AS "ownerEmail",
+            i.due_at AS "dueAt", i.created_at AS "createdAt"
+     FROM issue.issues i
+     LEFT JOIN platform.users u ON u.id = i.owner_user_id
+     ${where} ORDER BY i.due_at`, params
   );
   return rows.length ? rows : (tenantId ? mock.issuesForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.issuesForTenant(t)));
 }
@@ -1402,12 +1404,13 @@ export async function getIssues(tenantId?: string): Promise<Issue[]> {
 export async function getVendorIssues(vendorId: string): Promise<Issue[]> {
   if (!isPgMode()) return [];
   return safeQuery<Issue>(
-    `SELECT id::text AS id, tenant_id AS "tenantId", source::text AS source,
-            source_id AS "sourceId", title, description, severity::text AS severity,
-            status::text AS status, owner_user_id AS "ownerUserId", due_at AS "dueAt",
-            created_at AS "createdAt"
-     FROM issue.issues WHERE vendor_id = $1::uuid
-     ORDER BY due_at`, [vendorId]
+    `SELECT i.id::text AS id, i.tenant_id AS "tenantId", i.source::text AS source,
+            i.source_id AS "sourceId", i.title, i.description, i.severity::text AS severity,
+            i.status::text AS status, i.owner_user_id AS "ownerUserId", u.email AS "ownerEmail",
+            i.due_at AS "dueAt", i.created_at AS "createdAt"
+     FROM issue.issues i
+     LEFT JOIN platform.users u ON u.id = i.owner_user_id
+     WHERE i.vendor_id = $1::uuid ORDER BY i.due_at`, [vendorId]
   );
 }
 
@@ -1801,7 +1804,7 @@ export async function getHumanRiskUser(id: string): Promise<HumanRiskUser | unde
        FROM human_risk.users WHERE id = $1`,
     [id]
   );
-  return rows[0] ?? mock.humanRiskUser(id);
+  return rows[0] ?? undefined;
 }
 
 export async function getHumanRiskDepartments(tenantId?: string): Promise<HumanRiskDepartment[]> {

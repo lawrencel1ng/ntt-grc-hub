@@ -45,21 +45,17 @@
     }
   }
 
-  // ---------- ALE per risk: look up most material scenario for the risk;
-  // fall back to a deterministic estimate scaled by residual rank. ----------
-  function aleForRisk(r: Risk): number {
+  // ---------- ALE per risk: look up most material scenario for the risk ----------
+  function aleForRisk(r: Risk): number | null {
     const scn = data.scenarios.find((s: FAIRScenario) => s.riskId === r.id);
-    if (scn) {
-      // Use scenario's magnitude mode as a proxy when no run is wired here.
-      const mid = scn.magnitudeDist.mode ?? scn.magnitudeDist.mean ?? 750_000;
-      const freq = scn.frequencyDist.mode ?? scn.frequencyDist.mean ?? 0.5;
-      return Math.round(mid * freq);
-    }
-    // Deterministic fallback so the card always renders a number.
-    const rank = residual(r);
-    return Math.round((rank / 25) * 4_200_000);
+    if (!scn) return null;
+    const mid = scn.magnitudeDist.mode ?? scn.magnitudeDist.mean ?? null;
+    const freq = scn.frequencyDist.mode ?? scn.frequencyDist.mean ?? null;
+    if (mid == null || freq == null) return null;
+    return Math.round(mid * freq);
   }
-  function fmtAle(n: number): string {
+  function fmtAle(n: number | null): string {
+    if (n == null) return '—';
     if (n >= 1e6) return `S$${(n / 1e6).toFixed(1)}M`;
     if (n >= 1e3) return `S$${Math.round(n / 1e3)}K`;
     return `S$${n}`;
@@ -292,7 +288,7 @@
             </div>
             <div>
               <div class="text-[10px] uppercase tracking-wider text-slate-400">Owner</div>
-              <div class="text-sm font-medium text-slate-700">{r.ownerUserId ?? 'Risk Office'}</div>
+              <div class="text-sm font-medium text-slate-700">{r.ownerEmail ?? '—'}</div>
             </div>
             <div>
               <div class="text-[10px] uppercase tracking-wider text-slate-400">Category</div>

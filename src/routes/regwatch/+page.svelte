@@ -88,7 +88,7 @@
     <Kpi label="Sources Monitored" value={sourcesCount.toString()}>
       <Antenna slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
-    <Kpi label="Changes (30d)" value={changes30d.toString()} delta={4}>
+    <Kpi label="Changes (30d)" value={changes30d.toString()}>
       <FileText slot="icon" class="h-4 w-4 text-blue-600" />
     </Kpi>
     <Kpi label="Active Impact Assessments" value={activeImpacts.toString()}>

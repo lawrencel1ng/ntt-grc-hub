@@ -899,6 +899,18 @@ export async function getPolicyExceptions(documentId: string): Promise<PolicyExc
   );
 }
 
+export async function getPolicyFrameworkMappings(documentId: string): Promise<Framework[]> {
+  if (!isPgMode()) return [];
+  return safeQuery<Framework>(
+    `SELECT f.id, f.name, f.version, f.regulator, f.region, f.jurisdiction,
+            f.total_requirements AS "totalRequirements", f.tags
+     FROM policy.document_frameworks df
+     JOIN compliance.frameworks f ON f.id = df.framework_id
+     WHERE df.document_id = $1::uuid
+     ORDER BY f.region, f.name`, [documentId]
+  );
+}
+
 export async function getPolicyAckCount(tenantId?: string): Promise<number> {
   if (!isPgMode()) return 0;
   const params = tenantId ? [tenantId] : [];
@@ -1137,14 +1149,19 @@ export async function getESGTargets(tenantId?: string): Promise<ESGTarget[]> {
 
 export async function getAIModels(tenantId?: string): Promise<AIModel[]> {
   if (!isPgMode()) return mock.aiModelsForTenant(tenantId ?? 't_maybank');
-  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const where = tenantId ? 'WHERE m.tenant_id = $1' : '';
   const params = tenantId ? [tenantId] : [];
   const rows = await safeQuery<AIModel>(
-    `SELECT id::text AS id, tenant_id AS "tenantId", name, kind,
-            risk_tier::text AS "riskTier", jurisdiction,
-            eu_ai_act_class AS "euAiActClass",
-            iso_42001_status::text AS "iso42001Status"
-     FROM ai_gov.models ${where} ORDER BY name`,
+    `SELECT m.id::text AS id, m.tenant_id AS "tenantId", m.name, m.kind,
+            m.risk_tier::text AS "riskTier", m.jurisdiction,
+            m.eu_ai_act_class AS "euAiActClass",
+            m.iso_42001_status::text AS "iso42001Status",
+            m.owner_user_id::text AS "ownerUserId",
+            u.email AS "ownerEmail",
+            m.training_data_summary AS "trainingDataSummary"
+     FROM ai_gov.models m
+     LEFT JOIN platform.users u ON u.id = m.owner_user_id
+     ${where} ORDER BY m.name`,
     params
   );
   return rows.length ? rows : mock.aiModelsForTenant(tenantId ?? 't_maybank');

@@ -94,33 +94,6 @@
   $: prompts24h = data.prompts.filter((p: PromptAuditEntry) =>
     (Date.now() - new Date(p.capturedAt).getTime()) <= 86_400_000).length;
 
-  // ---------- Synthesised owner ----------
-  function ownerFor(m: AIModel): string {
-    const map: Record<AIModelKind, string> = {
-      classifier: 'Data Science / Risk',
-      llm: 'AI Platform / NLP',
-      regression: 'Quant / Pricing',
-      vision: 'Document AI',
-      recommender: 'Marketing Analytics'
-    };
-    return map[m.kind];
-  }
-
-  // ---------- Training data summary (synthesised) ----------
-  function trainingFor(m: AIModel): string {
-    switch (m.kind) {
-      case 'classifier':
-        return '4.2M labelled transactions (2022–2025) · 89/11 train/holdout · stratified by jurisdiction. Class balance: pos 6.4% / neg 93.6%.';
-      case 'llm':
-        return 'Fine-tuned on 18M proprietary support tickets + sanitised customer-chat transcripts (PII redacted). Base: Tsuzumi-7B sovereign LLM (NTT, on-prem).';
-      case 'regression':
-        return '12-year loan-performance panel, 380K accounts, 47 features. Time-aware CV with quarterly walk-forward validation.';
-      case 'vision':
-        return '320K KYC document images (ID, passport, utility bill). Synthetic augmentations: rotation, lighting, occlusion. Annotated by 3rd-party (Scale AI).';
-      case 'recommender':
-        return '5.8M user-product interactions (90d window). Implicit feedback via SASRec architecture. Cold-start handled by content embeddings.';
-    }
-  }
 
   // ---------- Confidence sparkline — daily avg from real prompts ----------
   const DAYS_30 = (() => {
@@ -189,7 +162,7 @@
       <div class="rounded-lg bg-violet-50 p-2 text-violet-700"><BrainCircuit class="h-5 w-5" /></div>
       <div class="flex-1">
         <h2 class="text-lg font-semibold text-grc-ink">{data.model.name}</h2>
-        <p class="mt-1 text-sm text-slate-600">Owner: <span class="font-medium text-slate-800">{ownerFor(data.model)}</span> · Jurisdiction <span class="font-mono">{data.model.jurisdiction}</span></p>
+        <p class="mt-1 text-sm text-slate-600">Owner: <span class="font-medium text-slate-800">{data.model.ownerEmail ?? '—'}</span> · Jurisdiction <span class="font-mono">{data.model.jurisdiction}</span></p>
       </div>
       <div class="flex items-center gap-2">
         <AgentTypeBadge type="intelligent" />
@@ -240,7 +213,7 @@
           </div>
           <div>
             <div class="section-title text-xs">Owner</div>
-            <div class="mt-1 font-medium text-slate-800">{ownerFor(data.model)}</div>
+            <div class="mt-1 font-medium text-slate-800">{data.model.ownerEmail ?? '—'}</div>
           </div>
           <div>
             <div class="section-title text-xs">Jurisdiction</div>
@@ -249,7 +222,7 @@
         </div>
         <div>
           <div class="section-title text-xs">Training Data Summary</div>
-          <p class="mt-1 leading-relaxed text-slate-700">{trainingFor(data.model)}</p>
+          <p class="mt-1 leading-relaxed text-slate-700">{data.model.trainingDataSummary ?? 'No training data summary on file.'}</p>
         </div>
         <div class="rounded-lg border-2 border-rose-200 bg-rose-50/40 p-4">
           <div class="flex items-center gap-2">

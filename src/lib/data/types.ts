@@ -556,6 +556,9 @@ export interface AIModel {
   jurisdiction: string;
   euAiActClass: string;
   iso42001Status: ISO42001Status;
+  ownerUserId?: string;
+  ownerEmail?: string;
+  trainingDataSummary?: string;
 }
 
 export interface ModelRisk {

@@ -5,23 +5,23 @@
 
 import { error, fail } from '@sveltejs/kit';
 import type { PageServerLoad, Actions } from './$types';
-import { getPolicy, getPolicyVersions, getFrameworks, getPolicyAcks, getPolicyExceptions } from '$lib/server/data';
+import { getPolicy, getPolicyVersions, getPolicyFrameworkMappings, getPolicyAcks, getPolicyExceptions } from '$lib/server/data';
 import { isPgMode, getPool } from '$lib/server/pg';
 import { writeAuditLog } from '$lib/server/auth';
 
 export const load: PageServerLoad = async ({ params }) => {
   const policy = await getPolicy(params.id);
   if (!policy) throw error(404, 'Policy not found');
-  const [versions, frameworks] = await Promise.all([
+  const [versions, policyFrameworks] = await Promise.all([
     getPolicyVersions(policy.id),
-    getFrameworks()
+    getPolicyFrameworkMappings(policy.id)
   ]);
   const currentVersion = versions.find((v) => v.status === 'approved') ?? versions[versions.length - 1];
   const [acks, exceptions] = await Promise.all([
     currentVersion ? getPolicyAcks(currentVersion.id, 20) : Promise.resolve([]),
     getPolicyExceptions(policy.id)
   ]);
-  return { policy, versions, frameworks, acks, exceptions };
+  return { policy, versions, policyFrameworks, acks, exceptions };
 };
 
 export const actions: Actions = {

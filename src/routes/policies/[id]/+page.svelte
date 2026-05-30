@@ -52,23 +52,10 @@
 
   function fmtDate(iso?: string): string { return iso ? iso.slice(0, 10) : '—'; }
 
-  import type { PolicyAck, PolicyException } from '$lib/data/types';
+  import type { PolicyAck, PolicyException, Framework } from '$lib/data/types';
   $: acks = data.acks as PolicyAck[];
   $: exceptions = data.exceptions as PolicyException[];
-
-  // ---------- Mapped frameworks ----------
-  $: mappedFrameworks = (() => {
-    const t = data.policy.title.toLowerCase();
-    const ids: string[] = [];
-    if (t.includes('security') || t.includes('access') || t.includes('cryptography')) ids.push('iso-27001', 'soc2');
-    if (t.includes('outsourcing')) ids.push('mas-notice-655', 'mas-trm');
-    if (t.includes('privacy')) ids.push('gdpr', 'pdpa-sg');
-    if (t.includes('ai')) ids.push('eu-ai-act', 'iso-42001');
-    if (t.includes('continuity') || t.includes('backup')) ids.push('iso-22301');
-    if (t.includes('esg')) ids.push('csrd', 'issb-s1-s2');
-    if (ids.length === 0) ids.push('iso-27001');
-    return [...new Set(ids)].map((id) => data.frameworks.find((f) => f.id === id)).filter(Boolean);
-  })();
+  $: mappedFrameworks = data.policyFrameworks as Framework[];
 
   function startEdit() {
     editContent = current?.contentMd ?? '';
@@ -265,12 +252,10 @@
           <div class="text-sm text-slate-500">No framework mappings.</div>
         {:else}
           <div class="flex flex-wrap gap-2">
-            {#each mappedFrameworks as fw}
-              {#if fw}
-                <a href="/frameworks/{fw.id}">
-                  <FrameworkBadge name={fw.name} region={fw.region} version={fw.version} />
-                </a>
-              {/if}
+            {#each mappedFrameworks as fw (fw.id)}
+              <a href="/frameworks/{fw.id}">
+                <FrameworkBadge name={fw.name} region={fw.region} version={fw.version} />
+              </a>
             {/each}
           </div>
         {/if}

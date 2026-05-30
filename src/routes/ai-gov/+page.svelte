@@ -20,18 +20,6 @@
     ? data.models.length // MINDEF story: 100% sovereign
     : data.models.filter((m: AIModel) => /tsuzumi/i.test(m.name)).length;
 
-  // ---------- Synthesised owner per model ----------
-  function ownerFor(m: AIModel): string {
-    const map: Record<AIModelKind, string> = {
-      classifier: 'Data Science / Risk',
-      llm: 'AI Platform / NLP',
-      regression: 'Quant / Pricing',
-      vision: 'Document AI',
-      recommender: 'Marketing Analytics'
-    };
-    return map[m.kind];
-  }
-
   // ---------- Helpers ----------
   function tierCls(t: AIRiskTier): string {
     switch (t) {
@@ -133,7 +121,7 @@
               <td class="td">
                 <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {kindCls(m.kind)}">{m.kind}</span>
               </td>
-              <td class="td text-xs text-slate-600">{ownerFor(m)}</td>
+              <td class="td text-xs text-slate-600">{m.ownerEmail ?? '—'}</td>
               <td class="td">
                 <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {tierCls(m.riskTier)}">{m.riskTier}</span>
               </td>

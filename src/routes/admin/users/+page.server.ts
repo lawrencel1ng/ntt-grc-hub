@@ -37,6 +37,8 @@ export const actions: Actions = {
     const tenantId = locals.user.tenantId;
 
     if (!email || !name) return fail(400, { inviteError: 'Email and name are required.' });
+    if (email.length > 254) return fail(400, { inviteError: 'Email must be 254 characters or fewer.' });
+    if (name.length > 128) return fail(400, { inviteError: 'Name must be 128 characters or fewer.' });
     if (!VALID_ROLES.includes(role)) return fail(400, { inviteError: 'Invalid role.' });
 
     const pool = getPool();

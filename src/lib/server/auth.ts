@@ -179,7 +179,8 @@ export async function createPasswordResetToken(
     [email.trim().toLowerCase()]
   );
   const user = rows[0];
-  if (!user || user.status !== 'active') return null;
+  // 'invited' users are allowed so the invite-link flow can work.
+  if (!user || (user.status !== 'active' && user.status !== 'invited')) return null;
 
   // Expire any previous unused tokens for this user
   await pool.query(
@@ -225,7 +226,8 @@ export async function validatePasswordResetToken(
   if (!rows.length) return null;
   const row = rows[0];
   const match = await bcrypt.compare(token, row.token_hash);
-  if (!match || row.status !== 'active') return null;
+  // 'invited' users are allowed — they use the reset link to set their initial password.
+  if (!match || (row.status !== 'active' && row.status !== 'invited')) return null;
   return { userId: row.user_id, email: row.email };
 }
 
@@ -242,7 +244,11 @@ export async function consumePasswordResetToken(
   const pool = getPool();
   const prefix = tokenPrefix(token);
   const newHash = await hashPassword(newPassword);
-  await pool.query(`UPDATE platform.users SET password_hash = $1 WHERE id = $2`, [newHash, valid.userId]);
+  // Also activate 'invited' users so they can log in after setting their password.
+  await pool.query(
+    `UPDATE platform.users SET password_hash = $1, status = CASE WHEN status = 'invited' THEN 'active' ELSE status END WHERE id = $2`,
+    [newHash, valid.userId]
+  );
   await pool.query(
     `UPDATE platform.password_reset_tokens SET used_at = now()
      WHERE token_prefix = $1 AND used_at IS NULL`,

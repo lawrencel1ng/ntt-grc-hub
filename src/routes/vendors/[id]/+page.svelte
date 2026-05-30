@@ -8,19 +8,26 @@
   import { addToast } from '$lib/stores/toast';
   import {
     Send, BookOpen, FileText, FileQuestion,
-    GitFork, AlertTriangle, ShieldCheck, Mail, Tag as TagIcon, Layers, DollarSign
+    GitFork, AlertTriangle, ShieldCheck, Mail, Tag as TagIcon, Layers, DollarSign, Pencil
   } from 'lucide-svelte';
   import type { Vendor, VendorContract, VendorTier, VendorCriticality, VendorStatus, Questionnaire } from '$lib/data/types';
   import { enhance } from '$app/forms';
 
   export let data;
-  export let form: { statusUpdated?: boolean; newStatus?: string; statusError?: string } | null = null;
+  export let form: {
+    statusUpdated?: boolean; newStatus?: string; statusError?: string;
+    editSuccess?: boolean; editError?: string;
+  } | null = null;
 
   $: if (form?.statusUpdated && form.newStatus) {
     data = { ...data, vendor: { ...data.vendor, status: form.newStatus as VendorStatus } };
     addToast('success', `Vendor status updated to "${form.newStatus}".`);
   }
   $: if (form?.statusError) addToast('error', form.statusError);
+  $: if (form?.editSuccess) { addToast('success', 'Vendor updated.'); showEditForm = false; }
+  $: if (form?.editError) addToast('error', form.editError);
+
+  let showEditForm = false;
 
   // ---------- Computed ----------
   function residualScore(v: Vendor): number {
@@ -176,12 +183,64 @@
       </select>
       <button type="submit" class="btn-secondary py-1 text-xs">Update</button>
     </form>
+    <button class="btn-secondary" on:click={() => (showEditForm = !showEditForm)}>
+      <Pencil class="h-4 w-4" />
+      <span>Edit</span>
+    </button>
     <button class="btn-primary" on:click={sendQuestionnaire}>
       <Send class="h-4 w-4" />
       <span>Send Questionnaire</span>
     </button>
   </svelte:fragment>
 </PageHeader>
+
+{#if showEditForm}
+  <div class="card p-5">
+    <h3 class="mb-4 text-sm font-semibold text-grc-ink">Edit Vendor</h3>
+    <form method="POST" action="?/updateVendor" use:enhance class="space-y-4">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Name</span>
+          <input name="name" class="input" value={data.vendor.name} required maxlength="256" />
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Category</span>
+          <input name="category" class="input" value={data.vendor.category} maxlength="128" />
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Tier</span>
+          <select name="tier" class="input" value={data.vendor.tier}>
+            <option value="1">Tier 1</option>
+            <option value="2">Tier 2</option>
+            <option value="3">Tier 3</option>
+            <option value="4">Tier 4</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Criticality</span>
+          <select name="criticality" class="input" value={data.vendor.criticality}>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">HQ Country</span>
+          <input name="hqCountry" class="input" value={data.vendor.hqCountry} maxlength="128" />
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Primary Contact Email</span>
+          <input name="primaryContactEmail" type="email" class="input" value={data.vendor.primaryContactEmail} maxlength="254" />
+        </label>
+      </div>
+      <div class="flex gap-2">
+        <button type="submit" class="btn-primary">Save changes</button>
+        <button type="button" class="btn-secondary" on:click={() => (showEditForm = false)}>Cancel</button>
+      </div>
+    </form>
+  </div>
+{/if}
 
 <div class="space-y-6">
   <!-- KPI strip -->

@@ -7,13 +7,20 @@
   import { addToast } from '$lib/stores/toast';
   import {
     BrainCircuit, Calculator, BookOpen, AlertTriangle, ScrollText, Activity,
-    ShieldCheck, Sparkles
+    ShieldCheck, Sparkles, Pencil
   } from 'lucide-svelte';
   import type {
     AIModel, AIRiskTier, ISO42001Status, AIModelKind, ModelRisk, PromptAuditEntry, RiskSeverity, ModelRiskType
   } from '$lib/data/types';
+  import { enhance } from '$app/forms';
 
   export let data;
+  export let form: { editSuccess?: boolean; editError?: string } | null = null;
+
+  $: if (form?.editSuccess) { addToast('success', 'AI model updated.'); showEditForm = false; }
+  $: if (form?.editError) addToast('error', form.editError);
+
+  let showEditForm = false;
 
   // ---------- Tabs ----------
   type Tab = 'overview' | 'risk' | 'prompts' | 'monitoring';
@@ -161,12 +168,61 @@
   <svelte:fragment slot="actions">
     <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {kindCls(data.model.kind)}">{data.model.kind}</span>
     <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {tierCls(data.model.riskTier)}">{data.model.riskTier}</span>
+    <button class="btn-secondary" on:click={() => (showEditForm = !showEditForm)}>
+      <Pencil class="h-4 w-4" />
+      <span>Edit</span>
+    </button>
     <button class="btn-primary" on:click={runRiskAssessment}>
       <Calculator class="h-4 w-4" />
       <span>Run Risk Assessment</span>
     </button>
   </svelte:fragment>
 </PageHeader>
+
+{#if showEditForm}
+  <div class="card p-5">
+    <h3 class="mb-4 text-sm font-semibold text-grc-ink">Edit AI Model</h3>
+    <form method="POST" action="?/updateAIModel" use:enhance class="space-y-4">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Name</span>
+          <input name="name" class="input" value={data.model.name} required maxlength="256" />
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Kind</span>
+          <select name="kind" class="input" value={data.model.kind}>
+            <option value="classifier">Classifier</option>
+            <option value="llm">LLM</option>
+            <option value="regression">Regression</option>
+            <option value="vision">Vision</option>
+            <option value="recommender">Recommender</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Risk Tier</span>
+          <select name="riskTier" class="input" value={data.model.riskTier}>
+            <option value="minimal">Minimal</option>
+            <option value="limited">Limited</option>
+            <option value="high">High</option>
+            <option value="unacceptable">Unacceptable</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Jurisdiction</span>
+          <input name="jurisdiction" class="input" value={data.model.jurisdiction} maxlength="128" />
+        </label>
+        <label class="block sm:col-span-2">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Training Data Summary</span>
+          <textarea name="trainingDataSummary" class="input h-20 resize-none" maxlength="4096">{data.model.trainingDataSummary ?? ''}</textarea>
+        </label>
+      </div>
+      <div class="flex gap-2">
+        <button type="submit" class="btn-primary">Save changes</button>
+        <button type="button" class="btn-secondary" on:click={() => (showEditForm = false)}>Cancel</button>
+      </div>
+    </form>
+  </div>
+{/if}
 
 <div class="space-y-6">
   <!-- Title card -->

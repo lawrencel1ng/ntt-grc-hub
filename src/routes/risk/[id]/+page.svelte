@@ -5,16 +5,23 @@
   import AgentTypeBadge from '$lib/components/AgentTypeBadge.svelte';
   import { addToast } from '$lib/stores/toast';
   import { runFAIR } from '$lib/utils/fair';
-  import { AlertTriangle, Calculator, Calendar, User as UserIcon, ListChecks, Layers, BookOpen, Hammer, History as HistoryIcon, ShieldCheck, Bot } from 'lucide-svelte';
+  import { AlertTriangle, Calculator, Calendar, User as UserIcon, ListChecks, Layers, BookOpen, Hammer, History as HistoryIcon, ShieldCheck, Bot, Pencil } from 'lucide-svelte';
   import StatusDot from '$lib/components/StatusDot.svelte';
   import { enhance } from '$app/forms';
   import type { Risk, RiskSeverity, RiskLikelihood, FAIRScenario } from '$lib/data/types';
 
   export let data;
-  export let form: { statusUpdated?: boolean; newStatus?: string; statusError?: string } | null = null;
+  export let form: {
+    statusUpdated?: boolean; newStatus?: string; statusError?: string;
+    editSuccess?: boolean; editError?: string;
+  } | null = null;
 
   $: if (form?.statusUpdated) addToast('success', `Risk status updated to "${form.newStatus}".`);
   $: if (form?.statusError) addToast('error', form.statusError);
+  $: if (form?.editSuccess) { addToast('success', 'Risk updated.'); showEditForm = false; }
+  $: if (form?.editError) addToast('error', form.editError);
+
+  let showEditForm = false;
 
   // ---------- Scoring ----------
   const SEV_RANK: Record<RiskSeverity, number> = { critical: 5, high: 4, medium: 3, low: 2, info: 1 };
@@ -154,12 +161,91 @@
       </select>
       <button type="submit" class="btn-secondary py-1 text-xs">Update</button>
     </form>
+    <button class="btn-secondary" on:click={() => (showEditForm = !showEditForm)}>
+      <Pencil class="h-4 w-4" />
+      <span>Edit</span>
+    </button>
     <button class="btn-primary" on:click={runFairAction}>
       <Calculator class="h-4 w-4" />
       <span>Run FAIR Analysis</span>
     </button>
   </svelte:fragment>
 </PageHeader>
+
+{#if showEditForm}
+  <div class="card p-5">
+    <h3 class="mb-4 text-sm font-semibold text-grc-ink">Edit Risk</h3>
+    <form method="POST" action="?/updateRisk" use:enhance class="space-y-4">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <label class="block sm:col-span-2">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Title</span>
+          <input name="title" class="input" value={data.risk.title} required maxlength="256" />
+        </label>
+        <label class="block sm:col-span-2">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Description</span>
+          <textarea name="description" class="input h-20 resize-none" maxlength="2048">{data.risk.description ?? ''}</textarea>
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Category</span>
+          <input name="category" class="input" value={data.risk.category} maxlength="128" />
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Treatment Strategy</span>
+          <select name="treatmentStrategy" class="input" value={data.risk.treatmentStrategy}>
+            <option value="mitigate">Mitigate</option>
+            <option value="accept">Accept</option>
+            <option value="transfer">Transfer</option>
+            <option value="avoid">Avoid</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Inherent Severity</span>
+          <select name="inherentSeverity" class="input" value={data.risk.inherentSeverity}>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+            <option value="info">Info</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Inherent Likelihood</span>
+          <select name="inherentLikelihood" class="input" value={data.risk.inherentLikelihood}>
+            <option value="almost-certain">Almost Certain</option>
+            <option value="likely">Likely</option>
+            <option value="possible">Possible</option>
+            <option value="unlikely">Unlikely</option>
+            <option value="rare">Rare</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Residual Severity</span>
+          <select name="residualSeverity" class="input" value={data.risk.residualSeverity}>
+            <option value="critical">Critical</option>
+            <option value="high">High</option>
+            <option value="medium">Medium</option>
+            <option value="low">Low</option>
+            <option value="info">Info</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Residual Likelihood</span>
+          <select name="residualLikelihood" class="input" value={data.risk.residualLikelihood}>
+            <option value="almost-certain">Almost Certain</option>
+            <option value="likely">Likely</option>
+            <option value="possible">Possible</option>
+            <option value="unlikely">Unlikely</option>
+            <option value="rare">Rare</option>
+          </select>
+        </label>
+      </div>
+      <div class="flex gap-2">
+        <button type="submit" class="btn-primary">Save changes</button>
+        <button type="button" class="btn-secondary" on:click={() => (showEditForm = false)}>Cancel</button>
+      </div>
+    </form>
+  </div>
+{/if}
 
 <div class="space-y-6">
   <!-- Title card -->

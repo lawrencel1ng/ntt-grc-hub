@@ -30,6 +30,41 @@ const VALID_FINDING_STATUSES = ['open', 'closed', 'accepted-risk'] as const;
 const VALID_SEVERITIES = ['critical', 'high', 'medium', 'low', 'info'] as const;
 
 export const actions: Actions = {
+  updateAudit: async ({ params, request, locals }) => {
+    if (!locals.user) return fail(401, { editError: 'Not authenticated' });
+    if (!isPgMode()) return fail(400, { editError: 'Requires Postgres mode' });
+
+    const fd = await request.formData();
+    const name = String(fd.get('name') ?? '').trim();
+    const leadAuditor = String(fd.get('leadAuditor') ?? '').trim();
+    const scope = String(fd.get('scope') ?? '').trim() || null;
+
+    if (!name) return fail(400, { editError: 'Name is required.' });
+    if (name.length > 256) return fail(400, { editError: 'Name must be 256 characters or fewer.' });
+    if (leadAuditor.length > 256) return fail(400, { editError: 'Lead auditor must be 256 characters or fewer.' });
+    if (scope && scope.length > 2048) return fail(400, { editError: 'Scope must be 2048 characters or fewer.' });
+
+    const pool = getPool();
+    const { rowCount } = await pool.query(
+      `UPDATE audit.engagements SET name = $1, lead_auditor = $2, scope = $3
+       WHERE id = $4::uuid AND tenant_id = $5`,
+      [name, leadAuditor, scope, params.id, locals.user.tenantId]
+    );
+    if (!rowCount) return fail(404, { editError: 'Engagement not found or access denied.' });
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: 'audit.engagement.updated',
+      target: `engagement:${params.id}`,
+      result: 'success',
+      metadata: { name, leadAuditor }
+    });
+
+    return { editSuccess: true };
+  },
+
   createFinding: async ({ params, request, locals }) => {
     if (!locals.user) return fail(401, { findingError: 'Not authenticated' });
     if (!isPgMode()) return fail(400, { findingError: 'Requires Postgres mode' });

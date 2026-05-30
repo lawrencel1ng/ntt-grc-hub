@@ -5,13 +5,14 @@
   import { addToast } from '$lib/stores/toast';
   import { downloadCsv } from '$lib/utils/csv';
   import { enhance } from '$app/forms';
-  import { Download, FileBarChart, FileText, Package, Zap, ClipboardCheck } from 'lucide-svelte';
+  import { Download, FileBarChart, FileText, Package, Zap, ClipboardCheck, Pencil } from 'lucide-svelte';
   import type { EngagementType, AuditFinding } from '$lib/data/types';
 
   export let data;
   export let form: {
     findingUpdated?: boolean; findingId?: string; newStatus?: string; findingError?: string;
     findingCreated?: boolean;
+    editSuccess?: boolean; editError?: string;
   } | null = null;
 
   // Optimistically update finding status in the local list on success
@@ -26,8 +27,11 @@
   }
   $: if (form?.findingCreated) { addToast('success', 'Finding recorded.'); showNewFinding = false; }
   $: if (form?.findingError) addToast('error', form.findingError);
+  $: if (form?.editSuccess) { addToast('success', 'Engagement updated.'); showEditForm = false; }
+  $: if (form?.editError) addToast('error', form.editError);
 
   let showNewFinding = false;
+  let showEditForm = false;
   let nfTitle = '', nfDesc = '', nfSeverity = 'medium', nfDue = '';
 
   type Tab = 'findings' | 'workpapers' | 'pack';
@@ -116,8 +120,38 @@
 >
   <svelte:fragment slot="actions">
     <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset {typeCls(data.audit.type)}">{data.audit.type}</span>
+    <button class="btn-secondary" on:click={() => (showEditForm = !showEditForm)}>
+      <Pencil class="h-4 w-4" />
+      <span>Edit</span>
+    </button>
   </svelte:fragment>
 </PageHeader>
+
+{#if showEditForm}
+  <div class="card p-5">
+    <h3 class="mb-4 text-sm font-semibold text-grc-ink">Edit Engagement</h3>
+    <form method="POST" action="?/updateAudit" use:enhance class="space-y-4">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <label class="block sm:col-span-2">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Name</span>
+          <input name="name" class="input" value={data.audit.name} required maxlength="256" />
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Lead Auditor</span>
+          <input name="leadAuditor" class="input" value={data.audit.leadAuditor} maxlength="256" />
+        </label>
+        <label class="block sm:col-span-2">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Scope</span>
+          <textarea name="scope" class="input h-20 resize-none" maxlength="2048">{data.audit.scope ?? ''}</textarea>
+        </label>
+      </div>
+      <div class="flex gap-2">
+        <button type="submit" class="btn-primary">Save changes</button>
+        <button type="button" class="btn-secondary" on:click={() => (showEditForm = false)}>Cancel</button>
+      </div>
+    </form>
+  </div>
+{/if}
 
 <div class="space-y-6">
   <!-- Metadata header card -->

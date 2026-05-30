@@ -4,14 +4,21 @@
   import { addToast } from '$lib/stores/toast';
   import {
     LifeBuoy, Clock, Calendar, BookOpen, Network, History as HistoryIcon, AlertTriangle,
-    Users as UsersIcon, Server, MapPin, Building
+    Users as UsersIcon, Server, MapPin, Building, Pencil
   } from 'lucide-svelte';
   import type {
     BCMPlan, BCMDependency, BCMTest, BCMTestKind, BCMTestResult, BCMDependencyKind,
     BCMEscalationContact, VendorCriticality, Risk, RiskSeverity
   } from '$lib/data/types';
+  import { enhance } from '$app/forms';
 
   export let data;
+  export let form: { editSuccess?: boolean; editError?: string } | null = null;
+
+  $: if (form?.editSuccess) { addToast('success', 'BCM plan updated.'); showEditForm = false; }
+  $: if (form?.editError) addToast('error', form.editError);
+
+  let showEditForm = false;
 
   // ---------- Tabs ----------
   type Tab = 'overview' | 'bia' | 'tests' | 'risks';
@@ -122,12 +129,54 @@
   <svelte:fragment slot="actions">
     <span class="inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-semibold text-rose-700 ring-1 ring-inset ring-rose-200">RTO {fmtMin(data.plan.rtoMinutes)}</span>
     <span class="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700 ring-1 ring-inset ring-amber-200">RPO {fmtMin(data.plan.rpoMinutes)}</span>
+    <button class="btn-secondary" on:click={() => (showEditForm = !showEditForm)}>
+      <Pencil class="h-4 w-4" />
+      <span>Edit</span>
+    </button>
     <button class="btn-primary" on:click={() => (showScheduleForm = !showScheduleForm)}>
       <Calendar class="h-4 w-4" />
       <span>Schedule Test</span>
     </button>
   </svelte:fragment>
 </PageHeader>
+
+{#if showEditForm}
+  <div class="card p-5">
+    <h3 class="mb-4 text-sm font-semibold text-grc-ink">Edit BCM Plan</h3>
+    <form method="POST" action="?/updateBCMPlan" use:enhance class="space-y-4">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Name</span>
+          <input name="name" class="input" value={data.plan.name} required maxlength="256" />
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Business Service</span>
+          <input name="businessService" class="input" value={data.plan.businessService} maxlength="256" />
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">RTO (minutes)</span>
+          <input name="rtoMinutes" type="number" min="0" class="input" value={data.plan.rtoMinutes} />
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">RPO (minutes)</span>
+          <input name="rpoMinutes" type="number" min="0" class="input" value={data.plan.rpoMinutes} />
+        </label>
+        <label class="block sm:col-span-2">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Description</span>
+          <textarea name="description" class="input h-20 resize-none" maxlength="2048">{data.plan.description ?? ''}</textarea>
+        </label>
+        <label class="block sm:col-span-2">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Recovery Strategy</span>
+          <textarea name="recoveryStrategy" class="input h-24 resize-none" maxlength="4096">{data.plan.recoveryStrategy ?? ''}</textarea>
+        </label>
+      </div>
+      <div class="flex gap-2">
+        <button type="submit" class="btn-primary">Save changes</button>
+        <button type="button" class="btn-secondary" on:click={() => (showEditForm = false)}>Cancel</button>
+      </div>
+    </form>
+  </div>
+{/if}
 
 {#if showScheduleForm}
   <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">

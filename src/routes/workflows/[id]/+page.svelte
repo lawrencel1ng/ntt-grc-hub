@@ -5,18 +5,25 @@
   import { addToast } from '$lib/stores/toast';
   import { enhance } from '$app/forms';
   import {
-    Play, Bot, Plug, User as UserIcon, GitBranch, CheckCircle2, Workflow as WorkflowIcon, Clock
+    Play, Bot, Plug, User as UserIcon, GitBranch, CheckCircle2, Workflow as WorkflowIcon, Clock, Pencil
   } from 'lucide-svelte';
   import type { WorkflowExecutionStatus, WorkflowStepDef } from '$lib/data/types';
 
   export let data;
-  export let form: { toggled?: boolean; enabled?: boolean; toggleError?: string } | null = null;
+  export let form: {
+    toggled?: boolean; enabled?: boolean; toggleError?: string;
+    editSuccess?: boolean; editError?: string;
+  } | null = null;
 
   $: if (form?.toggled) {
     data = { ...data, workflow: { ...data.workflow, enabled: form.enabled ?? data.workflow.enabled } };
     addToast('success', form.enabled ? 'Workflow enabled.' : 'Workflow paused.');
   }
   $: if (form?.toggleError) addToast('error', form.toggleError);
+  $: if (form?.editSuccess) { addToast('success', 'Workflow updated.'); showEditForm = false; }
+  $: if (form?.editError) addToast('error', form.editError);
+
+  let showEditForm = false;
 
   let selectedStep: number | null = null;
 
@@ -122,12 +129,38 @@
         {data.workflow.enabled ? 'Pause' : 'Enable'}
       </button>
     </form>
+    <button class="btn-secondary" on:click={() => (showEditForm = !showEditForm)}>
+      <Pencil class="h-4 w-4" />
+      <span>Edit</span>
+    </button>
     <button class="btn-primary" on:click={runNow}>
       <Play class="h-4 w-4" />
       <span>Run Now</span>
     </button>
   </svelte:fragment>
 </PageHeader>
+
+{#if showEditForm}
+  <div class="card p-5">
+    <h3 class="mb-4 text-sm font-semibold text-grc-ink">Edit Workflow</h3>
+    <form method="POST" action="?/updateWorkflow" use:enhance class="space-y-4">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <label class="block sm:col-span-2">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Name</span>
+          <input name="name" class="input" value={data.workflow.name} required maxlength="256" />
+        </label>
+        <label class="block sm:col-span-2">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Description</span>
+          <textarea name="description" class="input h-20 resize-none" maxlength="2048">{data.workflow.description ?? ''}</textarea>
+        </label>
+      </div>
+      <div class="flex gap-2">
+        <button type="submit" class="btn-primary">Save changes</button>
+        <button type="button" class="btn-secondary" on:click={() => (showEditForm = false)}>Cancel</button>
+      </div>
+    </form>
+  </div>
+{/if}
 
 <div class="space-y-6">
   <!-- KPI strip -->

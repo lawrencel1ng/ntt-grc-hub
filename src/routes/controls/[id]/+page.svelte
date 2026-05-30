@@ -6,10 +6,17 @@
   import AgentTypeBadge from '$lib/components/AgentTypeBadge.svelte';
   import Sparkline from '$lib/components/Sparkline.svelte';
   import { addToast } from '$lib/stores/toast';
-  import { Bot, Play, ShieldCheck, Calendar, Activity, Layers, AlertCircle, FileLock2 } from 'lucide-svelte';
+  import { Bot, Play, ShieldCheck, Calendar, Activity, Layers, AlertCircle, FileLock2, Pencil } from 'lucide-svelte';
   import type { ControlTestResult, ControlMapping, ControlTest, ControlException } from '$lib/data/types';
+  import { enhance } from '$app/forms';
 
   export let data;
+  export let form: { editSuccess?: boolean; editError?: string } | null = null;
+
+  $: if (form?.editSuccess) { addToast('success', 'Control updated.'); showEditForm = false; }
+  $: if (form?.editError) addToast('error', form.editError);
+
+  let showEditForm = false;
 
   // ---------- Real mappings from control.mappings ----------
   $: mappings = (data.mappings as ControlMapping[]).map((m) => ({
@@ -73,12 +80,67 @@
         Automated
       </span>
     {/if}
+    <button class="btn-secondary" on:click={() => (showEditForm = !showEditForm)}>
+      <Pencil class="h-4 w-4" />
+      <span>Edit</span>
+    </button>
     <button class="btn-primary" on:click={runTest}>
       <Play class="h-4 w-4" />
       <span>Run Test</span>
     </button>
   </svelte:fragment>
 </PageHeader>
+
+{#if showEditForm}
+  <div class="card p-5">
+    <h3 class="mb-4 text-sm font-semibold text-grc-ink">Edit Control</h3>
+    <form method="POST" action="?/updateControl" use:enhance class="space-y-4">
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <label class="block sm:col-span-2">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Title</span>
+          <input name="title" class="input" value={data.control.title} required maxlength="256" />
+        </label>
+        <label class="block sm:col-span-2">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Description</span>
+          <textarea name="description" class="input h-20 resize-none" maxlength="2048">{data.control.description ?? ''}</textarea>
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Type</span>
+          <select name="type" class="input" value={data.control.type}>
+            <option value="technical">Technical</option>
+            <option value="process">Process</option>
+            <option value="admin">Admin</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Maturity</span>
+          <select name="maturity" class="input" value={data.control.maturity}>
+            <option value="initial">Initial</option>
+            <option value="developing">Developing</option>
+            <option value="defined">Defined</option>
+            <option value="managed">Managed</option>
+            <option value="optimised">Optimised</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Frequency</span>
+          <input name="frequency" class="input" value={data.control.frequency} maxlength="64" />
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Automated</span>
+          <select name="automated" class="input" value={data.control.automated ? 'true' : 'false'}>
+            <option value="true">Yes</option>
+            <option value="false">No</option>
+          </select>
+        </label>
+      </div>
+      <div class="flex gap-2">
+        <button type="submit" class="btn-primary">Save changes</button>
+        <button type="button" class="btn-secondary" on:click={() => (showEditForm = false)}>Cancel</button>
+      </div>
+    </form>
+  </div>
+{/if}
 
 <div class="space-y-6">
   <!-- Header -->

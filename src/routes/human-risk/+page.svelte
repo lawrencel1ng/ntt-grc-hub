@@ -112,7 +112,8 @@
     }
   }
   function pushToRegister() {
-    addToast('success', 'Human-risk exposure already linked to the ERM register (R-…-HUMAN) and FAIR scenario.');
+    // Status indicator — the register entry and FAIR scenario links above provide navigation.
+    addToast('info', 'Human-risk exposure is linked to the ERM register entry and FAIR scenario shown above.');
   }
 </script>
 

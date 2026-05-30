@@ -48,11 +48,17 @@ export async function createSession(userId: string, ip: string, ua: string): Pro
   const hash = await bcrypt.hash(token, 10);
   const prefix = tokenPrefix(token);
   const expiresAt = new Date(Date.now() + SESSION_TTL_DAYS * 86_400_000);
-  await pool.query(
-    `INSERT INTO platform.sessions (user_id, token_hash, token_prefix, issued_at, expires_at, ip_address, user_agent)
-     VALUES ($1, $2, $3, now(), $4, $5::inet, $6)`,
-    [userId, hash, prefix, expiresAt, ip || null, ua || null]
-  );
+  await Promise.all([
+    pool.query(
+      `INSERT INTO platform.sessions (user_id, token_hash, token_prefix, issued_at, expires_at, ip_address, user_agent)
+       VALUES ($1, $2, $3, now(), $4, $5::inet, $6)`,
+      [userId, hash, prefix, expiresAt, ip || null, ua || null]
+    ),
+    pool.query(
+      `UPDATE platform.users SET last_login_at = now() WHERE id = $1`,
+      [userId]
+    )
+  ]);
   return token;
 }
 

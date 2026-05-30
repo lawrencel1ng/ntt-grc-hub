@@ -73,6 +73,7 @@ export const load: PageServerLoad = async ({ locals }) => {
     cost30d,
     narrative,
     kpis,
-    scenarios
+    scenarios,
+    generatedAt: new Date().toISOString()
   };
 };

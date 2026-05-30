@@ -18,10 +18,7 @@
   export let data;
 
   // ---------- Generated metadata ----------
-  // The board pack is a snapshot — pin its "generated at" 11 minutes ago to
-  // match the spec's wow-path step 11 ("Board Narrator generates 1-page CEO
-  // summary live · 11 min ago").
-  const generatedAt = new Date(Date.now() - 11 * 60_000);
+  const generatedAt = new Date(data.generatedAt as string);
   const month = generatedAt.toLocaleString('en-SG', { month: 'long', year: 'numeric' });
   const tenantName = data.tenant?.name ?? 'Group';
 

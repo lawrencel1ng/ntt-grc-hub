@@ -1,6 +1,7 @@
 // =====================================================================
-//  /controls/[id] — Control detail. Loads the control + 20 most recent
-//  test runs. Mapped frameworks are inferred (mock) from the id seed.
+//  /controls/[id] — Control detail. Loads the control + 30 most recent
+//  test runs, real framework mappings from control.mappings, tests,
+//  exceptions, and linked evidence items.
 // =====================================================================
 
 import { error } from '@sveltejs/kit';

@@ -6,8 +6,7 @@ import {
   getConcentrations,
   getVendors,
   getBCMPlans,
-  getBCMDependencies,
-  getBCMTests,
+  getBCMDepsAndTestsByTenant,
   getAgents,
   getAgentFleetSummary,
   getCostLedger30d,
@@ -29,6 +28,7 @@ export const load: PageServerLoad = async ({ locals }) => {
     concentrations,
     vendors,
     plans,
+    { deps: depsMap, tests: testsMap },
     agents,
     fleet,
     cost30d,
@@ -42,6 +42,7 @@ export const load: PageServerLoad = async ({ locals }) => {
     getConcentrations(effective),
     getVendors(effective),
     getBCMPlans(effective),
+    getBCMDepsAndTestsByTenant(effective),
     getAgents(),
     getAgentFleetSummary(),
     getCostLedger30d(effective),
@@ -50,12 +51,11 @@ export const load: PageServerLoad = async ({ locals }) => {
     getFairScenarios(effective)
   ]);
 
-  // Pre-load top 5 IBS dependencies + tests so the Resilience panel renders
-  // a tidy summary table without a follow-up request.
   const topPlans = plans.slice(0, 5);
-  const planRows = await Promise.all(topPlans.map(async (p) => {
-    const [deps, tests] = await Promise.all([getBCMDependencies(p.id), getBCMTests(p.id)]);
-    return { plan: p, deps, tests };
+  const planRows = topPlans.map((p) => ({
+    plan: p,
+    deps: depsMap[p.id] ?? [],
+    tests: testsMap[p.id] ?? []
   }));
 
   return {

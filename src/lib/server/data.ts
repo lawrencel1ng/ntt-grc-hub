@@ -555,8 +555,11 @@ export async function getRecentlyTestedControls(tenantId: string, limit = 6): Pr
   return safeQuery<Control>(
     `SELECT DISTINCT ON (cl.id) cl.id, cl.tenant_id AS "tenantId", cl.code, cl.title,
             cl.description, cl.type::text AS type, cl.family, cl.frequency,
-            cl.automated, cl.maturity::text AS maturity
+            cl.automated, cl.maturity::text AS maturity,
+            cl.owner_user_id::text AS "ownerUserId", u.email AS "ownerEmail",
+            tr.result::text AS "lastTestResult", tr.ran_at AS "lastTestedAt"
      FROM control.library cl
+     LEFT JOIN platform.users u ON u.id = cl.owner_user_id
      JOIN control.test_runs tr ON tr.control_id = cl.id
      WHERE cl.tenant_id = $1
        AND tr.ran_at > now() - interval '90 days'

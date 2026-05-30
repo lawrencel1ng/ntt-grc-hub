@@ -5,7 +5,8 @@
   import AgentTypeBadge from '$lib/components/AgentTypeBadge.svelte';
   import { addToast } from '$lib/stores/toast';
   import { runFAIR } from '$lib/utils/fair';
-  import { AlertTriangle, Calculator, Calendar, User as UserIcon, ListChecks, Layers, Activity, BookOpen, Hammer, History as HistoryIcon, ShieldCheck, Bot } from 'lucide-svelte';
+  import { AlertTriangle, Calculator, Calendar, User as UserIcon, ListChecks, Layers, BookOpen, Hammer, History as HistoryIcon, ShieldCheck, Bot } from 'lucide-svelte';
+  import StatusDot from '$lib/components/StatusDot.svelte';
   import { enhance } from '$app/forms';
   import type { Risk, RiskSeverity, RiskLikelihood, FAIRScenario } from '$lib/data/types';
 
@@ -390,9 +391,11 @@
                 <td class="td"><span class="tag tag-slate">{c.type}</span></td>
                 <td class="td text-xs text-slate-500">{c.maturity}</td>
                 <td class="td">
-                  <span class="inline-flex items-center gap-1 text-violet-700">
-                    <Activity class="h-3 w-3" /> pass
-                  </span>
+                  {#if c.lastTestResult}
+                    <StatusDot status={c.lastTestResult} withLabel />
+                  {:else}
+                    <span class="text-xs text-slate-400">no runs</span>
+                  {/if}
                 </td>
                 <td class="td">
                   <a href="/controls/{c.id}" class="text-slate-400 hover:text-grc-primary">→</a>

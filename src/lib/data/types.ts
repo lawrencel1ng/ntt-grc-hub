@@ -223,6 +223,8 @@ export interface Control {
   frequency: string;
   automated: boolean;
   maturity: ControlMaturity;
+  lastTestResult?: ControlTestResult;
+  lastTestedAt?: string;
 }
 
 export interface ControlMapping {

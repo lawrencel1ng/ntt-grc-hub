@@ -82,11 +82,32 @@
     return 'bg-violet-50 text-violet-700 ring-violet-200';
   }
 
-  function enroll() {
-    addToast('success', `${u.name} enrolled in remedial "Phishing & Social Engineering" path · manager notified.`);
+  async function enroll() {
+    const res = await fetch('/api/human-risk/enroll', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: u.id, userEmail: u.email })
+    });
+    if (res.ok) {
+      addToast('success', `${u.name} enrolled in remedial training · audit log updated.`);
+    } else {
+      const msg = await res.text().catch(() => '');
+      addToast('error', msg || 'Failed to enroll user in training.');
+    }
   }
-  function simulate() {
-    addToast('info', `Targeted phishing simulation queued for ${u.name}.`);
+
+  async function simulate() {
+    const res = await fetch('/api/human-risk/simulate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: u.id, userEmail: u.email })
+    });
+    if (res.ok) {
+      addToast('info', `Targeted phishing simulation queued for ${u.name}.`);
+    } else {
+      const msg = await res.text().catch(() => '');
+      addToast('error', msg || 'Failed to queue phishing simulation.');
+    }
   }
 </script>
 

@@ -29,6 +29,7 @@ export const actions: Actions = {
     const dueAt = String(data.get('dueAt') ?? '').trim() || null;
 
     if (!title) return fail(400, { issueError: 'Title is required.' });
+    if (title.length > 256) return fail(400, { issueError: 'Title must be 256 characters or fewer.' });
 
     const VALID_SOURCES = ['audit', 'risk-treatment', 'incident', 'control-test', 'regulatory'];
     const VALID_SEVS = ['critical', 'high', 'medium', 'low', 'info'];

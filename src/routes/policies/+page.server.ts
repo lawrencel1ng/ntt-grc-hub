@@ -38,6 +38,9 @@ export const actions: Actions = {
     const jurisdiction = String(data.get('jurisdiction') ?? 'Global').trim();
 
     if (!title || !code) return fail(400, { policyError: 'Title and code are required.' });
+    if (title.length > 256) return fail(400, { policyError: 'Title must be 256 characters or fewer.' });
+    if (code.length > 32 || !/^[A-Z0-9_-]+$/.test(code)) return fail(400, { policyError: 'Code must be 1–32 uppercase alphanumeric characters (A–Z, 0–9, - _).' });
+    if (jurisdiction.length > 128) return fail(400, { policyError: 'Jurisdiction must be 128 characters or fewer.' });
 
     const pool = getPool();
     const existing = await pool.query(

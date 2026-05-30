@@ -34,6 +34,9 @@ export const actions: Actions = {
     const scope = String(data.get('scope') ?? '').trim() || null;
 
     if (!name || !leadAuditor) return fail(400, { engagementError: 'Name and lead auditor are required.' });
+    if (name.length > 256) return fail(400, { engagementError: 'Name must be 256 characters or fewer.' });
+    if (leadAuditor.length > 256) return fail(400, { engagementError: 'Lead auditor must be 256 characters or fewer.' });
+    if (scope && scope.length > 2048) return fail(400, { engagementError: 'Scope must be 2 048 characters or fewer.' });
     const VALID_TYPES = ['internal', 'external', 'regulatory', 'customer'];
     if (!VALID_TYPES.includes(type)) return fail(400, { engagementError: 'Invalid engagement type.' });
 

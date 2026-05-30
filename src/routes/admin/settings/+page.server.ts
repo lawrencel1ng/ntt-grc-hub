@@ -77,6 +77,9 @@ export const actions: Actions = {
     const timezone = String(data.get('timezone') ?? '').trim();
 
     if (!name) return fail(400, { profileError: 'Name is required.' });
+    if (name.length > 128) return fail(400, { profileError: 'Name must be 128 characters or fewer.' });
+    if (language.length > 10) return fail(400, { profileError: 'Invalid language code.' });
+    if (timezone.length > 64) return fail(400, { profileError: 'Invalid timezone.' });
 
     const pool = getPool();
     await pool.query(
@@ -147,6 +150,9 @@ export const actions: Actions = {
     const name = String(data.get('tokenName') ?? '').trim();
     const scope = String(data.get('tokenScope') ?? 'evidence:read').trim();
     if (!name) return fail(400, { newTokenError: 'Token name is required.' });
+    if (name.length > 128) return fail(400, { newTokenError: 'Token name must be 128 characters or fewer.' });
+    const VALID_SCOPES = ['evidence:read', 'risks:read', 'controls:read', 'full:read'];
+    if (!VALID_SCOPES.includes(scope)) return fail(400, { newTokenError: 'Invalid scope.' });
 
     const rawToken = 'ntt_grc_' + randomBytes(24).toString('hex');
     const { createHash } = await import('crypto');

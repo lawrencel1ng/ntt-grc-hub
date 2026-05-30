@@ -35,16 +35,16 @@ export const actions: Actions = {
     const primaryContactEmail = String(data.get('primaryContactEmail') ?? '').trim() || null;
 
     if (!name) return fail(400, { error: 'Vendor name is required.' });
+    if (name.length > 256) return fail(400, { error: 'Vendor name must be 256 characters or fewer.' });
+    if (hqCountry && hqCountry.length > 128) return fail(400, { error: 'HQ country must be 128 characters or fewer.' });
+    if (primaryContactEmail && primaryContactEmail.length > 254) return fail(400, { error: 'Contact email must be 254 characters or fewer.' });
 
-    const VALID_TIERS = ['tier1', 'tier2', 'tier3', 'tier4'];
     const VALID_CRITS = ['critical', 'high', 'medium', 'low'];
 
     // Map tier4 → '4' etc. to match the DB enum values
     const tierValue = tier.startsWith('tier') ? tier.replace('tier', '') : tier;
     if (!['1', '2', '3', '4'].includes(tierValue)) return fail(400, { error: 'Invalid tier.' });
     if (!VALID_CRITS.includes(criticality)) return fail(400, { error: 'Invalid criticality.' });
-
-    void VALID_TIERS; // used above implicitly via tierValue mapping
 
     const pool = getPool();
     await pool.query(

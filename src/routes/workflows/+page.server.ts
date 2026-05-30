@@ -26,6 +26,8 @@ export const actions: Actions = {
     const description = String(data.get('description') ?? '').trim() || null;
 
     if (!name) return fail(400, { workflowError: 'Workflow name is required.' });
+    if (name.length > 256) return fail(400, { workflowError: 'Workflow name must be 256 characters or fewer.' });
+    if (description && description.length > 2048) return fail(400, { workflowError: 'Description must be 2 048 characters or fewer.' });
 
     const pool = getPool();
     await pool.query(

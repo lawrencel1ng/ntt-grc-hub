@@ -37,6 +37,8 @@ export const actions: Actions = {
 
     // Validate required fields
     if (!title) return fail(400, { error: 'Title is required.' });
+    if (title.length > 256) return fail(400, { error: 'Title must be 256 characters or fewer.' });
+    if (description && description.length > 2048) return fail(400, { error: 'Description must be 2 048 characters or fewer.' });
     if (!category) return fail(400, { error: 'Category is required.' });
     if (!inherentSeverity) return fail(400, { error: 'Inherent severity is required.' });
     if (!inherentLikelihood) return fail(400, { error: 'Inherent likelihood is required.' });

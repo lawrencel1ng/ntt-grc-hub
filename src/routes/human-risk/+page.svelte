@@ -96,9 +96,20 @@
     if (syncing) return;
     syncing = true;
     addToast('info', 'Pulling latest risk scores from KnowBe4 Virtual Risk Officer…');
-    await new Promise((r) => setTimeout(r, 700));
-    syncing = false;
-    addToast('success', `Synced ${data.users.length} user risk profiles · org score refreshed.`);
+    try {
+      const res = await fetch('/api/human-risk/sync', { method: 'POST' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ message: res.statusText }));
+        addToast('error', `Sync failed: ${body.message ?? res.statusText}`);
+      } else {
+        const { usersSync } = await res.json();
+        addToast('success', `Synced ${usersSync} user risk profiles · org score refreshed. Reload to see updated data.`);
+      }
+    } catch {
+      addToast('error', 'Network error — could not reach the sync endpoint.');
+    } finally {
+      syncing = false;
+    }
   }
   function pushToRegister() {
     addToast('success', 'Human-risk exposure already linked to the ERM register (R-…-HUMAN) and FAIR scenario.');

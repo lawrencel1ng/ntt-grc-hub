@@ -35,6 +35,7 @@ export const actions: Actions = {
     const status = String(data.get('status') ?? 'draft').trim();
 
     if (!versionId) return fail(400, { editError: 'Version ID required.' });
+    if (contentMd.length > 200_000) return fail(400, { editError: 'Policy content must be 200 000 characters or fewer.' });
     const VALID_STATUSES = ['draft', 'in-review', 'approved', 'retired'];
     if (!VALID_STATUSES.includes(status)) return fail(400, { editError: 'Invalid status.' });
 

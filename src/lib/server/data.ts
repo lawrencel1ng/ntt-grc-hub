@@ -100,9 +100,7 @@ export async function getUsers(tenantId?: string): Promise<import('$lib/data/typ
             last_login_at AS "lastLoginAt"
      FROM platform.users ${where} ORDER BY name`, params
   );
-  if (rows.length) return rows;
-  const { getUsersAll, getUsersForTenant } = await import('$lib/data/users');
-  return tenantId ? getUsersForTenant(tenantId) : getUsersAll();
+  return rows;
 }
 
 // =====================================================================

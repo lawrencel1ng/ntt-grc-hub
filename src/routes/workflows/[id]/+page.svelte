@@ -91,15 +91,19 @@
   const SVG_HEIGHT = 140;
 
   async function runNow() {
-    const res = await fetch(`/api/workflows/${data.workflow.id}/run`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    if (res.ok) {
-      addToast('success', `${data.workflow.name} queued.`);
-    } else {
-      const msg = await res.text().catch(() => '');
-      addToast('error', msg || 'Failed to queue workflow execution.');
+    try {
+      const res = await fetch(`/api/workflows/${data.workflow.id}/run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (res.ok) {
+        addToast('success', `${data.workflow.name} queued.`);
+      } else {
+        const msg = await res.text().catch(() => '');
+        addToast('error', msg || 'Failed to queue workflow execution.');
+      }
+    } catch {
+      addToast('error', 'Network error — check your connection and try again.');
     }
   }
 </script>

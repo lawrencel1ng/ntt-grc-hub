@@ -83,30 +83,38 @@
   }
 
   async function enroll() {
-    const res = await fetch('/api/human-risk/enroll', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: u.id, userEmail: u.email })
-    });
-    if (res.ok) {
-      addToast('success', `${u.name} enrolled in remedial training · audit log updated.`);
-    } else {
-      const msg = await res.text().catch(() => '');
-      addToast('error', msg || 'Failed to enroll user in training.');
+    try {
+      const res = await fetch('/api/human-risk/enroll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: u.id, userEmail: u.email })
+      });
+      if (res.ok) {
+        addToast('success', `${u.name} enrolled in remedial training · audit log updated.`);
+      } else {
+        const msg = await res.text().catch(() => '');
+        addToast('error', msg || 'Failed to enroll user in training.');
+      }
+    } catch {
+      addToast('error', 'Network error — check your connection and try again.');
     }
   }
 
   async function simulate() {
-    const res = await fetch('/api/human-risk/simulate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId: u.id, userEmail: u.email })
-    });
-    if (res.ok) {
-      addToast('info', `Targeted phishing simulation queued for ${u.name}.`);
-    } else {
-      const msg = await res.text().catch(() => '');
-      addToast('error', msg || 'Failed to queue phishing simulation.');
+    try {
+      const res = await fetch('/api/human-risk/simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: u.id, userEmail: u.email })
+      });
+      if (res.ok) {
+        addToast('info', `Targeted phishing simulation queued for ${u.name}.`);
+      } else {
+        const msg = await res.text().catch(() => '');
+        addToast('error', msg || 'Failed to queue phishing simulation.');
+      }
+    } catch {
+      addToast('error', 'Network error — check your connection and try again.');
     }
   }
 </script>

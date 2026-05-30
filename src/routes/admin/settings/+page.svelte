@@ -43,7 +43,7 @@
       <User class="h-4 w-4 text-grc-primary" />
       <h2 class="section-title">Profile</h2>
     </div>
-    <form method="POST" action="?/updateProfile" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <form method="POST" action="?/updateProfile" use:enhance class="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <label class="block">
         <span class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Name</span>
         <input name="name" value={data.user?.name ?? ''} required class="input" />
@@ -90,7 +90,7 @@
       <Lock class="h-4 w-4 text-grc-primary" />
       <h2 class="section-title">Change Password</h2>
     </div>
-    <form method="POST" action="?/changePassword" class="grid grid-cols-1 gap-3">
+    <form method="POST" action="?/changePassword" use:enhance class="grid grid-cols-1 gap-3">
       <label class="block">
         <span class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Current Password</span>
         <input type="password" name="currentPassword" required class="input" autocomplete="current-password" />
@@ -125,7 +125,7 @@
         </span>
       {/if}
     </div>
-    <form method="POST" action="?/updateTenantSettings" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <form method="POST" action="?/updateTenantSettings" use:enhance class="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <label class="block sm:col-span-2">
         <span class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Current Tenant</span>
         <input value={data.tenant?.name ?? '—'} readonly class="input bg-slate-50" />
@@ -177,7 +177,7 @@
     {/if}
 
     {#if showNewTokenForm}
-      <form method="POST" action="?/createToken" class="border-b border-slate-100 bg-slate-50 px-5 py-3">
+      <form method="POST" action="?/createToken" use:enhance class="border-b border-slate-100 bg-slate-50 px-5 py-3">
         <div class="flex flex-wrap items-end gap-3">
           <label class="block flex-1 min-w-[160px]">
             <span class="mb-1 block text-xs font-medium text-slate-700">Token name</span>
@@ -221,7 +221,7 @@
               <td class="td text-xs text-slate-500">{formatRelative(tok.lastUsedAt)}</td>
               <td class="td text-xs text-slate-500">{formatIsoSgt(tok.expiresAt).slice(0, 10)}</td>
               <td class="td text-right">
-                <form method="POST" action="?/revokeToken" class="inline">
+                <form method="POST" action="?/revokeToken" use:enhance class="inline">
                   <input type="hidden" name="tokenId" value={tok.id} />
                   <button type="submit" class="text-xs font-semibold text-rose-600 hover:underline"
                           on:click={(e) => { if (!confirm('Revoke this token? This cannot be undone.')) e.preventDefault(); }}>Revoke</button>

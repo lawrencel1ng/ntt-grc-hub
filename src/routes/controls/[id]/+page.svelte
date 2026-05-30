@@ -45,15 +45,19 @@
   }
 
   async function runTest() {
-    const res = await fetch(`/api/controls/${data.control.id}/run-test`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    if (res.ok) {
-      addToast('success', `Test queued for ${data.control.code}.`);
-    } else {
-      const msg = await res.text().catch(() => '');
-      addToast('error', msg || 'Failed to queue control test.');
+    try {
+      const res = await fetch(`/api/controls/${data.control.id}/run-test`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (res.ok) {
+        addToast('success', `Test queued for ${data.control.code}.`);
+      } else {
+        const msg = await res.text().catch(() => '');
+        addToast('error', msg || 'Failed to queue control test.');
+      }
+    } catch {
+      addToast('error', 'Network error — check your connection and try again.');
     }
   }
 </script>

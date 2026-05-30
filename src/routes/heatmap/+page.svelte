@@ -111,15 +111,19 @@
   }
 
   async function runQuant() {
-    const res = await fetch('/api/heatmap/run-quant', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    if (res.ok) {
-      addToast('success', 'Risk Quantifier agent queued. Re-running 10k-trial Monte Carlo for all scenarios.');
-    } else {
-      const msg = await res.text().catch(() => '');
-      addToast('error', msg || 'Failed to queue FAIR quantification.');
+    try {
+      const res = await fetch('/api/heatmap/run-quant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (res.ok) {
+        addToast('success', 'Risk Quantifier agent queued. Re-running 10k-trial Monte Carlo for all scenarios.');
+      } else {
+        const msg = await res.text().catch(() => '');
+        addToast('error', msg || 'Failed to queue FAIR quantification.');
+      }
+    } catch {
+      addToast('error', 'Network error — check your connection and try again.');
     }
   }
 </script>

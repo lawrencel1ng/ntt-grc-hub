@@ -73,15 +73,19 @@
   $: attestations = data.attestations as ComplianceAttestation[];
 
   async function generatePack() {
-    const res = await fetch(`/api/frameworks/${data.framework.id}/generate-pack`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    if (res.ok) {
-      addToast('success', `Audit Companion queued · generating evidence pack for ${data.framework.name}.`);
-    } else {
-      const msg = await res.text().catch(() => '');
-      addToast('error', msg || 'Failed to queue evidence pack generation.');
+    try {
+      const res = await fetch(`/api/frameworks/${data.framework.id}/generate-pack`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (res.ok) {
+        addToast('success', `Audit Companion queued · generating evidence pack for ${data.framework.name}.`);
+      } else {
+        const msg = await res.text().catch(() => '');
+        addToast('error', msg || 'Failed to queue evidence pack generation.');
+      }
+    } catch {
+      addToast('error', 'Network error — check your connection and try again.');
     }
   }
 

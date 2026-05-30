@@ -142,16 +142,20 @@
   }
 
   async function sendQuestionnaire() {
-    const res = await fetch(`/api/vendors/${data.vendor.id}/questionnaire`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ template: 'SIG' })
-    });
-    if (res.ok) {
-      addToast('success', `SIG questionnaire queued for ${data.vendor.name}.`);
-    } else {
-      const msg = await res.text().catch(() => '');
-      addToast('error', msg || 'Failed to send questionnaire.');
+    try {
+      const res = await fetch(`/api/vendors/${data.vendor.id}/questionnaire`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ template: 'SIG' })
+      });
+      if (res.ok) {
+        addToast('success', `SIG questionnaire queued for ${data.vendor.name}.`);
+      } else {
+        const msg = await res.text().catch(() => '');
+        addToast('error', msg || 'Failed to send questionnaire.');
+      }
+    } catch {
+      addToast('error', 'Network error — check your connection and try again.');
     }
   }
 </script>

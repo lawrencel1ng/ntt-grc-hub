@@ -53,16 +53,20 @@
   }));
 
   async function applySuggestion(sug: { id: string; frameworkId: string; label: string }) {
-    const res = await fetch(`/api/regwatch/${data.change.id}/map`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ requirementId: sug.id, frameworkId: sug.frameworkId, action: 'mapped' })
-    });
-    if (res.ok) {
-      addToast('success', `Mapping applied: ${sug.label}`);
-    } else {
-      const msg = await res.text().catch(() => '');
-      addToast('error', msg || 'Failed to apply mapping.');
+    try {
+      const res = await fetch(`/api/regwatch/${data.change.id}/map`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requirementId: sug.id, frameworkId: sug.frameworkId, action: 'mapped' })
+      });
+      if (res.ok) {
+        addToast('success', `Mapping applied: ${sug.label}`);
+      } else {
+        const msg = await res.text().catch(() => '');
+        addToast('error', msg || 'Failed to apply mapping.');
+      }
+    } catch {
+      addToast('error', 'Network error — check your connection and try again.');
     }
   }
 </script>

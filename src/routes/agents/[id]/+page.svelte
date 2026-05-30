@@ -84,15 +84,19 @@
   }
 
   async function runNow() {
-    const res = await fetch(`/api/agents/${data.agent.id}/run`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
-    });
-    if (res.ok) {
-      addToast('success', `${data.agent.name} queued for execution.`);
-    } else {
-      const msg = await res.text().catch(() => '');
-      addToast('error', msg || 'Failed to queue agent execution.');
+    try {
+      const res = await fetch(`/api/agents/${data.agent.id}/run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (res.ok) {
+        addToast('success', `${data.agent.name} queued for execution.`);
+      } else {
+        const msg = await res.text().catch(() => '');
+        addToast('error', msg || 'Failed to queue agent execution.');
+      }
+    } catch {
+      addToast('error', 'Network error — check your connection and try again.');
     }
   }
 

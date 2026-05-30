@@ -5,15 +5,17 @@
 
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { getRegChange, getImpactAssessments, getRegSources } from '$lib/server/data';
+import { getRegChange, getImpactAssessments, getRegSources, getTenantSummaries } from '$lib/server/data';
 
 export const load: PageServerLoad = async ({ params }) => {
   const change = await getRegChange(params.id);
   if (!change) throw error(404, 'Regulatory change not found');
-  const [impacts, sources] = await Promise.all([
+  const [impacts, sources, tenants] = await Promise.all([
     getImpactAssessments(change.id),
-    getRegSources()
+    getRegSources(),
+    getTenantSummaries()
   ]);
   const source = sources.find((s) => s.id === change.sourceId);
-  return { change, impacts, source };
+  const tenantNames: Record<string, string> = Object.fromEntries(tenants.map((t) => [t.id, t.name]));
+  return { change, impacts, source, tenantNames };
 };

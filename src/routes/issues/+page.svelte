@@ -125,7 +125,7 @@
   }
 </script>
 
-<PageHeader title="Issues & Incidents" subtitle="{data.issues.length.toLocaleString()} issues · {open} open · {overdue} overdue {data.isAll ? '· Maybank fallback' : ''}">
+<PageHeader title="Issues & Incidents" subtitle="{data.issues.length.toLocaleString()} issues · {open} open · {overdue} overdue {data.isAll ? '· aggregated view' : ''}">
   <svelte:fragment slot="actions">
     <button class="btn-primary" on:click={() => (showForm = !showForm)}>
       <Plus class="h-4 w-4" />

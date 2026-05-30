@@ -22,12 +22,10 @@ export const load: PageServerLoad = async ({ locals, url }) => {
     getFairScenarios(effective)
   ]);
 
-  // Pick scenario: from ?scenario=…, else the hero, else first scenario.
+  // Pick scenario: from ?scenario=…, else first scenario.
   const wantedId = url.searchParams.get('scenario');
-  const heroId = 'scn_t_maybank_hero';
   const selectedScenario =
     (wantedId && scenarios.find((s) => s.id === wantedId)) ||
-    scenarios.find((s) => s.id === heroId) ||
     scenarios[0] ||
     null;
 

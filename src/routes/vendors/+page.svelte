@@ -179,7 +179,7 @@
 
 <PageHeader
   title="Vendors / TPRM"
-  subtitle="{total.toLocaleString()} vendors · {critical} Tier 1 · {renewalsLt90} renewals within 90 days {data.isAll ? '· showing Maybank register (MSSP fallback)' : ''}"
+  subtitle="{total.toLocaleString()} vendors · {critical} Tier 1 · {renewalsLt90} renewals within 90 days {data.isAll ? '· aggregated view' : ''}"
 >
   <svelte:fragment slot="actions">
     <button class="btn-primary" on:click={() => (showAddForm = !showAddForm)}>

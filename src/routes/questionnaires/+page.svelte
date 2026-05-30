@@ -84,7 +84,7 @@
 
 <PageHeader
   title="Vendor Questionnaires"
-  subtitle="{total} questionnaires · Vendor Risk Analyst agent auto-completed {autoCompleted} of {total} ({autoPct}%) — saved ~{hoursSaved} analyst hours {data.isAll ? '· Maybank fallback' : ''}"
+  subtitle="{total} questionnaires · Vendor Risk Analyst agent auto-completed {autoCompleted} of {total} ({autoPct}%) — saved ~{hoursSaved} analyst hours {data.isAll ? '· aggregated view' : ''}"
 />
 
 <div class="space-y-6">

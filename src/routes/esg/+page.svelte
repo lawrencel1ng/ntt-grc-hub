@@ -122,7 +122,7 @@
   }
 </script>
 
-<PageHeader title="ESG / Sustainability" subtitle="CSRD · ISSB · GHG Protocol · TCFD {data.isAll ? '· Maybank fallback' : ''}" />
+<PageHeader title="ESG / Sustainability" subtitle="CSRD · ISSB · GHG Protocol · TCFD {data.isAll ? '· aggregated view' : ''}" />
 
 <div class="space-y-6">
   <!-- KPI strip -->

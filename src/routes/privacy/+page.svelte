@@ -119,7 +119,7 @@
     slaPct(b) - slaPct(a));
 </script>
 
-<PageHeader title="Privacy" subtitle="GDPR · PDPA · PIPL · CCPA · HIPAA {data.isAll ? '· Maybank fallback' : ''}" />
+<PageHeader title="Privacy" subtitle="GDPR · PDPA · PIPL · CCPA · HIPAA {data.isAll ? '· aggregated view' : ''}" />
 
 <div class="space-y-6">
   <!-- KPI strip -->

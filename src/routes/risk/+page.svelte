@@ -170,7 +170,7 @@
 
 <PageHeader
   title="Enterprise Risk Register"
-  subtitle="{total.toLocaleString()} risks · avg residual score {avgResidualScore} / 25 {data.isAll ? '· showing Maybank register (MSSP fallback)' : ''}"
+  subtitle="{total.toLocaleString()} risks · avg residual score {avgResidualScore} / 25 {data.isAll ? '· aggregated view' : ''}"
 >
   <svelte:fragment slot="actions">
     <button class="btn-primary" on:click={newRisk}>

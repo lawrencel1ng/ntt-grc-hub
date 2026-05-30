@@ -65,7 +65,7 @@
 
 <PageHeader
   title="4th-Party Concentration Map"
-  subtitle="Discover hidden supply-chain risk via sub-processors {data.isAll ? '· Maybank fallback' : ''}"
+  subtitle="Discover hidden supply-chain risk via sub-processors {data.isAll ? '· aggregated view' : ''}"
 />
 
 <div class="space-y-6">

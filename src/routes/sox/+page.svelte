@@ -72,7 +72,7 @@
   }
 </script>
 
-<PageHeader title="SOX & Financial Controls" subtitle="Sarbanes-Oxley §302/404 · PCAOB AS 2201 · COSO 2013 {data.isAll ? '· Maybank fallback' : ''}" />
+<PageHeader title="SOX & Financial Controls" subtitle="Sarbanes-Oxley §302/404 · PCAOB AS 2201 · COSO 2013 {data.isAll ? '· aggregated view' : ''}" />
 
 <div class="space-y-6">
   <!-- KPI strip -->

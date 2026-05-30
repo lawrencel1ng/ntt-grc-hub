@@ -107,7 +107,7 @@
 
 <PageHeader
   title="Human Risk Management"
-  subtitle="KnowBe4 Virtual Risk Officer · per-user scoring → org Human Risk Score → quantified FAIR ALE {data.isAll ? '· showing Maybank (MSSP fallback)' : ''}"
+  subtitle="KnowBe4 Virtual Risk Officer · per-user scoring → org Human Risk Score → quantified FAIR ALE {data.isAll ? '· aggregated view' : ''}"
 >
   <svelte:fragment slot="actions">
     <span class="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-2.5 py-1 text-[11px] font-semibold text-violet-700 ring-1 ring-inset ring-violet-200">

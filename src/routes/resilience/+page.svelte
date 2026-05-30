@@ -142,7 +142,7 @@
   }
 </script>
 
-<PageHeader title="Operational Resilience" subtitle="DORA · APRA CPS 230 · MAS Notice 658 {data.isAll ? '· Maybank fallback' : ''}" />
+<PageHeader title="Operational Resilience" subtitle="DORA · APRA CPS 230 · MAS Notice 658 {data.isAll ? '· aggregated view' : ''}" />
 
 <div class="space-y-6">
   <!-- KPI strip -->

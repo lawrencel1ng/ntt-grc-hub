@@ -69,7 +69,7 @@
   }
 </script>
 
-<PageHeader title="Business Continuity Management" subtitle="ISO 22301 · MAS Notice 657 · DORA {data.isAll ? '· Maybank fallback' : ''}" />
+<PageHeader title="Business Continuity Management" subtitle="ISO 22301 · MAS Notice 657 · DORA {data.isAll ? '· aggregated view' : ''}" />
 
 <div class="space-y-6">
   <!-- KPI strip -->

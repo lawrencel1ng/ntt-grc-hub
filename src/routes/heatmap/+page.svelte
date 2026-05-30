@@ -115,7 +115,7 @@
   }
 </script>
 
-<PageHeader title="Risk Heatmap & FAIR Quantification" subtitle="{numericHeatmap.reduce((s, c) => s + c.n, 0).toLocaleString()} residual risks placed · {data.scenarios.length} scenarios · {data.isAll ? 'showing Maybank (MSSP fallback)' : data.effectiveTenantId}">
+<PageHeader title="Risk Heatmap & FAIR Quantification" subtitle="{numericHeatmap.reduce((s, c) => s + c.n, 0).toLocaleString()} residual risks placed · {data.scenarios.length} scenarios · {data.isAll ? 'aggregated view' : data.effectiveTenantId}">
   <svelte:fragment slot="actions">
     <AgentTypeBadge type="intelligent" />
     <button class="btn-primary" on:click={runQuant}>
@@ -210,9 +210,6 @@
           <h2 class="section-title">FAIR Quantification — Loss Exceedance Curve</h2>
           <div class="mt-1 flex items-center gap-2 text-sm">
             <span class="font-semibold text-grc-ink">{data.selectedScenario.name}</span>
-            {#if data.selectedScenario.id === 'scn_t_maybank_hero'}
-              <span class="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-bold text-rose-700 ring-1 ring-rose-200">HERO</span>
-            {/if}
           </div>
           {#if data.selectedScenario.description}
             <p class="mt-1 max-w-2xl text-xs text-slate-500">{data.selectedScenario.description}</p>

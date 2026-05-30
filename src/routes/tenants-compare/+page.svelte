@@ -61,7 +61,7 @@
 
 <PageHeader
   title="MSSP Tenant Comparison"
-  subtitle="NTT-managed GRC posture across {data.aggregate.totalTenants} customers · 3 hero tenants + 5 shallow"
+  subtitle="NTT-managed GRC posture across {data.aggregate.totalTenants} customers"
 />
 
 <div class="space-y-6">
@@ -73,7 +73,7 @@
     <Kpi label="Avg Compliance" value={data.aggregate.avgComplianceScore.toFixed(1)} suffix="/100" delta={2}>
       <ShieldCheck slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
-    <Kpi label="Open Critical Risks" value={data.aggregate.totalOpenCritical.toString()} tone="bad" hint="across hero tenants">
+    <Kpi label="Open Critical Risks" value={data.aggregate.totalOpenCritical.toString()} tone="bad" hint="across all tenants">
       <AlertTriangle slot="icon" class="h-4 w-4 text-rose-600" />
     </Kpi>
     <Kpi label="Active Audits" value={data.aggregate.totalActiveAudits.toString()} hint="in progress">

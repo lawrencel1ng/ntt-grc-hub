@@ -59,7 +59,7 @@
   }
 </script>
 
-<PageHeader title="AI Governance" subtitle="EU AI Act · ISO 42001 · NIST AI RMF · MAS FEAT {data.isAll ? '· Maybank fallback' : ''}" />
+<PageHeader title="AI Governance" subtitle="EU AI Act · ISO 42001 · NIST AI RMF · MAS FEAT {data.isAll ? '· aggregated view' : ''}" />
 
 <div class="space-y-6">
   <!-- KPI strip -->

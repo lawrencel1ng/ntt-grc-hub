@@ -8,17 +8,7 @@
 
   export let data;
 
-  // tenant id → display name (light synthesis to avoid an extra fetch)
-  const TENANT_NAMES: Record<string, string> = {
-    t_maybank: 'Maybank Singapore',
-    t_grab: 'Grab Holdings',
-    t_mindef: 'MINDEF Singapore',
-    t_singhealth: 'SingHealth',
-    t_govtech: 'GovTech',
-    t_astar: 'A*STAR',
-    t_mediacorp: 'Mediacorp',
-    t_singtel: 'Singtel'
-  };
+  $: TENANT_NAMES = data.tenantNames as Record<string, string>;
 
   function regColor(code?: string): string {
     switch (code) {

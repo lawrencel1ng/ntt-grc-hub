@@ -925,8 +925,12 @@ export async function getPolicies(tenantId?: string): Promise<Policy[]> {
 
 export async function getPolicy(id: string): Promise<Policy | undefined> {
   if (isPgMode()) {
-    const tid = await tenantOfRow('policy.documents', id);
-    if (tid) return (await getPolicies(tid)).find((p) => p.id === id);
+    const rows = await safeQuery<Policy>(
+      `SELECT id::text AS id, tenant_id AS "tenantId", code, title, jurisdiction,
+              current_version_id::text AS "currentVersionId"
+         FROM policy.documents WHERE id = $1::uuid LIMIT 1`, [id]
+    );
+    return rows[0];
   }
   const parts = id.split('_');
   if (parts.length < 3) return undefined;
@@ -1011,8 +1015,14 @@ export async function getVendors(tenantId?: string): Promise<Vendor[]> {
 
 export async function getVendor(id: string): Promise<Vendor | undefined> {
   if (isPgMode()) {
-    const tid = await tenantOfRow('vendor.vendors', id);
-    if (tid) return (await getVendors(tid)).find((v) => v.id === id);
+    const rows = await safeQuery<Vendor>(
+      `SELECT id::text AS id, tenant_id AS "tenantId", name, category,
+              tier::text AS tier, criticality::text AS criticality,
+              hq_country AS "hqCountry", primary_contact_email AS "primaryContactEmail",
+              status::text AS status, employee_count AS "employeeCount"
+         FROM vendor.vendors WHERE id = $1::uuid LIMIT 1`, [id]
+    );
+    return rows[0];
   }
   const parts = id.split('_');
   if (parts.length < 3) return undefined;
@@ -1064,8 +1074,15 @@ export async function getQuestionnaires(tenantId?: string): Promise<Questionnair
 
 export async function getQuestionnaire(id: string): Promise<Questionnaire | undefined> {
   if (isPgMode()) {
-    const tid = await tenantOfRow('vendor.questionnaires', id);
-    if (tid) return (await getQuestionnaires(tid)).find((q) => q.id === id);
+    const rows = await safeQuery<Questionnaire>(
+      `SELECT q.id::text AS id, q.tenant_id AS "tenantId", q.vendor_id::text AS "vendorId",
+              v.name AS "vendorName", q.template, q.status::text AS status,
+              q.sent_at AS "sentAt", q.completed_at AS "completedAt",
+              q.completed_by_agent_id AS "completedByAgentId", q.score
+         FROM vendor.questionnaires q JOIN vendor.vendors v ON v.id = q.vendor_id
+        WHERE q.id = $1::uuid LIMIT 1`, [id]
+    );
+    return rows[0];
   }
   // Mock id pattern is q_vnd_<tenant>_<n>.
   const m = /^q_vnd_(t_[a-z]+)_/.exec(id);
@@ -1466,8 +1483,16 @@ export async function getVendorIssues(vendorId: string): Promise<Issue[]> {
 
 export async function getIssue(id: string): Promise<Issue | undefined> {
   if (isPgMode()) {
-    const tid = await tenantOfRow('issue.issues', id);
-    if (tid) return (await getIssues(tid)).find((i) => i.id === id);
+    const rows = await safeQuery<Issue>(
+      `SELECT i.id::text AS id, i.tenant_id AS "tenantId", i.source::text AS source,
+              i.source_id AS "sourceId", i.title, i.description, i.severity::text AS severity,
+              i.status::text AS status, i.owner_user_id AS "ownerUserId", u.email AS "ownerEmail",
+              i.due_at AS "dueAt", i.created_at AS "createdAt"
+         FROM issue.issues i
+         LEFT JOIN platform.users u ON u.id = i.owner_user_id
+        WHERE i.id = $1::uuid LIMIT 1`, [id]
+    );
+    return rows[0];
   }
   const parts = id.split('_');
   if (parts.length < 3) return undefined;
@@ -1517,7 +1542,7 @@ export async function getBCMPlan(id: string): Promise<BCMPlan | undefined> {
               p.owner_user_id::text AS "ownerUserId", u.email AS "ownerEmail"
        FROM bcm.plans p
        LEFT JOIN platform.users u ON u.id = p.owner_user_id
-       WHERE p.id = $1::uuid`,
+       WHERE p.id = $1::uuid LIMIT 1`,
       [id]
     );
     return rows[0];
@@ -1582,8 +1607,12 @@ export async function getWorkflows(tenantId?: string): Promise<Workflow[]> {
 
 export async function getWorkflow(id: string): Promise<Workflow | undefined> {
   if (isPgMode()) {
-    const tid = await tenantOfRow('workflow.definitions', id);
-    if (tid) return (await getWorkflows(tid)).find((w) => w.id === id);
+    const rows = await safeQuery<Workflow>(
+      `SELECT id::text AS id, tenant_id AS "tenantId", name, description,
+              steps, version, enabled
+         FROM workflow.definitions WHERE id = $1::uuid LIMIT 1`, [id]
+    );
+    return rows[0];
   }
   const parts = id.split('_');
   if (parts.length < 3) return undefined;

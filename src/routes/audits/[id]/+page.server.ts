@@ -177,5 +177,46 @@ export const actions: Actions = {
     });
 
     return { findingUpdated: true, findingId, newStatus };
+  },
+
+  createWorkpaper: async ({ params, request, locals }) => {
+    if (!locals.user) return fail(401, { wpError: 'Not authenticated' });
+    if (!isPgMode()) return fail(400, { wpError: 'Requires Postgres mode' });
+
+    const data = await request.formData();
+    const title = String(data.get('title') ?? '').trim();
+    const contentMd = String(data.get('contentMd') ?? '').trim();
+
+    if (!title) return fail(400, { wpError: 'Title is required.' });
+    if (title.length > 256) return fail(400, { wpError: 'Title must be 256 characters or fewer.' });
+    if (!contentMd) return fail(400, { wpError: 'Content is required.' });
+    if (contentMd.length > 50_000) return fail(400, { wpError: 'Content must be 50 000 characters or fewer.' });
+
+    const pool = getPool();
+    const check = await pool.query<{ tenant_id: string }>(
+      `SELECT tenant_id FROM audit.engagements WHERE id = $1::uuid LIMIT 1`,
+      [params.id]
+    );
+    if (!check.rows.length) return fail(404, { wpError: 'Engagement not found' });
+    if (check.rows[0].tenant_id !== locals.user.tenantId) return fail(403, { wpError: 'Access denied' });
+
+    const { rows } = await pool.query<{ id: string }>(
+      `INSERT INTO audit.workpapers (tenant_id, engagement_id, title, content_md, created_by)
+       VALUES ($1, $2::uuid, $3, $4, $5::uuid)
+       RETURNING id::text`,
+      [locals.user.tenantId, params.id, title, contentMd, locals.user.id]
+    );
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: 'audit.workpaper.created',
+      target: `engagement:${params.id}`,
+      result: 'success',
+      metadata: { workpaperId: rows[0].id, title }
+    });
+
+    return { wpCreated: true };
   }
 };

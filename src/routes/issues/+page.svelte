@@ -491,8 +491,12 @@
           <tbody>
             {#each incPageRows as inc (inc.id)}
               <tr class="tr">
-                <td class="td font-mono text-xs font-semibold text-rose-700">{inc.code}</td>
-                <td class="td max-w-md truncate">{inc.title}</td>
+                <td class="td font-mono text-xs font-semibold">
+                  <a href="/issues/incidents/{inc.id}" class="text-rose-700 hover:underline">{inc.code}</a>
+                </td>
+                <td class="td max-w-md truncate">
+                  <a href="/issues/incidents/{inc.id}" class="hover:underline">{inc.title}</a>
+                </td>
                 <td class="td">
                   <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {incSevCls(inc.severity)}">{inc.severity.toUpperCase()}</span>
                 </td>

@@ -17,6 +17,8 @@
   export let form: {
     dpiaUpdated?: boolean; dpiaId?: string; newStatus?: string; dpiaError?: string;
     srUpdated?: boolean; requestId?: string; srError?: string;
+    srCreated?: boolean; srCreateError?: string;
+    breachCreated?: boolean; code?: string; breachError?: string;
   } | null = null;
 
   $: if (form?.dpiaUpdated && form.dpiaId && form.newStatus) {
@@ -40,6 +42,13 @@
     addToast('success', `Request status updated to "${form.newStatus}".`);
   }
   $: if (form?.srError) addToast('error', form.srError);
+  $: if (form?.srCreated) { addToast('success', 'Subject request logged.'); showSrForm = false; }
+  $: if (form?.srCreateError) addToast('error', form.srCreateError);
+  $: if (form?.breachCreated) { addToast('success', `Breach ${form.code} reported.`); showBreachForm = false; }
+  $: if (form?.breachError) addToast('error', form.breachError);
+
+  let showSrForm = false;
+  let showBreachForm = false;
 
   // ---------- KPIs ----------
   $: activitiesCount = data.activities.length;
@@ -287,6 +296,41 @@
 
     <!-- Subject Requests -->
     {:else if tab === 'requests'}
+      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+        <span class="text-xs text-slate-500">{data.requests.length} requests</span>
+        <button class="btn-primary" on:click={() => (showSrForm = !showSrForm)}>
+          <Mail class="h-4 w-4" />
+          Log Request
+        </button>
+      </div>
+      {#if showSrForm}
+        <div class="border-b border-slate-100 bg-slate-50 px-5 py-4">
+          <form method="POST" action="?/logSubjectRequest" use:enhance class="flex flex-wrap items-end gap-3">
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Kind</span>
+              <select name="kind" class="input">
+                <option value="access">Access</option>
+                <option value="erasure">Erasure</option>
+                <option value="portability">Portability</option>
+                <option value="objection">Objection</option>
+                <option value="rectification">Rectification</option>
+              </select>
+            </label>
+            <label class="block flex-1 min-w-[200px]">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Requester email</span>
+              <input name="requesterEmail" type="email" class="input" placeholder="subject@example.com" required maxlength="254" />
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Due date (optional, default 30d)</span>
+              <input name="dueAt" type="date" class="input" />
+            </label>
+            <div class="flex gap-2">
+              <button type="submit" class="btn-primary">Log</button>
+              <button type="button" class="btn-secondary" on:click={() => (showSrForm = false)}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      {/if}
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-100 text-sm">
           <thead class="thead">
@@ -345,6 +389,44 @@
 
     <!-- Breaches -->
     {:else if tab === 'breaches'}
+      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+        <span class="text-xs text-slate-500">{data.breaches.length} breaches</span>
+        <button class="btn-primary" on:click={() => (showBreachForm = !showBreachForm)}>
+          <ShieldAlert class="h-4 w-4" />
+          Report Breach
+        </button>
+      </div>
+      {#if showBreachForm}
+        <div class="border-b border-slate-100 bg-slate-50 px-5 py-4">
+          <form method="POST" action="?/reportBreach" use:enhance class="flex flex-wrap items-end gap-3">
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Severity</span>
+              <select name="severity" class="input">
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium" selected>Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Occurred at</span>
+              <input name="occurredAt" type="datetime-local" class="input" required />
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Affected subjects</span>
+              <input name="affectedSubjects" type="number" min="0" class="input w-28" value="0" required />
+            </label>
+            <label class="block flex-1 min-w-[220px]">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Root cause</span>
+              <input name="rootCause" type="text" class="input" placeholder="Brief description…" required maxlength="2048" />
+            </label>
+            <div class="flex gap-2">
+              <button type="submit" class="btn-primary">Report</button>
+              <button type="button" class="btn-secondary" on:click={() => (showBreachForm = false)}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      {/if}
       <div class="p-5">
         {#if breachesSorted.length === 0}
           <div class="px-4 py-8 text-center text-sm text-slate-500">No breach incidents recorded.</div>

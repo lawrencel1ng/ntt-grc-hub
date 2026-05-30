@@ -32,6 +32,8 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 const VALID_DPIA_STATUSES = ['draft', 'in-review', 'approved', 'retired'] as const;
 const VALID_SR_STATUSES = ['received', 'in-progress', 'resolved', 'rejected'] as const;
+const VALID_SR_KINDS = ['access', 'erasure', 'portability', 'objection', 'rectification'] as const;
+const VALID_SEVS = ['critical', 'high', 'medium', 'low'] as const;
 
 export const actions: Actions = {
   updateDpiaStatus: async ({ request, locals }) => {
@@ -102,5 +104,93 @@ export const actions: Actions = {
     });
 
     return { srUpdated: true, requestId, newStatus };
+  },
+
+  logSubjectRequest: async ({ request, locals }) => {
+    if (!locals.user) return fail(401, { srCreateError: 'Not authenticated' });
+    if (!isPgMode()) return fail(400, { srCreateError: 'Requires Postgres mode' });
+
+    const data = await request.formData();
+    const kind = String(data.get('kind') ?? '').trim();
+    const requesterEmail = String(data.get('requesterEmail') ?? '').trim();
+    const dueAt = String(data.get('dueAt') ?? '').trim() || null;
+
+    if (!VALID_SR_KINDS.includes(kind as typeof VALID_SR_KINDS[number])) {
+      return fail(400, { srCreateError: 'Invalid request kind.' });
+    }
+    if (!requesterEmail || requesterEmail.length > 254) {
+      return fail(400, { srCreateError: 'Valid requester email is required (max 254 chars).' });
+    }
+
+    // Default due date: 30 days from now if not provided (GDPR Article 12(3))
+    const due = dueAt ? new Date(dueAt) : new Date(Date.now() + 30 * 86_400_000);
+
+    const pool = getPool();
+    const { rows } = await pool.query<{ id: string }>(
+      `INSERT INTO privacy.subject_requests (tenant_id, kind, requester_email, received_at, due_at, status)
+       VALUES ($1, $2::privacy.request_kind, $3, now(), $4, 'received')
+       RETURNING id::text`,
+      [locals.user.tenantId, kind, requesterEmail, due.toISOString()]
+    );
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: 'privacy.subject_request.logged',
+      target: `subject_request:${rows[0].id}`,
+      result: 'success',
+      metadata: { kind, requesterEmail }
+    });
+
+    return { srCreated: true };
+  },
+
+  reportBreach: async ({ request, locals }) => {
+    if (!locals.user) return fail(401, { breachError: 'Not authenticated' });
+    if (!isPgMode()) return fail(400, { breachError: 'Requires Postgres mode' });
+
+    const data = await request.formData();
+    const severity = String(data.get('severity') ?? '').trim();
+    const occurredAt = String(data.get('occurredAt') ?? '').trim();
+    const affectedSubjects = Math.max(0, Number(data.get('affectedSubjects') ?? 0));
+    const rootCause = String(data.get('rootCause') ?? '').trim();
+
+    if (!VALID_SEVS.includes(severity as typeof VALID_SEVS[number])) {
+      return fail(400, { breachError: 'Invalid severity.' });
+    }
+    if (!occurredAt) return fail(400, { breachError: 'Occurred-at date is required.' });
+    if (!rootCause) return fail(400, { breachError: 'Root cause is required.' });
+    if (rootCause.length > 2048) return fail(400, { breachError: 'Root cause must be 2048 characters or fewer.' });
+    if (!Number.isFinite(affectedSubjects)) return fail(400, { breachError: 'Invalid affected subjects count.' });
+
+    const pool = getPool();
+
+    // Auto-generate code BR-NNN scoped to tenant
+    const { rows: cntRows } = await pool.query<{ n: number }>(
+      `SELECT COUNT(*)::int AS n FROM privacy.breaches WHERE tenant_id = $1`,
+      [locals.user.tenantId]
+    );
+    const code = `BR-${String((cntRows[0]?.n ?? 0) + 1).padStart(3, '0')}`;
+
+    const { rows } = await pool.query<{ id: string }>(
+      `INSERT INTO privacy.breaches
+         (tenant_id, code, severity, occurred_at, detected_at, affected_subjects, regulator_notified, root_cause)
+       VALUES ($1, $2, $3::risk.severity, $4::timestamptz, now(), $5, false, $6)
+       RETURNING id::text`,
+      [locals.user.tenantId, code, severity, occurredAt, affectedSubjects, rootCause]
+    );
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: 'privacy.breach.reported',
+      target: `breach:${rows[0].id}`,
+      result: 'success',
+      metadata: { code, severity, affectedSubjects }
+    });
+
+    return { breachCreated: true, code };
   }
 };

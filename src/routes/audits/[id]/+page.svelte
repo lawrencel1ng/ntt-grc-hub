@@ -14,6 +14,7 @@
     findingCreated?: boolean;
     editSuccess?: boolean; editError?: string;
     auditClosed?: boolean; closeError?: string;
+    wpCreated?: boolean; wpError?: string;
   } | null = null;
 
   // Optimistically update finding status in the local list on success
@@ -32,9 +33,13 @@
   $: if (form?.editError) addToast('error', form.editError);
   $: if (form?.auditClosed) addToast('success', 'Engagement closed.');
   $: if (form?.closeError) addToast('error', form.closeError);
+  $: if (form?.wpCreated) { addToast('success', 'Workpaper added.'); showWpForm = false; wpTitle = ''; wpContent = ''; }
+  $: if (form?.wpError) addToast('error', form.wpError);
 
   let showNewFinding = false;
   let showEditForm = false;
+  let showWpForm = false;
+  let wpTitle = '', wpContent = '';
   let nfTitle = '', nfDesc = '', nfSeverity = 'medium', nfDue = '';
 
   type Tab = 'findings' | 'workpapers' | 'pack';
@@ -307,6 +312,34 @@
 
     <!-- Workpapers -->
     {:else if tab === 'workpapers'}
+      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+        <span class="text-xs text-slate-500">{workpapers.length} workpapers</span>
+        {#if !data.audit.closedAt}
+          <button class="btn-primary" on:click={() => (showWpForm = !showWpForm)}>
+            <FileText class="h-4 w-4" />
+            Add Workpaper
+          </button>
+        {/if}
+      </div>
+      {#if showWpForm}
+        <div class="border-b border-slate-100 bg-slate-50 px-5 py-4">
+          <form method="POST" action="?/createWorkpaper" use:enhance class="space-y-3">
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Title</span>
+              <input name="title" type="text" bind:value={wpTitle} class="input" placeholder="Workpaper title…" required maxlength="256" />
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Content (Markdown)</span>
+              <textarea name="contentMd" bind:value={wpContent} rows="6" class="input w-full resize-y font-mono text-xs"
+                placeholder="## Objective&#10;&#10;## Procedure&#10;&#10;## Evidence&#10;&#10;## Conclusion" required maxlength="50000"></textarea>
+            </label>
+            <div class="flex gap-2">
+              <button type="submit" class="btn-primary">Add Workpaper</button>
+              <button type="button" class="btn-secondary" on:click={() => { showWpForm = false; wpTitle = ''; wpContent = ''; }}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      {/if}
       <div class="divide-y divide-slate-100">
         {#each workpapers as wp (wp.id)}
           <div class="px-5 py-4">

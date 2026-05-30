@@ -219,6 +219,7 @@ export interface Control {
   type: ControlType;
   family: string[];
   ownerUserId?: string;
+  ownerEmail?: string;
   frequency: string;
   automated: boolean;
   maturity: ControlMaturity;

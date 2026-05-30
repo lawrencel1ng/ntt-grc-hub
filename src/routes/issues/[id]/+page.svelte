@@ -106,7 +106,7 @@
             </a>
           {/if}
           <div class="flex items-center gap-1 text-slate-500">
-            <UserIcon class="h-3 w-3" /> {data.issue.ownerUserId ?? 'unassigned'}
+            <UserIcon class="h-3 w-3" /> {data.issue.ownerEmail ?? '—'}
           </div>
           <div class="text-slate-500">Due: <span class="font-mono">{data.issue.dueAt?.slice(0, 10) ?? '—'}</span> ({fmtRel(data.issue.dueAt)})</div>
         </div>
@@ -135,7 +135,7 @@
           {#each data.actions as a (a.id)}
             <tr class="tr">
               <td class="td">{a.description}</td>
-              <td class="td text-xs text-slate-500">{data.issue.ownerUserId ?? 'unassigned'}</td>
+              <td class="td text-xs text-slate-500">{data.issue.ownerEmail ?? '—'}</td>
               <td class="td font-mono text-xs text-slate-500">{a.dueAt?.slice(0, 10) ?? '—'}</td>
               <td class="td">
                 <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {actionCls(a.status)}">{a.status}</span>

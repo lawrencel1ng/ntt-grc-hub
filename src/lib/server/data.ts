@@ -610,9 +610,13 @@ export async function getControls(tenantId?: string): Promise<Control[]> {
 export async function getControl(id: string): Promise<Control | undefined> {
   if (!isPgMode()) return mock.getControlById(id);
   const rows = await safeQuery<Control>(
-    `SELECT id, tenant_id AS "tenantId", code, title, description, type::text AS type,
-            family, frequency, automated, maturity::text AS maturity
-     FROM control.library WHERE id = $1`, [id]
+    `SELECT c.id, c.tenant_id AS "tenantId", c.code, c.title, c.description,
+            c.type::text AS type, c.family, c.frequency, c.automated,
+            c.maturity::text AS maturity,
+            c.owner_user_id::text AS "ownerUserId", u.email AS "ownerEmail"
+     FROM control.library c
+     LEFT JOIN platform.users u ON u.id = c.owner_user_id
+     WHERE c.id = $1`, [id]
   );
   return rows[0] ?? undefined;
 }

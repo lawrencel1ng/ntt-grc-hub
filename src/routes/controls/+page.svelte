@@ -216,7 +216,7 @@
               <td class="td">
                 <div class="flex items-center gap-1.5 text-xs text-slate-500">
                   <UserIcon class="h-3 w-3" />
-                  <span>{c.ownerUserId ?? 'unassigned'}</span>
+                  <span>{c.ownerEmail ?? '—'}</span>
                 </div>
               </td>
               <td class="td text-xs text-slate-500">{fmtRel(lastTs)}</td>

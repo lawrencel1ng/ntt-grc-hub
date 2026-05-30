@@ -2,6 +2,7 @@ import type { RequestHandler } from './$types';
 import { json, error } from '@sveltejs/kit';
 import { isPgMode, getPool } from '$lib/server/pg';
 import { writeAuditLog } from '$lib/server/auth';
+import { agentBus } from '$lib/server/sse';
 
 export const POST: RequestHandler = async ({ params, locals }) => {
   if (!locals.user) throw error(401, 'Not authenticated');
@@ -33,6 +34,17 @@ export const POST: RequestHandler = async ({ params, locals }) => {
     target: `agent:${params.id}`,
     result: 'success',
     metadata: { runId: run[0].id, agentName: agent.name }
+  });
+
+  agentBus.dispatch({
+    ts: new Date().toISOString(),
+    agentId: params.id,
+    agentName: agent.name,
+    status: 'queued',
+    inputSummary: 'Manual execution triggered via GRC Hub',
+    outputSummary: 'Run queued — awaiting agent pickup',
+    latencyMs: 0,
+    costCents: 0
   });
 
   return json({ ok: true, runId: run[0].id });

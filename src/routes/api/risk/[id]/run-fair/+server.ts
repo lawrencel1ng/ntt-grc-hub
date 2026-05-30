@@ -2,6 +2,7 @@ import type { RequestHandler } from './$types';
 import { json, error } from '@sveltejs/kit';
 import { isPgMode, getPool } from '$lib/server/pg';
 import { writeAuditLog } from '$lib/server/auth';
+import { agentBus } from '$lib/server/sse';
 
 export const POST: RequestHandler = async ({ params, locals }) => {
   if (!locals.user) throw error(401, 'Not authenticated');
@@ -28,13 +29,27 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 
   let runId: string | null = null;
   if (agents.length > 0 && agents[0].enabled) {
+    const agentId = agents[0].id;
+    const { rows: agentRow } = await pool.query<{ name: string }>(
+      `SELECT name FROM agent.agents WHERE id = $1 LIMIT 1`, [agentId]
+    );
     const { rows: run } = await pool.query<{ id: string }>(
       `INSERT INTO agent.runs (tenant_id, agent_id, trigger, status, input_summary)
        VALUES ($1, $2, 'manual', 'queued', 'FAIR analysis triggered for risk ${rows[0].code}')
        RETURNING id::text`,
-      [locals.user.tenantId, agents[0].id]
+      [locals.user.tenantId, agentId]
     );
     runId = run[0].id;
+    agentBus.dispatch({
+      ts: new Date().toISOString(),
+      agentId,
+      agentName: agentRow[0]?.name ?? 'Risk Quantifier',
+      status: 'queued',
+      inputSummary: `FAIR analysis for ${rows[0].code}`,
+      outputSummary: 'Run queued — Monte Carlo simulation starting',
+      latencyMs: 0,
+      costCents: 0
+    });
   }
 
   writeAuditLog({

@@ -2,6 +2,7 @@ import type { RequestHandler } from './$types';
 import { json, error } from '@sveltejs/kit';
 import { isPgMode, getPool } from '$lib/server/pg';
 import { writeAuditLog } from '$lib/server/auth';
+import { agentBus } from '$lib/server/sse';
 
 export const POST: RequestHandler = async ({ locals }) => {
   if (!locals.user) throw error(401, 'Not authenticated');
@@ -27,6 +28,16 @@ export const POST: RequestHandler = async ({ locals }) => {
       [locals.user.tenantId, agents[0].id]
     );
     runId = run[0].id;
+    agentBus.dispatch({
+      ts: new Date().toISOString(),
+      agentId: agents[0].id,
+      agentName: agents[0].name,
+      status: 'queued',
+      inputSummary: 'FAIR Monte Carlo quantification — all scenarios',
+      outputSummary: 'Run queued — 10k-trial simulation starting',
+      latencyMs: 0,
+      costCents: 0
+    });
   }
 
   writeAuditLog({

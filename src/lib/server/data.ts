@@ -1619,6 +1619,44 @@ export async function getBCMEscalationContacts(planId: string): Promise<BCMEscal
   );
 }
 
+export async function getBCMDepsAndTestsByTenant(tenantId?: string): Promise<{
+  deps: Record<string, BCMDependency[]>;
+  tests: Record<string, BCMTest[]>;
+}> {
+  if (!isPgMode()) return { deps: {}, tests: {} };
+  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
+
+  const [depRows, testRows] = await Promise.all([
+    safeQuery<BCMDependency & { planId: string }>(
+      `SELECT id::text AS id, tenant_id AS "tenantId", plan_id::text AS "planId",
+              dependency_kind AS "dependencyKind", name, criticality::text AS criticality,
+              downtime_tolerance_hours AS "downtimeToleranceHours"
+       FROM bcm.bias ${where}`,
+      params
+    ),
+    safeQuery<BCMTest & { planId: string }>(
+      `SELECT id::text AS id, tenant_id AS "tenantId", plan_id::text AS "planId",
+              kind, conducted_at AS "conductedAt", result::text AS result,
+              lessons_md AS "lessonsMd"
+       FROM bcm.tests ${where} ORDER BY conducted_at DESC`,
+      params
+    )
+  ]);
+
+  const deps: Record<string, BCMDependency[]> = {};
+  for (const d of depRows) {
+    if (!deps[d.planId]) deps[d.planId] = [];
+    deps[d.planId].push(d);
+  }
+  const tests: Record<string, BCMTest[]> = {};
+  for (const t of testRows) {
+    if (!tests[t.planId]) tests[t.planId] = [];
+    tests[t.planId].push(t);
+  }
+  return { deps, tests };
+}
+
 export async function getBCMDependencies(planId: string): Promise<BCMDependency[]> {
   if (!isPgMode()) return mock.bcmDependenciesForPlan(planId);
   const rows = await safeQuery<BCMDependency>(

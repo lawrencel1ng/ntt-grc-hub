@@ -5,7 +5,7 @@
 import type { PageServerLoad, Actions } from './$types';
 import { fail } from '@sveltejs/kit';
 import {
-  getBCMPlans, getBCMDependencies, getBCMTests
+  getBCMPlans, getBCMDependencies, getBCMTests, getBCMDepsAndTestsByTenant
 } from '$lib/server/data';
 import { ALL_TENANTS_ID } from '$lib/stores/tenant';
 import { isPgMode, getPool } from '$lib/server/pg';
@@ -15,13 +15,14 @@ export const load: PageServerLoad = async ({ locals }) => {
   const tenantId = locals.tenantId ?? ALL_TENANTS_ID;
   const effective = tenantId === ALL_TENANTS_ID ? undefined : tenantId;
 
-  const plans = await getBCMPlans(effective);
-  const enriched = await Promise.all(plans.map(async (p) => {
-    const [deps, tests] = await Promise.all([
-      getBCMDependencies(p.id),
-      getBCMTests(p.id)
-    ]);
-    return { plan: p, deps, tests };
+  const [plans, { deps: depsMap, tests: testsMap }] = await Promise.all([
+    getBCMPlans(effective),
+    getBCMDepsAndTestsByTenant(effective)
+  ]);
+  const enriched = plans.map((p) => ({
+    plan: p,
+    deps: depsMap[p.id] ?? [],
+    tests: testsMap[p.id] ?? []
   }));
 
   return {

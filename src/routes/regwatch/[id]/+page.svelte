@@ -1,12 +1,18 @@
 <script lang="ts">
+  import { enhance } from '$app/forms';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import FrameworkBadge from '$lib/components/FrameworkBadge.svelte';
   import AgentTypeBadge from '$lib/components/AgentTypeBadge.svelte';
   import { addToast } from '$lib/stores/toast';
-  import { ExternalLink, Sparkles, Antenna, Calendar } from 'lucide-svelte';
+  import { ExternalLink, Sparkles, Antenna, Calendar, Plus } from 'lucide-svelte';
   import type { RiskSeverity, RegImpact, Requirement } from '$lib/data/types';
 
   export let data;
+  export let form: { assessError?: string; assessed?: boolean; assessmentId?: string | null } | undefined = undefined;
+
+  let showAssessForm = false;
+
+  $: if (form?.assessed) { addToast('success', 'Impact assessment recorded.'); showAssessForm = false; }
 
   $: TENANT_NAMES = data.tenantNames as Record<string, string>;
 
@@ -123,8 +129,48 @@
   <div class="card overflow-hidden">
     <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
       <h2 class="section-title">Impact Assessments</h2>
-      <span class="text-xs text-slate-400">{data.impacts.length} tenant{data.impacts.length === 1 ? '' : 's'}</span>
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-slate-400">{data.impacts.length} tenant{data.impacts.length === 1 ? '' : 's'}</span>
+        <button class="btn-secondary py-1 text-xs" on:click={() => (showAssessForm = !showAssessForm)}>
+          <Plus class="h-3.5 w-3.5" />
+          Assess Impact
+        </button>
+      </div>
     </div>
+    {#if showAssessForm}
+      <div class="border-b border-slate-100 bg-slate-50 px-5 py-4">
+        {#if form?.assessError}
+          <p class="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700 ring-1 ring-inset ring-rose-200">{form.assessError}</p>
+        {/if}
+        <form method="POST" action="?/assessImpact" use:enhance class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <label class="form-label">
+            Impact
+            <select name="impact" required class="input mt-1 w-full">
+              <option value="none">None</option>
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+            </select>
+          </label>
+          <label class="form-label">
+            Framework (optional)
+            <input name="frameworkId" type="text" placeholder="e.g. MAS TRM" class="input mt-1 w-full" />
+          </label>
+          <label class="form-label">
+            Gaps Opened
+            <input name="gapsOpened" type="number" min="0" value="0" class="input mt-1 w-full" />
+          </label>
+          <label class="form-label">
+            Notes
+            <input name="notes" type="text" maxlength="2048" placeholder="Optional…" class="input mt-1 w-full" />
+          </label>
+          <div class="flex items-center gap-2 sm:col-span-2 lg:col-span-4">
+            <button type="submit" class="btn-primary text-sm">Record Assessment</button>
+            <button type="button" class="btn-ghost text-sm" on:click={() => (showAssessForm = false)}>Cancel</button>
+          </div>
+        </form>
+      </div>
+    {/if}
     <div class="overflow-x-auto">
       <table class="min-w-full divide-y divide-slate-100 text-sm">
         <thead class="thead">

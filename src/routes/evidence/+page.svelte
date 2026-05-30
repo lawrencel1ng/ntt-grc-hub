@@ -3,11 +3,18 @@
   import Kpi from '$lib/components/Kpi.svelte';
   import EvidenceChip from '$lib/components/EvidenceChip.svelte';
   import AgentTypeBadge from '$lib/components/AgentTypeBadge.svelte';
-  import { FileLock2, Clock, ShieldCheck, Calendar, Filter, CheckCircle2, LayoutGrid } from 'lucide-svelte';
+  import { enhance } from '$app/forms';
+  import { addToast } from '$lib/stores/toast';
+  import { FileLock2, Clock, ShieldCheck, Calendar, Filter, CheckCircle2, LayoutGrid, Plus } from 'lucide-svelte';
   import type { EvidenceKind, EvidenceCollectorKind, EvidenceDomain } from '$lib/data/types';
   import { EVIDENCE_DOMAINS, EVIDENCE_DOMAIN_LABELS } from '$lib/data/types';
 
   export let data;
+  export let form: { evidenceError?: string; evidenceCollected?: boolean } | undefined = undefined;
+
+  let showCollectForm = false;
+
+  $: if (form?.evidenceCollected) { addToast('success', 'Evidence item recorded.'); showCollectForm = false; }
 
   // ---------- Domain coverage ----------
   // Count items per GRC domain so the vault visibly covers all ten.
@@ -94,7 +101,59 @@
   }
 </script>
 
-<PageHeader title="Evidence Vault" subtitle="Tamper-evident, agent-sealed evidence chain — every collection linked, hashed, replayable." />
+<PageHeader title="Evidence Vault" subtitle="Tamper-evident, agent-sealed evidence chain — every collection linked, hashed, replayable.">
+  <svelte:fragment slot="actions">
+    {#if !data.isAll}
+      <button class="btn-primary" on:click={() => (showCollectForm = !showCollectForm)}>
+        <Plus class="h-4 w-4" /> Collect Evidence
+      </button>
+    {/if}
+  </svelte:fragment>
+</PageHeader>
+
+{#if showCollectForm && !data.isAll}
+  <div class="card space-y-4 p-4">
+    <h3 class="font-semibold text-slate-800">Log Evidence Item</h3>
+    <form method="POST" action="?/collectEvidence" use:enhance class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div class="sm:col-span-2">
+        <label class="label" for="ev-title">Title <span class="text-rose-500">*</span></label>
+        <input id="ev-title" name="title" type="text" class="input" placeholder="MAS TRM control test evidence pack" required maxlength="512" />
+      </div>
+      <div>
+        <label class="label" for="ev-kind">Kind</label>
+        <select id="ev-kind" name="kind" class="input">
+          <option value="document">Document</option>
+          <option value="screenshot">Screenshot</option>
+          <option value="log">Log</option>
+          <option value="config">Config</option>
+          <option value="attestation">Attestation</option>
+          <option value="scan-result">Scan Result</option>
+          <option value="api-response">API Response</option>
+        </select>
+      </div>
+      <div>
+        <label class="label" for="ev-domain">Domain</label>
+        <select id="ev-domain" name="domain" class="input">
+          <option value="">— None —</option>
+          {#each EVIDENCE_DOMAINS as d}
+            <option value={d}>{EVIDENCE_DOMAIN_LABELS[d]}</option>
+          {/each}
+        </select>
+      </div>
+      <div class="sm:col-span-2">
+        <label class="label" for="ev-url">Source URL</label>
+        <input id="ev-url" name="sourceUrl" type="url" class="input" placeholder="https://…" maxlength="2048" />
+      </div>
+      {#if form?.evidenceError}
+        <p class="sm:col-span-2 text-sm text-rose-600">{form.evidenceError}</p>
+      {/if}
+      <div class="sm:col-span-2 flex gap-2 justify-end">
+        <button type="button" class="btn-secondary" on:click={() => (showCollectForm = false)}>Cancel</button>
+        <button type="submit" class="btn-primary"><Plus class="h-4 w-4" /> Record</button>
+      </div>
+    </form>
+  </div>
+{/if}
 
 <div class="space-y-6">
   <!-- KPI strip -->

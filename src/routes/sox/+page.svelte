@@ -1,14 +1,25 @@
 <script lang="ts">
+  import { enhance } from '$app/forms';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Kpi from '$lib/components/Kpi.svelte';
   import ProgressBar from '$lib/components/ProgressBar.svelte';
+  import { addToast } from '$lib/stores/toast';
   import {
-    Calculator, ShieldCheck, ClipboardCheck, AlertTriangle, TrendingUp,
-    Network, BookOpen
+    ShieldCheck, ClipboardCheck, AlertTriangle, TrendingUp,
+    Network, Plus
   } from 'lucide-svelte';
   import type { ControlTestResult, RiskSeverity } from '$lib/data/types';
 
   export let data;
+  export let form: {
+    itgcError?: string; itgcUpdated?: boolean; itgcId?: string; newStatus?: string;
+    deficiencyError?: string; deficiencyCreated?: boolean; deficiencyId?: string;
+  } | undefined = undefined;
+
+  let showDeficiencyForm = false;
+
+  $: if (form?.itgcUpdated)       { addToast('success', 'ITGC status updated.'); }
+  $: if (form?.deficiencyCreated) { addToast('success', 'Deficiency reported.'); showDeficiencyForm = false; }
 
   // ---------- KPIs ----------
   $: itgcCount = data.itgcs.length;
@@ -124,6 +135,7 @@
               <th class="px-4 py-2 text-left">Frequency</th>
               <th class="px-4 py-2 text-left">Last Test</th>
               <th class="px-4 py-2 text-left">Result</th>
+              {#if !data.isAll}<th class="px-4 py-2 text-left">Update Status</th>{/if}
             </tr>
           </thead>
           <tbody>
@@ -140,9 +152,25 @@
                 <td class="td">
                   <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {resultCls(c.result)}">{c.result}</span>
                 </td>
+                {#if !data.isAll}
+                  <td class="td">
+                    <form method="POST" action="?/updateItgcStatus" use:enhance>
+                      <input type="hidden" name="itgcId" value={c.id} />
+                      <select
+                        name="status"
+                        class="rounded border border-slate-200 bg-white px-2 py-0.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-grc-primary"
+                        on:change={(e) => e.currentTarget.form?.requestSubmit()}
+                      >
+                        <option value="effective"         selected={c.result === 'pass'}>Effective</option>
+                        <option value="deficiency"        selected={c.result === 'partial'}>Deficiency</option>
+                        <option value="material_weakness" selected={c.result === 'fail'}>Material Weakness</option>
+                      </select>
+                    </form>
+                  </td>
+                {/if}
               </tr>
             {:else}
-              <tr><td colspan="7" class="px-4 py-8 text-center text-sm text-slate-500">No ITGCs recorded.</td></tr>
+              <tr><td colspan={data.isAll ? 7 : 8} class="px-4 py-8 text-center text-sm text-slate-500">No ITGCs recorded.</td></tr>
             {/each}
           </tbody>
         </table>
@@ -225,6 +253,58 @@
 
     <!-- Deficiencies -->
     {:else if tab === 'deficiencies'}
+      {#if !data.isAll}
+        <div class="border-b border-slate-100 px-5 py-3">
+          <button class="btn-secondary text-sm" on:click={() => (showDeficiencyForm = !showDeficiencyForm)}>
+            <Plus class="h-4 w-4" />
+            Report Deficiency
+          </button>
+          {#if showDeficiencyForm}
+            <div class="mt-4">
+              {#if form?.deficiencyError}
+                <p class="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700 ring-1 ring-inset ring-rose-200">{form.deficiencyError}</p>
+              {/if}
+              <form method="POST" action="?/createDeficiency" use:enhance class="grid gap-4 sm:grid-cols-2">
+                <label class="form-label sm:col-span-2">
+                  Description <span class="text-rose-500">*</span>
+                  <textarea name="description" required maxlength="2048" rows="2"
+                    class="input mt-1 w-full resize-none" placeholder="Describe the deficiency…"></textarea>
+                </label>
+                <label class="form-label">
+                  Severity
+                  <select name="severity" class="input mt-1 w-full">
+                    <option value="significant">Significant Deficiency</option>
+                    <option value="material">Material Weakness</option>
+                  </select>
+                </label>
+                <label class="form-label">
+                  ITGC
+                  <select name="itgcId" required class="input mt-1 w-full">
+                    <option value="">— select ITGC —</option>
+                    {#each data.itgcs as c (c.id)}
+                      <option value={c.id}>{c.code} — {c.name}</option>
+                    {/each}
+                  </select>
+                </label>
+                <label class="form-label">
+                  Root Cause
+                  <textarea name="rootCause" maxlength="2048" rows="2"
+                    class="input mt-1 w-full resize-none" placeholder="Optional…"></textarea>
+                </label>
+                <label class="form-label">
+                  Remediation Plan
+                  <textarea name="remediationPlan" maxlength="2048" rows="2"
+                    class="input mt-1 w-full resize-none" placeholder="Optional…"></textarea>
+                </label>
+                <div class="flex items-center gap-2 sm:col-span-2">
+                  <button type="submit" class="btn-primary text-sm">Submit</button>
+                  <button type="button" class="btn-ghost text-sm" on:click={() => (showDeficiencyForm = false)}>Cancel</button>
+                </div>
+              </form>
+            </div>
+          {/if}
+        </div>
+      {/if}
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-100 text-sm">
           <thead class="thead">

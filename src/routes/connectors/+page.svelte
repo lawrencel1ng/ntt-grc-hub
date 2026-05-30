@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { enhance } from '$app/forms';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Kpi from '$lib/components/Kpi.svelte';
   import StatusDot from '$lib/components/StatusDot.svelte';
@@ -9,10 +10,15 @@
     Cloud, KeyRound, ListChecks, MessageSquare, Building2, ShieldCheck, ScrollText, Webhook,
     Plug, MoreHorizontal, CheckCircle2, AlertTriangle, XCircle, RefreshCw, Container,
     Github, Gitlab, Cog, Slack, MessageCircle, Bell, PhoneCall, Mail, FileText,
-    Briefcase, Inbox, BarChart3, Database, ShieldAlert, Bug, Activity, GraduationCap
+    Briefcase, Inbox, BarChart3, Database, ShieldAlert, Bug, Activity, GraduationCap, Plus
   } from 'lucide-svelte';
 
   export let data;
+  export let form: { connectorError?: string; connectorCreated?: boolean; connectorId?: string } | undefined = undefined;
+
+  let showAddForm = false;
+
+  $: if (form?.connectorCreated) { addToast('success', 'Connector registered.'); showAddForm = false; }
 
   // Local mutable copy so sync/reconnect actions produce visible changes immediately.
   let connectors: Connector[] = data.connectors.map((c) => ({ ...c }));
@@ -198,6 +204,12 @@
   subtitle="40+ integrations across Cloud, Identity, ITSM, Comms, SaaS, Security and Custom"
 >
   <svelte:fragment slot="actions">
+    {#if !data.isAll}
+      <button class="btn-secondary" on:click={() => (showAddForm = !showAddForm)}>
+        <Plus class="h-4 w-4" />
+        Add Connector
+      </button>
+    {/if}
     <button class="btn-secondary" on:click={syncAll} disabled={syncing}>
       <RefreshCw class="h-4 w-4 {syncing ? 'animate-spin' : ''}" />
       {syncing ? 'Syncing…' : 'Sync All'}
@@ -206,6 +218,45 @@
 </PageHeader>
 
 <div class="space-y-6">
+  <!-- Add connector form -->
+  {#if showAddForm && !data.isAll}
+    <div class="card p-5">
+      <h2 class="mb-4 text-sm font-semibold text-slate-800">Register Connector</h2>
+      {#if form?.connectorError}
+        <p class="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700 ring-1 ring-inset ring-rose-200">{form.connectorError}</p>
+      {/if}
+      <form method="POST" action="?/createConnector" use:enhance class="grid gap-4 sm:grid-cols-2">
+        <label class="form-label">
+          Type
+          <select name="kind" required class="input mt-1 w-full">
+            <option value="">— select —</option>
+            <option value="aws">AWS</option>
+            <option value="azure">Azure</option>
+            <option value="gcp">GCP</option>
+            <option value="okta">Okta</option>
+            <option value="jira">Jira</option>
+            <option value="m365">Microsoft 365</option>
+            <option value="github">GitHub</option>
+            <option value="servicenow">ServiceNow</option>
+            <option value="slack">Slack</option>
+            <option value="splunk">Splunk</option>
+            <option value="datadog">Datadog</option>
+            <option value="pagerduty">PagerDuty</option>
+            <option value="teams">Microsoft Teams</option>
+          </select>
+        </label>
+        <label class="form-label">
+          Display name
+          <input name="name" type="text" maxlength="128" required placeholder="e.g. Production AWS" class="input mt-1 w-full" />
+        </label>
+        <div class="flex items-center gap-2 sm:col-span-2">
+          <button type="submit" class="btn-primary text-sm">Register</button>
+          <button type="button" class="btn-ghost text-sm" on:click={() => (showAddForm = false)}>Cancel</button>
+        </div>
+      </form>
+    </div>
+  {/if}
+
   <!-- KPI strip -->
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
     <Kpi label="Total Connected" value={`${connected}/${total}`} hint="active integrations">

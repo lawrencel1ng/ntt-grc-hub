@@ -521,30 +521,31 @@ export async function getRecentlyTestedControls(tenantId: string, limit = 6): Pr
   );
 }
 
-export async function getFrameworkScores(tenantId?: string): Promise<FrameworkScore[]> {
-  if (!isPgMode()) {
-    // Synthesize scores per tenant from FRAMEWORKS list for top 8.
-    const top = ['soc2','iso-27001','mas-trm','nist-csf','pci-dss-4','gdpr','dora','eu-ai-act'];
-    const tenants = tenantId ? [tenantId] : HERO_TENANTS;
-    const out: FrameworkScore[] = [];
-    for (const tid of tenants) {
-      for (let i = 0; i < top.length; i++) {
-        const fw = mock.FRAMEWORKS.find((f) => f.id === top[i]);
-        if (!fw) continue;
-        out.push({
-          tenantId: tid,
-          frameworkId: fw.id,
-          name: fw.name,
-          version: fw.version,
-          region: fw.region,
-          status: i % 2 === 0 ? 'complete' : 'in-progress',
-          score: +(72 + (i * 3) % 22).toFixed(1),
-          nextDueAt: new Date(Date.now() + (90 + i * 30) * 86_400_000).toISOString()
-        });
-      }
+function mockFrameworkScores(tenantId?: string): FrameworkScore[] {
+  const top = ['soc2','iso-27001','mas-trm','nist-csf','pci-dss-4','gdpr','dora','eu-ai-act'];
+  const tenants = tenantId ? [tenantId] : HERO_TENANTS;
+  const out: FrameworkScore[] = [];
+  for (const tid of tenants) {
+    for (let i = 0; i < top.length; i++) {
+      const fw = mock.FRAMEWORKS.find((f) => f.id === top[i]);
+      if (!fw) continue;
+      out.push({
+        tenantId: tid,
+        frameworkId: fw.id,
+        name: fw.name,
+        version: fw.version,
+        region: fw.region,
+        status: i % 2 === 0 ? 'complete' : 'in-progress',
+        score: +(72 + (i * 3) % 22).toFixed(1),
+        nextDueAt: new Date(Date.now() + (90 + i * 30) * 86_400_000).toISOString()
+      });
     }
-    return out;
   }
+  return out;
+}
+
+export async function getFrameworkScores(tenantId?: string): Promise<FrameworkScore[]> {
+  if (!isPgMode()) return mockFrameworkScores(tenantId);
   const where = tenantId ? 'WHERE tenant_id = $1' : '';
   const params = tenantId ? [tenantId] : [];
   const rows = await safeQuery<FrameworkScore>(
@@ -552,7 +553,7 @@ export async function getFrameworkScores(tenantId?: string): Promise<FrameworkSc
             status::text AS status, score, next_due_at AS "nextDueAt"
      FROM compliance.framework_score ${where}`, params
   );
-  return rows;
+  return rows.length ? rows : mockFrameworkScores(tenantId);
 }
 
 // =====================================================================
@@ -1247,16 +1248,27 @@ export async function getSOXKcas(tenantId?: string) {
   const where = tenantId ? 'WHERE tenant_id = $1' : '';
   const params = tenantId ? [tenantId] : [];
   const rows = await safeQuery<import('$lib/data/specialized').SOXKca>(
-    `SELECT id::text AS id, tenant_id AS "tenantId",
-            attribute AS code,
-            attribute AS name,
-            '' AS process,
+    `SELECT k.id::text AS id, k.tenant_id AS "tenantId",
+            k.attribute AS code,
+            COALESCE(i.title, k.attribute) AS name,
+            COALESCE(i.description, i.objective, '') AS process,
             '' AS owner,
-            'monthly' AS frequency,
-            0 AS "automationPct",
-            assessed_at AS "lastTestedAt",
-            'pass' AS result
-     FROM sox.kcas ${where} ORDER BY attribute`,
+            COALESCE(i.frequency, 'monthly') AS frequency,
+            CASE i.control_type
+              WHEN 'automated'       THEN 100
+              WHEN 'it-dependent'    THEN 60
+              ELSE 0
+            END AS "automationPct",
+            k.assessed_at AS "lastTestedAt",
+            CASE i.status
+              WHEN 'effective'   THEN 'pass'
+              WHEN 'deficient'   THEN 'fail'
+              ELSE 'partial'
+            END AS result
+     FROM sox.kcas k
+     LEFT JOIN sox.itgcs i ON i.id = k.itgc_id
+     ${where ? where.replace('tenant_id', 'k.tenant_id') : ''}
+     ORDER BY k.attribute`,
     params
   );
   return rows.length ? rows : mock.soxKcasForTenant(tid);
@@ -1268,16 +1280,19 @@ export async function getSOXWalkthroughs(tenantId?: string) {
   const where = tenantId ? 'WHERE tenant_id = $1' : '';
   const params = tenantId ? [tenantId] : [];
   const rows = await safeQuery<import('$lib/data/specialized').SOXWalkthrough>(
-    `SELECT id::text AS id, tenant_id AS "tenantId",
-            COALESCE(description, '') AS process,
-            EXTRACT(YEAR FROM COALESCE(completed_at, created_at))::int AS year,
+    `SELECT w.id::text AS id, w.tenant_id AS "tenantId",
+            COALESCE(w.description, '') AS process,
+            EXTRACT(YEAR FROM COALESCE(w.completed_at, w.created_at))::int AS year,
             CASE
-              WHEN completed_at IS NOT NULL THEN 'complete'
+              WHEN w.completed_at IS NOT NULL THEN 'complete'
               ELSE 'in-progress'
             END AS status,
-            '' AS "conductedBy",
-            COALESCE(completed_at, created_at) AS "conductedAt"
-     FROM sox.walkthroughs ${where} ORDER BY COALESCE(completed_at, created_at) DESC`,
+            COALESCE(i.title, '') AS "conductedBy",
+            COALESCE(w.completed_at, w.created_at) AS "conductedAt"
+     FROM sox.walkthroughs w
+     LEFT JOIN sox.itgcs i ON i.id = w.itgc_id
+     ${where ? where.replace('tenant_id', 'w.tenant_id') : ''}
+     ORDER BY COALESCE(w.completed_at, w.created_at) DESC`,
     params
   );
   return rows.length ? rows : mock.soxWalkthroughsForTenant(tid);
@@ -1296,7 +1311,7 @@ export async function getSOXDeficiencies(tenantId?: string) {
               ELSE 'medium'
             END AS severity,
             description,
-            '' AS "rootCause",
+            COALESCE(root_cause, '') AS "rootCause",
             COALESCE(remediation_plan, '') AS remediation,
             COALESCE(remediated_at::date::text, (created_at + interval '90 days')::date::text) AS "targetDate",
             (remediated_at IS NOT NULL) AS "onTrack"
@@ -1893,7 +1908,7 @@ export async function getBoardNarrative(tenantId?: string): Promise<string> {
   const tenant = tenantId ? await getCurrentTenant(tenantId) : undefined;
   const name = tenant?.name ?? 'Group';
   const kpi = await getKpiSnapshot(tenantId);
-  const hr = mock.humanRiskSummary(tenantId ?? 't_maybank');
+  const hr = await getHumanRiskSummary(tenantId);
   const today = new Date().toLocaleDateString('en-SG', { month: 'long', year: 'numeric' });
 
   const apiKey = env.ANTHROPIC_API_KEY;

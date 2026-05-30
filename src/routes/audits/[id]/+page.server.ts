@@ -6,16 +6,17 @@
 
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
-import { getAudit, getAuditFindings, getEvidence } from '$lib/server/data';
+import { getAudit, getAuditFindings, getAuditWorkpapers, getEvidence } from '$lib/server/data';
 
 export const load: PageServerLoad = async ({ params }) => {
   const audit = await getAudit(params.id);
   if (!audit) throw error(404, 'Engagement not found');
 
-  const [findings, evidence] = await Promise.all([
+  const [findings, workpapers, evidence] = await Promise.all([
     getAuditFindings(audit.id),
+    getAuditWorkpapers(audit.id),
     getEvidence(audit.tenantId, 36)
   ]);
 
-  return { audit, findings, evidence };
+  return { audit, findings, workpapers, evidence };
 };

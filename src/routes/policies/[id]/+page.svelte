@@ -1,6 +1,5 @@
 <script lang="ts">
   import PageHeader from '$lib/components/PageHeader.svelte';
-  import ProgressBar from '$lib/components/ProgressBar.svelte';
   import FrameworkBadge from '$lib/components/FrameworkBadge.svelte';
   import AgentTypeBadge from '$lib/components/AgentTypeBadge.svelte';
   import { enhance } from '$app/forms';
@@ -53,23 +52,9 @@
 
   function fmtDate(iso?: string): string { return iso ? iso.slice(0, 10) : '—'; }
 
-  // ---------- Acks (synthesised) ----------
-  $: ackRate = data.policy.tenantId === 't_maybank' || data.policy.tenantId === 't_grab' || data.policy.tenantId === 't_mindef'
-    ? 0.78 : 0.92;
-  $: ackUsers = [
-    { name: 'Lawrence Khoo',  email: 'lawrence@example.sg',  ackedAt: '2026-04-12 10:14' },
-    { name: 'Adi Tan',        email: 'adi@example.sg',       ackedAt: '2026-04-13 09:32' },
-    { name: 'Mei Chen',       email: 'mei@example.sg',       ackedAt: '2026-04-14 14:01' },
-    { name: 'Ravi Kumar',     email: 'ravi@example.sg',      ackedAt: '2026-04-19 08:48' },
-    { name: 'Wei L. Liang',   email: 'wei@example.sg',       ackedAt: '2026-04-22 17:22' },
-    { name: 'Sara Lim',       email: 'sara@example.sg',      ackedAt: '' },
-    { name: 'Daniel Ng',      email: 'daniel@example.sg',    ackedAt: '' }
-  ];
-
-  // ---------- Exceptions ----------
-  $: exceptions = data.policy.title.toLowerCase().includes('outsourcing')
-    ? [{ id: 'exc_1', title: 'AWS Mumbai region grandfathered until 2026-12-31', requestedBy: 'Adi T.', approvedBy: 'CISO', expiresAt: '2026-12-31' }]
-    : [];
+  import type { PolicyAck, PolicyException } from '$lib/data/types';
+  $: acks = data.acks as PolicyAck[];
+  $: exceptions = data.exceptions as PolicyException[];
 
   // ---------- Mapped frameworks ----------
   $: mappedFrameworks = (() => {
@@ -232,37 +217,26 @@
     <!-- Acknowledgements -->
     {:else if tab === 'acks'}
       <div class="space-y-4 p-5">
-        <div>
-          <div class="flex items-center justify-between text-sm">
-            <span class="font-medium text-slate-700">Ack rate</span>
-            <span class="font-mono text-slate-600">{(ackRate * 100).toFixed(1)}%</span>
-          </div>
-          <div class="mt-2"><ProgressBar value={ackRate * 100} /></div>
-        </div>
-        <table class="min-w-full divide-y divide-slate-100 text-sm">
-          <thead class="thead">
-            <tr>
-              <th class="px-4 py-2 text-left">User</th>
-              <th class="px-4 py-2 text-left">Email</th>
-              <th class="px-4 py-2 text-left">Acknowledged</th>
-            </tr>
-          </thead>
-          <tbody>
-            {#each ackUsers as u}
-              <tr class="tr">
-                <td class="td">{u.name}</td>
-                <td class="td text-xs text-slate-500 font-mono">{u.email}</td>
-                <td class="td">
-                  {#if u.ackedAt}
-                    <span class="font-mono text-xs text-violet-700">{u.ackedAt}</span>
-                  {:else}
-                    <span class="text-xs text-amber-700">pending</span>
-                  {/if}
-                </td>
+        {#if acks.length === 0}
+          <div class="text-sm text-slate-500">No acknowledgements recorded for the current version.</div>
+        {:else}
+          <table class="min-w-full divide-y divide-slate-100 text-sm">
+            <thead class="thead">
+              <tr>
+                <th class="px-4 py-2 text-left">User ID</th>
+                <th class="px-4 py-2 text-left">Acknowledged</th>
               </tr>
-            {/each}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {#each acks as u (u.id)}
+                <tr class="tr">
+                  <td class="td font-mono text-xs text-slate-500">{u.userId.slice(0, 8)}…</td>
+                  <td class="td"><span class="font-mono text-xs text-violet-700">{u.acknowledgedAt.slice(0, 16).replace('T', ' ')}</span></td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        {/if}
       </div>
 
     <!-- Exceptions -->
@@ -272,10 +246,12 @@
           <div class="text-sm text-slate-500">No exception requests on file.</div>
         {:else}
           <ul class="space-y-2">
-            {#each exceptions as exc}
-              <li class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm">
-                <div class="font-medium text-amber-900">{exc.title}</div>
-                <div class="mt-1 text-xs text-amber-700">Requested by {exc.requestedBy} · approved by {exc.approvedBy} · expires {exc.expiresAt}</div>
+            {#each exceptions as exc (exc.id)}
+              <li class="rounded-lg border {exc.granted ? 'border-amber-200 bg-amber-50' : 'border-slate-200 bg-slate-50'} px-3 py-2 text-sm">
+                <div class="font-medium {exc.granted ? 'text-amber-900' : 'text-slate-700'}">{exc.justification}</div>
+                <div class="mt-1 text-xs {exc.granted ? 'text-amber-700' : 'text-slate-500'}">
+                  {exc.granted ? 'Granted' : 'Pending'}{exc.expiresAt ? ` · expires ${exc.expiresAt.slice(0, 10)}` : ''}
+                </div>
               </li>
             {/each}
           </ul>

@@ -61,11 +61,8 @@
     { id: 'controls',   label: 'Linked Controls',  icon: ShieldCheck }
   ];
 
-  // ---------- Synthesised treatments ----------
-  $: treatments = [
-    { id: `tp_${data.risk.id}_1`, strategy: data.risk.treatmentStrategy, description: 'Tighten control suite and add automated detection; quarterly review.', owner: 'CISO Office', dueAt: new Date(Date.now() + 45 * 86_400_000).toISOString().slice(0, 10), status: 'in-progress' },
-    { id: `tp_${data.risk.id}_2`, strategy: 'mitigate', description: 'Update vendor exit plan; multi-region failover playbook.', owner: 'Risk Owner', dueAt: new Date(Date.now() + 90 * 86_400_000).toISOString().slice(0, 10), status: 'not-started' }
-  ];
+  import type { RiskTreatment } from '$lib/data/types';
+  $: treatments = data.treatments as RiskTreatment[];
 
   // ---------- Run FAIR per scenario lazily ----------
   type ScenarioWithRun = FAIRScenario & {
@@ -279,7 +276,7 @@
     <!-- Treatments -->
     {:else if tab === 'treatments'}
       <div class="divide-y divide-slate-100">
-        {#each treatments as tp}
+        {#each treatments as tp (tp.id)}
           <div class="px-5 py-4">
             <div class="flex items-start justify-between gap-3">
               <div class="flex-1">
@@ -287,11 +284,16 @@
                   <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {treatmentCls(tp.strategy)}">{tp.strategy}</span>
                   <span class="font-semibold text-grc-ink">{tp.description}</span>
                 </div>
-                <div class="mt-1 text-xs text-slate-500">Owner: {tp.owner} · Due {tp.dueAt}</div>
+                <div class="mt-1 text-xs text-slate-500">
+                  {tp.dueAt ? `Due ${tp.dueAt.slice(0, 10)}` : 'No due date'}
+                  {#if tp.costSgd}<span class="ml-2">· S${tp.costSgd.toLocaleString()}</span>{/if}
+                </div>
               </div>
-              <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset bg-amber-50 text-amber-700 ring-amber-200">{tp.status}</span>
+              <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {tp.completedAt ? 'bg-violet-50 text-violet-700 ring-violet-200' : 'bg-amber-50 text-amber-700 ring-amber-200'}">{tp.completedAt ? 'completed' : 'in-progress'}</span>
             </div>
           </div>
+        {:else}
+          <div class="px-5 py-6 text-center text-sm text-slate-400">No treatment plans recorded for this risk.</div>
         {/each}
       </div>
 

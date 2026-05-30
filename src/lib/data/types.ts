@@ -944,6 +944,49 @@ export interface KpiSnapshot {
   evidenceItems30d: number;
 }
 
+export interface RiskTreatment {
+  id: string;
+  tenantId: string;
+  riskId: string;
+  strategy: RiskTreatmentStrategy;
+  description: string;
+  ownerUserId?: string;
+  dueAt?: string;
+  completedAt?: string;
+  costSgd?: number;
+  createdAt: string;
+}
+
+export interface AuditWorkpaper {
+  id: string;
+  tenantId: string;
+  engagementId: string;
+  title: string;
+  contentMd: string;
+  createdBy?: string;
+  createdAt: string;
+}
+
+export interface PolicyAck {
+  id: number;
+  tenantId: string;
+  versionId: string;
+  userId: string;
+  acknowledgedAt: string;
+}
+
+export interface PolicyException {
+  id: string;
+  tenantId: string;
+  documentId: string;
+  requesterUserId?: string;
+  justification: string;
+  granted: boolean;
+  grantedByUserId?: string;
+  expiresAt?: string;
+  createdAt: string;
+}
+
 export interface ComplianceGap {
   id: string;
   tenantId: string;

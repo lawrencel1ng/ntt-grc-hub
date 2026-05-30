@@ -58,13 +58,8 @@
     addToast('success', `Evidence pack downloaded — ${rows.length} items, 8s assembly via Audit Companion.`);
   }
 
-  // ---------- Synthesised workpapers ----------
-  $: workpapers = [
-    { id: 'wp_1', title: 'Scope memo',                            createdBy: 'Audit Companion (agent)', createdAt: data.audit.openedAt.slice(0, 10), preview: 'In-scope systems include all production workloads classified Tier-1 and Tier-2; data centres in SG-east and SG-west; identity perimeter via Okta.' },
-    { id: 'wp_2', title: 'Risk assessment',                        createdBy: data.audit.leadAuditor,    createdAt: data.audit.openedAt.slice(0, 10), preview: 'Top-3 risks: privileged access drift; cross-border outsourcing under MAS 655; data residency for analytics workloads.' },
-    { id: 'wp_3', title: 'Control testing methodology',            createdBy: data.audit.leadAuditor,    createdAt: data.audit.openedAt.slice(0, 10), preview: 'Sampling approach: 25 per family with stratification by criticality; auto-walkthroughs via Control Tester agent where available.' },
-    { id: 'wp_4', title: 'Sample of control testing — encryption', createdBy: 'Audit Companion (agent)', createdAt: data.audit.openedAt.slice(0, 10), preview: 'Inspected KMS rotation evidence for 12 production buckets; 9 passed, 3 failed (HERO finding).' }
-  ];
+  import type { AuditWorkpaper } from '$lib/data/types';
+  $: workpapers = data.workpapers as AuditWorkpaper[];
 
   function fmtDate(iso?: string): string {
     return iso ? iso.slice(0, 10) : '—';
@@ -191,19 +186,21 @@
     <!-- Workpapers -->
     {:else if tab === 'workpapers'}
       <div class="divide-y divide-slate-100">
-        {#each workpapers as wp}
+        {#each workpapers as wp (wp.id)}
           <div class="px-5 py-4">
             <div class="flex items-start justify-between">
               <div>
                 <div class="font-semibold text-grc-ink">{wp.title}</div>
-                <div class="mt-0.5 text-xs text-slate-500">{wp.createdBy} · {wp.createdAt}</div>
+                <div class="mt-0.5 text-xs text-slate-500">{wp.createdAt.slice(0, 10)}</div>
               </div>
               <button class="btn-ghost p-1" on:click={() => addToast('info', `Opening ${wp.title}`)}>
                 <Download class="h-4 w-4" />
               </button>
             </div>
-            <p class="mt-2 text-sm text-slate-600">{wp.preview}</p>
+            <p class="mt-2 text-sm text-slate-600 line-clamp-3">{wp.contentMd.replace(/^#+\s*/gm, '').slice(0, 200)}</p>
           </div>
+        {:else}
+          <div class="px-5 py-6 text-center text-sm text-slate-400">No workpapers on file for this engagement.</div>
         {/each}
       </div>
 

@@ -29,7 +29,8 @@ import type {
   AuditLogEntry,
   KpiSnapshot,
   HumanRiskSummary, HumanRiskUser, HumanRiskDepartment, PhishingCampaign, TrainingCampaign,
-  ComplianceGap, ComplianceAttestation, RequirementCoverage
+  ComplianceGap, ComplianceAttestation, RequirementCoverage,
+  RiskTreatment, AuditWorkpaper, PolicyAck, PolicyException
 } from '$lib/data/types';
 
 const HERO_TENANTS = ['t_maybank', 't_mindef', 't_grab'] as const;
@@ -348,6 +349,17 @@ export async function getFairScenariosForRisk(riskId: string) {
     [riskId]
   );
   return rows;
+}
+
+export async function getRiskTreatments(riskId: string): Promise<RiskTreatment[]> {
+  if (!isPgMode()) return [];
+  return safeQuery<RiskTreatment>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", risk_id::text AS "riskId",
+            strategy::text AS strategy, description, owner_user_id AS "ownerUserId",
+            due_at AS "dueAt", completed_at AS "completedAt",
+            cost_sgd AS "costSgd", created_at AS "createdAt"
+     FROM risk.treatments WHERE risk_id = $1::uuid ORDER BY created_at`, [riskId]
+  );
 }
 
 export async function getAppetiteStatements(tenantId?: string): Promise<AppetiteStatement[]> {
@@ -723,6 +735,16 @@ export async function getAuditFindings(engagementId: string): Promise<AuditFindi
   return rows.length ? rows : mock.auditFindings(engagementId);
 }
 
+export async function getAuditWorkpapers(engagementId: string): Promise<AuditWorkpaper[]> {
+  if (!isPgMode()) return [];
+  return safeQuery<AuditWorkpaper>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", engagement_id::text AS "engagementId",
+            title, content_md AS "contentMd", created_by AS "createdBy",
+            created_at AS "createdAt"
+     FROM audit.workpapers WHERE engagement_id = $1::uuid ORDER BY created_at`, [engagementId]
+  );
+}
+
 // =====================================================================
 // Regwatch
 // =====================================================================
@@ -822,6 +844,27 @@ export async function getPolicyVersions(id: string): Promise<PolicyVersion[]> {
      FROM policy.versions WHERE document_id = $1 ORDER BY version_no`, [id]
   );
   return rows.length ? rows : mock.policyVersions(id);
+}
+
+export async function getPolicyAcks(versionId: string, limit = 20): Promise<PolicyAck[]> {
+  if (!isPgMode()) return [];
+  return safeQuery<PolicyAck>(
+    `SELECT id, tenant_id AS "tenantId", version_id::text AS "versionId",
+            user_id::text AS "userId", acknowledged_at AS "acknowledgedAt"
+     FROM policy.acknowledgements WHERE version_id = $1::uuid
+     ORDER BY acknowledged_at DESC LIMIT $2`, [versionId, limit]
+  );
+}
+
+export async function getPolicyExceptions(documentId: string): Promise<PolicyException[]> {
+  if (!isPgMode()) return [];
+  return safeQuery<PolicyException>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", document_id::text AS "documentId",
+            requester_user_id AS "requesterUserId", justification, granted,
+            granted_by_user_id AS "grantedByUserId", expires_at AS "expiresAt",
+            created_at AS "createdAt"
+     FROM policy.exceptions WHERE document_id = $1::uuid ORDER BY created_at DESC`, [documentId]
+  );
 }
 
 export async function getPolicyAckCount(tenantId?: string): Promise<number> {

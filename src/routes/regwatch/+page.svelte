@@ -10,8 +10,8 @@
   // ---------- KPIs ----------
   $: sourcesCount = 40 + data.sources.filter((s) => s.enabled).length; // brand promise: "40+ sources"
   $: changes30d = data.changes.filter((c) => (Date.now() - new Date(c.publishedAt).getTime()) / 86_400_000 <= 30).length;
-  $: activeImpacts = data.heroImpacts.length + 18; // synthetic baseline
-  $: gapsOpened30d = data.heroImpacts.reduce((s, x) => s + x.gapsOpened, 0) + 12; // synthetic baseline
+  $: activeImpacts = data.activeImpacts as number;
+  $: gapsOpened30d = data.gapsOpened30d as number;
 
   // ---------- Hero callout ----------
   $: hero = data.changes.find((c) => c.id === 'reg_hero_mas655');

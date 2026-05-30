@@ -11,7 +11,6 @@
     GitFork, AlertTriangle, ShieldCheck, Mail, Tag as TagIcon, Layers, DollarSign
   } from 'lucide-svelte';
   import type { Vendor, VendorContract, VendorTier, VendorCriticality, VendorStatus, Questionnaire } from '$lib/data/types';
-  import { hashStringToInt, mulberry32 } from '$lib/data/rng';
 
   export let data;
 
@@ -23,41 +22,27 @@
   }
   $: residual = residualScore(data.vendor);
 
-  // 12-month synthesised risk score history.
-  function history12mo(v: Vendor): number[] {
-    const rng = mulberry32(hashStringToInt(`hist:${v.id}`));
-    const last = v.lastQuestionnaireScore ?? 70;
-    const out: number[] = [last];
-    for (let i = 1; i < 12; i++) {
-      const drift = (rng() - 0.5) * 8;
-      out.push(Math.max(40, Math.min(100, out[out.length - 1] - drift)));
-    }
-    return out.reverse().map((n) => Math.round(n));
-  }
-  $: trend = history12mo(data.vendor);
-  const MONTHS = (() => {
-    const out: string[] = [];
-    const d = new Date();
-    for (let i = 11; i >= 0; i--) {
-      const m = new Date(d.getFullYear(), d.getMonth() - i, 1);
-      out.push(m.toLocaleString('en', { month: 'short' }));
-    }
-    return out;
-  })();
+  // Real questionnaire score history, oldest-first, at most 12 entries.
+  $: scoredQuestionnaires = data.questionnaires
+    .filter((q) => q.score !== undefined)
+    .sort((a, b) => a.sentAt.localeCompare(b.sentAt))
+    .slice(-12);
+  $: trend = scoredQuestionnaires.length > 1
+    ? scoredQuestionnaires.map((q) => q.score as number)
+    : [data.vendor.lastQuestionnaireScore ?? 70];
+  $: MONTHS = scoredQuestionnaires.length > 1
+    ? scoredQuestionnaires.map((q) => q.sentAt.slice(0, 7))
+    : ['Latest'];
 
-  // Synthesised facts panel.
-  $: facts = (() => {
-    const rng = mulberry32(hashStringToInt(`facts:${data.vendor.id}`));
-    return {
-      industry: data.vendor.category === 'cloud' ? 'Hyperscale Cloud' :
-                data.vendor.category === 'saas' ? 'SaaS / Platform' :
-                data.vendor.category === 'consulting' ? 'Professional Services' :
-                data.vendor.category === 'security' ? 'Cyber Security' : 'Technology',
-      region: data.vendor.hqCountry === 'SG' ? 'APAC' : data.vendor.hqCountry === 'US' ? 'Americas' : 'EMEA',
-      employees: Math.round(50 + rng() * 50_000),
-      tags: ['SOC 2', 'ISO 27001', data.vendor.tier === '1' ? 'critical-path' : 'monitored'].slice(0, 3)
-    };
-  })();
+  $: facts = {
+    industry: data.vendor.category === 'cloud' ? 'Hyperscale Cloud' :
+              data.vendor.category === 'saas' ? 'SaaS / Platform' :
+              data.vendor.category === 'consulting' ? 'Professional Services' :
+              data.vendor.category === 'security' ? 'Cyber Security' : 'Technology',
+    region: data.vendor.hqCountry === 'SG' ? 'APAC' : data.vendor.hqCountry === 'US' ? 'Americas' : 'EMEA',
+    employees: data.vendor.employeeCount ?? null,
+    tags: ['SOC 2', 'ISO 27001', data.vendor.tier === '1' ? 'critical-path' : 'monitored'].slice(0, 3)
+  };
 
   $: contracts = data.contracts as VendorContract[];
 
@@ -247,7 +232,7 @@
             <dl class="mt-2 space-y-2 text-sm">
               <div class="flex justify-between"><dt class="text-slate-500">Industry</dt><dd class="font-medium">{facts.industry}</dd></div>
               <div class="flex justify-between"><dt class="text-slate-500">Region</dt><dd class="font-medium">{facts.region}</dd></div>
-              <div class="flex justify-between"><dt class="text-slate-500">Employees</dt><dd class="font-mono">{facts.employees.toLocaleString()}</dd></div>
+              <div class="flex justify-between"><dt class="text-slate-500">Employees</dt><dd class="font-mono">{facts.employees !== null ? facts.employees.toLocaleString() : '—'}</dd></div>
             </dl>
           </div>
           <div>

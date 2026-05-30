@@ -4,8 +4,7 @@
   import Sparkline from '$lib/components/Sparkline.svelte';
   import { addToast } from '$lib/stores/toast';
   import { Building, AlertTriangle, Calendar, Gauge as GaugeIcon, Search, ChevronRight, Plus } from 'lucide-svelte';
-  import type { Vendor, VendorTier, VendorCriticality, VendorStatus } from '$lib/data/types';
-  import { hashStringToInt, mulberry32 } from '$lib/data/rng';
+  import type { Vendor, VendorContract, VendorTier, VendorCriticality, VendorStatus } from '$lib/data/types';
 
   export let data;
   export let form: { created?: boolean; error?: string } | null = null;
@@ -17,16 +16,18 @@
   // ---------- KPIs ----------
   $: total = data.vendors.length;
   $: critical = data.vendors.filter((v) => v.tier === '1').length;
-  // Renewals within 90 days: synthesise an ends_at from the vendor id so
-  // the demo stays believable without backing-store columns.
-  function endsAtDays(v: Vendor): number {
-    // 0–540 day pseudo-window
-    return Math.abs(hashStringToInt(`ends:${v.id}`) % 540) - 90;
-  }
-  $: renewalsLt90 = data.vendors.filter((v) => {
-    const d = endsAtDays(v);
-    return d >= 0 && d < 90;
-  }).length;
+  // Renewals within 90 days: use real contract end dates from DB.
+  $: renewalsLt90 = (() => {
+    const contracts = data.contracts as VendorContract[];
+    if (contracts.length === 0) return 0;
+    const vendorIds = new Set<string>();
+    for (const c of contracts) {
+      if (!c.endsAt) continue;
+      const daysUntil = (new Date(c.endsAt).getTime() - Date.now()) / 86_400_000;
+      if (daysUntil >= 0 && daysUntil < 90) vendorIds.add(c.vendorId);
+    }
+    return vendorIds.size;
+  })();
 
   // Residual risk score: invert the questionnaire score (lower questionnaire => higher residual).
   function residualScore(v: Vendor): number {
@@ -154,18 +155,15 @@
     if (n >= 1e3) return `S$${(n / 1e3).toFixed(0)}K`;
     return `S$${n}`;
   }
-  // 12-pt sparkline of questionnaire score trend, deterministic per vendor.
+  // 12-pt sparkline: scored questionnaires for this vendor, most-recent last.
   function trendFor(v: Vendor): number[] {
-    const rng = mulberry32(hashStringToInt(`trend:${v.id}`));
-    const last = v.lastQuestionnaireScore ?? 70;
-    // Walk backwards from `last` with mild drift so the curve ends at `last`.
-    const out: number[] = [last];
-    for (let i = 1; i < 12; i++) {
-      const drift = (rng() - 0.5) * 6;
-      const next = Math.max(40, Math.min(100, out[out.length - 1] - drift));
-      out.push(Math.round(next));
-    }
-    return out.reverse();
+    const scored = (data.questionnaires as { vendorId: string; score?: number; sentAt: string }[])
+      .filter((q) => q.vendorId === v.id && q.score !== undefined)
+      .sort((a, b) => a.sentAt.localeCompare(b.sentAt))
+      .slice(-12)
+      .map((q) => q.score as number);
+    if (scored.length > 1) return scored;
+    return [v.lastQuestionnaireScore ?? 70];
   }
   function flag(c: string): string {
     const map: Record<string, string> = {

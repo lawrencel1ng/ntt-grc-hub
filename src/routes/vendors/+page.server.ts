@@ -5,7 +5,7 @@
 
 import type { PageServerLoad, Actions } from './$types';
 import { fail } from '@sveltejs/kit';
-import { getVendors, getQuestionnaires } from '$lib/server/data';
+import { getVendors, getQuestionnaires, getVendorContractsByTenant } from '$lib/server/data';
 import { ALL_TENANTS_ID } from '$lib/stores/tenant';
 import { isPgMode, getPool } from '$lib/server/pg';
 import { writeAuditLog } from '$lib/server/auth';
@@ -13,11 +13,12 @@ import { writeAuditLog } from '$lib/server/auth';
 export const load: PageServerLoad = async ({ locals }) => {
   const tenantId = locals.tenantId ?? ALL_TENANTS_ID;
   const effective = tenantId === ALL_TENANTS_ID ? undefined : tenantId;
-  const [vendors, questionnaires] = await Promise.all([
+  const [vendors, questionnaires, contracts] = await Promise.all([
     getVendors(effective),
-    getQuestionnaires(effective)
+    getQuestionnaires(effective),
+    getVendorContractsByTenant(effective)
   ]);
-  return { vendors, questionnaires, isAll: tenantId === ALL_TENANTS_ID, effectiveTenantId: effective };
+  return { vendors, questionnaires, contracts, isAll: tenantId === ALL_TENANTS_ID, effectiveTenantId: effective };
 };
 
 export const actions: Actions = {

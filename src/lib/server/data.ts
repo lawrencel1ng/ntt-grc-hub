@@ -611,20 +611,22 @@ export async function getRegSources(): Promise<RegSource[]> {
   return rows.length ? rows : mock.REG_SOURCES;
 }
 
-export async function getImpactAssessments(changeId: string, tenantId?: string): Promise<ImpactAssessment[]> {
-  if (!isPgMode()) return mock.impactAssessmentsForChange(changeId, tenantId);
-  const clauses: string[] = ['change_id = $1::uuid'];
-  const params: unknown[] = [changeId];
+export async function getImpactAssessments(changeId?: string, tenantId?: string): Promise<ImpactAssessment[]> {
+  if (!isPgMode()) return changeId ? mock.impactAssessmentsForChange(changeId, tenantId) : HERO_TENANTS.flatMap((t) => mock.impactAssessmentsForChange('reg_hero_mas655', t));
+  const clauses: string[] = [];
+  const params: unknown[] = [];
+  if (changeId) { params.push(changeId); clauses.push(`change_id = $${params.length}::uuid`); }
   if (tenantId) { params.push(tenantId); clauses.push(`tenant_id = $${params.length}`); }
+  const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
   const rows = await safeQuery<ImpactAssessment>(
     `SELECT id::text AS id, tenant_id AS "tenantId", change_id::text AS "changeId",
             framework_id AS "frameworkId", impact::text AS impact,
             gaps_opened AS "gapsOpened", assessed_by_agent_id AS "assessedByAgentId",
             assessed_at AS "assessedAt", notes
-     FROM regwatch.impact_assessments WHERE ${clauses.join(' AND ')}`,
+     FROM regwatch.impact_assessments ${where} ORDER BY assessed_at DESC`,
     params
   );
-  return rows.length ? rows : mock.impactAssessmentsForChange(changeId, tenantId);
+  return rows.length ? rows : (changeId ? mock.impactAssessmentsForChange(changeId, tenantId) : HERO_TENANTS.flatMap((t) => mock.impactAssessmentsForChange('reg_hero_mas655', t)));
 }
 
 // =====================================================================
@@ -675,12 +677,12 @@ export async function getVendors(tenantId?: string): Promise<Vendor[]> {
     ? `SELECT id::text AS id, tenant_id AS "tenantId", name, category,
               tier::text AS tier, criticality::text AS criticality,
               hq_country AS "hqCountry", primary_contact_email AS "primaryContactEmail",
-              status::text AS status
+              status::text AS status, employee_count AS "employeeCount"
        FROM vendor.vendors WHERE tenant_id = $1 ORDER BY name`
     : `SELECT id::text AS id, tenant_id AS "tenantId", name, category,
               tier::text AS tier, criticality::text AS criticality,
               hq_country AS "hqCountry", primary_contact_email AS "primaryContactEmail",
-              status::text AS status
+              status::text AS status, employee_count AS "employeeCount"
        FROM vendor.vendors ORDER BY tenant_id, name`;
   const rows = await safeQuery<Vendor>(sql, tenantId ? [tenantId] : []);
   return rows.length ? rows : (tenantId ? mock.vendorsForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.vendorsForTenant(t)));
@@ -695,6 +697,20 @@ export async function getVendor(id: string): Promise<Vendor | undefined> {
   if (parts.length < 3) return undefined;
   const tenantId = `${parts[1]}_${parts[2]}`;
   return (await getVendors(tenantId)).find((v) => v.id === id);
+}
+
+export async function getVendorContractsByTenant(tenantId?: string): Promise<VendorContract[]> {
+  if (!isPgMode()) return [];
+  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
+  return safeQuery<VendorContract>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", vendor_id::text AS "vendorId",
+            contract_no AS "contractNo", value_sgd::float AS "valueSgd",
+            starts_at AS "startsAt", ends_at AS "endsAt",
+            renewal_window_days AS "renewalWindowDays"
+     FROM vendor.contracts ${where} ORDER BY ends_at ASC NULLS LAST`,
+    params
+  );
 }
 
 export async function getVendorContracts(vendorId: string): Promise<VendorContract[]> {

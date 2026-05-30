@@ -392,6 +392,7 @@ export interface Vendor {
   status: VendorStatus;
   contractValueSgd?: number;
   lastQuestionnaireScore?: number;
+  employeeCount?: number;
 }
 
 export interface VendorContract {

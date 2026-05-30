@@ -137,7 +137,7 @@ export async function getAgents(): Promise<Agent[]> {
     `SELECT id, name, slug, description, type::text AS type, status, owner_team AS "ownerTeam",
             cost_per_run_cents AS "costPerRunCents", cost_monthly_estimate_cents AS "costMonthlyEstimateCents",
             fte_equivalent AS "fteEquivalent"
-     FROM agent.agents ORDER BY name`
+     FROM agent.agents ORDER BY name LIMIT 500`
   );
   return rows;
 }
@@ -290,7 +290,7 @@ export async function getRisks(tenantId?: string, businessServiceLike?: string):
             r.owner_user_id::text AS "ownerUserId", u.email AS "ownerEmail"
      FROM risk.risks r
      LEFT JOIN platform.users u ON u.id = r.owner_user_id
-     ${where} ${orderBy}`,
+     ${where} ${orderBy} LIMIT 2000`,
     params
   );
   return rows;
@@ -619,13 +619,13 @@ export async function getControls(tenantId?: string): Promise<Control[]> {
               c.owner_user_id::text AS "ownerUserId", u.email AS "ownerEmail"
        FROM control.library c
        LEFT JOIN platform.users u ON u.id = c.owner_user_id
-       WHERE c.tenant_id = $1 ORDER BY c.code`
+       WHERE c.tenant_id = $1 ORDER BY c.code LIMIT 2000`
     : `SELECT c.id, c.tenant_id AS "tenantId", c.code, c.title, c.description,
               c.type::text AS type, c.family, c.frequency, c.automated, c.maturity::text AS maturity,
               c.owner_user_id::text AS "ownerUserId", u.email AS "ownerEmail"
        FROM control.library c
        LEFT JOIN platform.users u ON u.id = c.owner_user_id
-       ORDER BY c.tenant_id, c.code`;
+       ORDER BY c.tenant_id, c.code LIMIT 5000`;
   const rows = await safeQuery<Control>(sql, tenantId ? [tenantId] : []);
   return rows;
 }
@@ -796,7 +796,7 @@ export async function getAudits(tenantId?: string): Promise<AuditEngagement[]> {
     `SELECT id::text AS id, tenant_id AS "tenantId", name, type::text AS type,
             lead_auditor AS "leadAuditor", opened_at AS "openedAt", closed_at AS "closedAt",
             scope, framework_id AS "frameworkId"
-     FROM audit.engagements ${where} ORDER BY opened_at DESC`, params
+     FROM audit.engagements ${where} ORDER BY opened_at DESC LIMIT 1000`, params
   );
   return rows;
 }
@@ -1016,12 +1016,12 @@ export async function getVendors(tenantId?: string): Promise<Vendor[]> {
               tier::text AS tier, criticality::text AS criticality,
               hq_country AS "hqCountry", primary_contact_email AS "primaryContactEmail",
               status::text AS status, employee_count AS "employeeCount"
-       FROM vendor.vendors WHERE tenant_id = $1 ORDER BY name`
+       FROM vendor.vendors WHERE tenant_id = $1 ORDER BY name LIMIT 1000`
     : `SELECT id::text AS id, tenant_id AS "tenantId", name, category,
               tier::text AS tier, criticality::text AS criticality,
               hq_country AS "hqCountry", primary_contact_email AS "primaryContactEmail",
               status::text AS status, employee_count AS "employeeCount"
-       FROM vendor.vendors ORDER BY tenant_id, name`;
+       FROM vendor.vendors ORDER BY tenant_id, name LIMIT 5000`;
   const rows = await safeQuery<Vendor>(sql, tenantId ? [tenantId] : []);
   return rows;
 }
@@ -1513,7 +1513,7 @@ export async function getIssues(tenantId?: string, openOnly?: boolean): Promise<
             i.due_at AS "dueAt", i.created_at AS "createdAt"
      FROM issue.issues i
      LEFT JOIN platform.users u ON u.id = i.owner_user_id
-     ${where} ORDER BY i.due_at`, params
+     ${where} ORDER BY i.due_at LIMIT 2000`, params
   );
   return rows;
 }
@@ -1575,7 +1575,7 @@ export async function getBCMPlans(tenantId?: string): Promise<BCMPlan[]> {
             p.owner_user_id::text AS "ownerUserId", u.email AS "ownerEmail"
      FROM bcm.plans p
      LEFT JOIN platform.users u ON u.id = p.owner_user_id
-     ${where} ORDER BY p.name`,
+     ${where} ORDER BY p.name LIMIT 500`,
     params
   );
   return rows;

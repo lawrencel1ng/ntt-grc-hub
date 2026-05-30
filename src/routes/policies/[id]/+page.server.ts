@@ -69,5 +69,43 @@ export const actions: Actions = {
     });
 
     return { editSuccess: true };
+  },
+
+  acknowledgePolicy: async ({ params, locals }) => {
+    if (!locals.user) return fail(401, { ackError: 'Not authenticated.' });
+    if (!isPgMode()) return fail(400, { ackError: 'Requires Postgres mode.' });
+
+    const pool = getPool();
+    // Get the current approved version for this policy (tenant-scoped)
+    const { rows: vRows } = await pool.query<{ id: string }>(
+      `SELECT v.id FROM policy.versions v
+       JOIN policy.documents d ON d.id = v.document_id
+       WHERE d.id = $1 AND d.tenant_id = $2
+       ORDER BY (v.status = 'approved') DESC, v.created_at DESC
+       LIMIT 1`,
+      [params.id, locals.user.tenantId]
+    );
+    if (!vRows.length) return fail(404, { ackError: 'Policy version not found.' });
+    const versionId = vRows[0].id;
+
+    // ON CONFLICT DO NOTHING — idempotent; user can only acknowledge once
+    await pool.query(
+      `INSERT INTO policy.acknowledgements (tenant_id, version_id, user_id)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (version_id, user_id) DO NOTHING`,
+      [locals.user.tenantId, versionId, locals.user.id]
+    );
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: 'policy.acknowledged',
+      target: `policy:${params.id}`,
+      result: 'success',
+      metadata: { versionId }
+    });
+
+    return { ackSuccess: true };
   }
 };

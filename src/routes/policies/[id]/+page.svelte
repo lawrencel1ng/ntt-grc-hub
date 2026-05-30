@@ -8,9 +8,14 @@
   import type { PolicyVersion, PolicyVersionStatus } from '$lib/data/types';
 
   export let data;
-  export let form;
+  export let form: {
+    editSuccess?: boolean; editError?: string;
+    ackSuccess?: boolean; ackError?: string;
+  } | null = null;
   $: if (form?.editSuccess) { addToast('success', 'Policy saved.'); editing = false; }
   $: if (form?.editError) addToast('error', form.editError);
+  $: if (form?.ackSuccess) addToast('success', 'Policy acknowledged.');
+  $: if (form?.ackError) addToast('error', form.ackError);
   let editing = false;
   let editContent = '';
   let editStatus = 'draft';
@@ -205,6 +210,15 @@
     <!-- Acknowledgements -->
     {:else if tab === 'acks'}
       <div class="space-y-4 p-5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs text-slate-500">{acks.length} acknowledgement{acks.length === 1 ? '' : 's'} on the current version</span>
+          <form method="POST" action="?/acknowledgePolicy" use:enhance>
+            <button type="submit" class="btn-primary py-1 text-xs">
+              <UserCheck class="h-3 w-3" />
+              Acknowledge Policy
+            </button>
+          </form>
+        </div>
         {#if acks.length === 0}
           <div class="text-sm text-slate-500">No acknowledgements recorded for the current version.</div>
         {:else}

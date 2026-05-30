@@ -1213,7 +1213,7 @@ export async function getModelRisks(modelId: string): Promise<ModelRisk[]> {
      FROM ai_gov.model_risk WHERE model_id = $1::uuid ORDER BY severity`,
     [modelId]
   );
-  return rows.length ? rows : mock.modelRisksForModel(modelId);
+  return rows;
 }
 
 export async function getPromptsAudit(tenantId?: string, limit = 50): Promise<PromptAuditEntry[]> {
@@ -1370,7 +1370,7 @@ export async function getIncidentTimeline(incidentId: string): Promise<TimelineE
      FROM incident.timeline_events WHERE incident_id = $1::uuid ORDER BY ts`,
     [incidentId]
   );
-  return rows.length ? rows : mock.timelineForIncident(incidentId);
+  return rows;
 }
 
 export async function getPostmortem(incidentId: string): Promise<Postmortem | null> {
@@ -1431,7 +1431,7 @@ export async function getIssueActions(issueId: string): Promise<IssueAction[]> {
      FROM issue.actions WHERE issue_id = $1::uuid ORDER BY due_at`,
     [issueId]
   );
-  return rows.length ? rows : mock.actionsForIssue(issueId);
+  return rows;
 }
 
 export async function getBCMPlans(tenantId?: string): Promise<BCMPlan[]> {
@@ -1495,7 +1495,7 @@ export async function getBCMDependencies(planId: string): Promise<BCMDependency[
      FROM bcm.bias WHERE plan_id = $1::uuid`,
     [planId]
   );
-  return rows.length ? rows : mock.bcmDependenciesForPlan(planId);
+  return rows;
 }
 
 export async function getBCMTests(planId: string): Promise<BCMTest[]> {
@@ -1507,7 +1507,7 @@ export async function getBCMTests(planId: string): Promise<BCMTest[]> {
      FROM bcm.tests WHERE plan_id = $1::uuid ORDER BY conducted_at DESC`,
     [planId]
   );
-  return rows.length ? rows : mock.bcmTestsForPlan(planId);
+  return rows;
 }
 
 // =====================================================================

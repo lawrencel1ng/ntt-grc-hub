@@ -237,7 +237,7 @@
           </div>
           <div>
             <div class="section-title text-xs">Jurisdiction</div>
-            <div class="mt-1 font-medium text-slate-800">SG · MAS</div>
+            <div class="mt-1 font-medium text-slate-800">{data.risk.tags?.['jurisdiction'] ?? '—'}</div>
           </div>
         </div>
         <div>

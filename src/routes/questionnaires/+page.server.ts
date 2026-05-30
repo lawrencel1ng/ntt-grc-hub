@@ -1,7 +1,6 @@
 // =====================================================================
-//  /questionnaires — Vendor questionnaire index. Tenant-scoped with
-//  Maybank fallback so the demo always shows the agent-driven hero
-//  storyline (Vendor Risk Analyst auto-completion).
+//  /questionnaires — Vendor questionnaire index. Tenant-scoped; all-tenants
+//  view queries across all tenants in pg mode.
 // =====================================================================
 
 import type { PageServerLoad } from './$types';

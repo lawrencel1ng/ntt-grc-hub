@@ -71,6 +71,10 @@
     .map((s: string) => s.trim())
     .filter((s: string) => s.length > 0 && !s.startsWith('**'));
 
+  // ---------- Compliance posture stats ----------
+  $: greenFrameworks = data.frameworks.filter((f) => (f.score ?? 0) >= 85);
+  $: totalFrameworks = data.frameworks.length;
+
   // ---------- Radar — top 8 frameworks current vs target ----------
   $: top8 = data.frameworks.slice(0, 8);
   $: radarAxes = top8.map((f) => f.name.length > 16 ? f.name.slice(0, 14) + '…' : f.name);
@@ -315,7 +319,7 @@
         <span class="font-mono text-sm tabular-nums text-slate-400">03.</span>
         <h3 class="font-serif text-2xl font-bold text-grc-ink">Compliance Posture</h3>
       </div>
-      <span class="text-[11px] text-slate-400">Top 8 frameworks · Current vs target 90</span>
+      <span class="text-[11px] text-slate-400">Top {Math.min(8, totalFrameworks)} frameworks · Current score</span>
     </header>
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-5">
       <div class="lg:col-span-3">
@@ -325,14 +329,11 @@
         <div class="rounded-xl bg-slate-50 p-4 ring-1 ring-inset ring-slate-200">
           <div class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Aggregate Score</div>
           <div class="mt-1 num text-[22px] font-semibold tracking-tight text-grc-primary">{data.kpis.avgComplianceScore.toFixed(1)}<span class="ml-0.5 font-sans text-xs font-medium text-slate-400">/100</span></div>
-          <div class="mt-1 text-xs text-violet-700">+3.2 vs prior quarter</div>
+          <div class="mt-1 text-xs text-violet-700">{totalFrameworks} frameworks tracked</div>
         </div>
         <p class="mt-4 text-sm text-slate-600 leading-relaxed">
-          <span class="font-semibold text-slate-800">8 of 35 frameworks tracked closely;</span>
-          27 others sit at a routine cadence with Audit Companion sweeps quarterly.
-          SOC 2 Type II, ISO 27001:2022 and MAS TRM remain green. PCI DSS 4.0
-          readiness has lifted 6 points after Control Tester closed three KMS-rotation
-          gaps this cycle.
+          <span class="font-semibold text-slate-800">{greenFrameworks.length} of {totalFrameworks} frameworks at or above 85;</span>
+          {totalFrameworks > 0 ? `${greenFrameworks.map((f) => f.name).slice(0, 3).join(', ')}${greenFrameworks.length > 3 ? ' and others' : ''} remain green.` : 'No framework scores available yet.'}
         </p>
       </div>
     </div>

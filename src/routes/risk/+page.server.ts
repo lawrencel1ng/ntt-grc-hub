@@ -1,7 +1,6 @@
 // =====================================================================
-//  /risk — Enterprise Risk Register. Tenant-scoped; when "All tenants"
-//  is selected we fall back to the Maybank register so the demo stays
-//  populated (and the hero cross-border risk is reachable).
+//  /risk — Enterprise Risk Register. Tenant-scoped; all-tenants view
+//  queries across all tenants in pg mode.
 // =====================================================================
 
 import { fail } from '@sveltejs/kit';

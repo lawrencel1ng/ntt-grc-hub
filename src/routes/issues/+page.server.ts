@@ -1,6 +1,6 @@
 // =====================================================================
-//  /issues — Issues & Incidents list. Tenant-scoped; MSSP rollup falls
-//  back to Maybank's register so the demo stays populated.
+//  /issues — Issues & Incidents list. Tenant-scoped; MSSP rollup queries
+//  all tenants in pg mode.
 // =====================================================================
 
 import type { PageServerLoad, Actions } from './$types';

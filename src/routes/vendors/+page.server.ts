@@ -1,6 +1,6 @@
 // =====================================================================
-//  /vendors — Vendor inventory (TPRM). Tenant-scoped; when "All tenants"
-//  is selected we fall back to Maybank so the demo stays populated.
+//  /vendors — Vendor inventory (TPRM). Tenant-scoped; all-tenants view
+//  queries across all tenants in pg mode.
 // =====================================================================
 
 import type { PageServerLoad, Actions } from './$types';

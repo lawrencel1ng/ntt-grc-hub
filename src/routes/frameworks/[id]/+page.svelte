@@ -74,7 +74,7 @@
   $: attestations = data.attestations as ComplianceAttestation[];
 
   function generatePack() {
-    addToast('success', `Audit Companion queued · pack for ${data.framework.name} in ~8 seconds.`);
+    addToast('success', `Audit Companion queued · generating evidence pack for ${data.framework.name}.`);
   }
 </script>
 

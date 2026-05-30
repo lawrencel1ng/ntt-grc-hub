@@ -28,7 +28,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 
 const VALID_RISK_TIERS = ['minimal', 'limited', 'high', 'unacceptable'] as const;
 const VALID_MODEL_KINDS = ['classifier', 'llm', 'regression', 'vision', 'recommender'] as const;
-const VALID_ISO_STATUSES = ['not-started', 'in-progress', 'certified'] as const;
+const VALID_ISO_STATUSES = ['compliant', 'in-progress', 'non-compliant'] as const;
 
 export const actions: Actions = {
   registerModel: async ({ request, locals }) => {
@@ -40,7 +40,7 @@ export const actions: Actions = {
     const kind = String(fd.get('kind') ?? 'llm').trim();
     const riskTier = String(fd.get('riskTier') ?? 'limited').trim();
     const jurisdiction = String(fd.get('jurisdiction') ?? '').trim();
-    const iso42001Status = String(fd.get('iso42001Status') ?? 'not-started').trim();
+    const iso42001Status = String(fd.get('iso42001Status') ?? 'in-progress').trim();
 
     if (!name) return fail(400, { createError: 'Name is required.' });
     if (name.length > 256) return fail(400, { createError: 'Name must be 256 characters or fewer.' });
@@ -54,8 +54,8 @@ export const actions: Actions = {
 
     const { rows } = await pool.query<{ id: string }>(
       `INSERT INTO ai_gov.models
-         (tenant_id, name, kind, risk_tier, jurisdiction, eu_ai_act_class, iso42001_status)
-       VALUES ($1, $2, $3::ai_gov.model_kind, $4::ai_gov.risk_tier, $5, 'limited-risk', $6::ai_gov.iso42001_status)
+         (tenant_id, name, kind, risk_tier, jurisdiction, eu_ai_act_class, iso_42001_status)
+       VALUES ($1, $2, $3, $4::ai_gov.risk_tier, $5, 'limited-risk', $6::ai_gov.iso_42001_status)
        RETURNING id::text`,
       [tenantId, name, kind, riskTier, jurisdiction || 'Singapore', iso42001Status]
     );

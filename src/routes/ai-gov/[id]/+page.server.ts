@@ -50,7 +50,7 @@ export const actions: Actions = {
     const pool = getPool();
     const { rowCount } = await pool.query(
       `UPDATE ai_gov.models
-       SET name = $1, kind = $2::ai_gov.model_kind, risk_tier = $3::ai_gov.risk_tier,
+       SET name = $1, kind = $2, risk_tier = $3::ai_gov.risk_tier,
            jurisdiction = $4, training_data_summary = $5
        WHERE id = $6::uuid AND tenant_id = $7`,
       [name, kind, riskTier, jurisdiction, trainingDataSummary, params.id, locals.user.tenantId]

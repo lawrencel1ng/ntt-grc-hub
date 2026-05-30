@@ -48,17 +48,18 @@ export const actions: Actions = {
     const pool = getPool();
 
     const { rows: countRows } = await pool.query<{ count: string }>(
-      'SELECT COUNT(*) AS count FROM control.controls WHERE tenant_id = $1', [tenantId]
+      'SELECT COUNT(*) AS count FROM control.library WHERE tenant_id = $1', [tenantId]
     );
     const seq = parseInt(countRows[0].count, 10) + 1;
     const code = `CTL-${String(seq).padStart(4, '0')}`;
+    const id = `ctl_${tenantId}_${String(seq).padStart(5, '0')}`;
 
     const { rows } = await pool.query<{ id: string }>(
-      `INSERT INTO control.controls
-         (tenant_id, code, title, description, type, frequency, maturity, automated)
-       VALUES ($1, $2, $3, $4, $5::control.type, $6, $7::control.maturity, $8)
-       RETURNING id::text`,
-      [tenantId, code, title, description, type, frequency, maturity, automated]
+      `INSERT INTO control.library
+         (id, tenant_id, code, title, description, type, frequency, maturity, automated)
+       VALUES ($1, $2, $3, $4, $5, $6::control.type, $7, $8::control.maturity, $9)
+       RETURNING id`,
+      [id, tenantId, code, title, description, type, frequency, maturity, automated]
     );
 
     writeAuditLog({

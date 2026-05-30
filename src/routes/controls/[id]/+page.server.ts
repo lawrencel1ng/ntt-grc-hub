@@ -57,7 +57,7 @@ export const actions: Actions = {
 
     const pool = getPool();
     const { rowCount } = await pool.query(
-      `UPDATE control.controls
+      `UPDATE control.library
        SET title = $1, description = $2, type = $3::control.type,
            frequency = $4, maturity = $5::control.maturity, automated = $6
        WHERE id = $7::uuid AND tenant_id = $8`,

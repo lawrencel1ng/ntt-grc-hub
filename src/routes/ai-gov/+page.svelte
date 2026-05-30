@@ -98,9 +98,9 @@
         <label class="block">
           <span class="mb-1 block text-xs font-medium text-slate-700">ISO 42001 Status</span>
           <select name="iso42001Status" class="input">
-            <option value="not-started">Not started</option>
             <option value="in-progress">In progress</option>
-            <option value="certified">Certified</option>
+            <option value="compliant">Compliant</option>
+            <option value="non-compliant">Non-compliant</option>
           </select>
         </label>
       </div>

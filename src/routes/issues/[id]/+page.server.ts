@@ -21,8 +21,46 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 const VALID_STATUSES = ['open', 'in-progress', 'resolved', 'accepted-risk'] as const;
 const VALID_ACTION_STATUSES = ['not-started', 'in-progress', 'done'] as const;
+const VALID_SEVERITIES = ['critical', 'high', 'medium', 'low', 'info'] as const;
 
 export const actions: Actions = {
+  updateIssue: async ({ params, request, locals }) => {
+    if (!locals.user) return fail(401, { editError: 'Not authenticated' });
+    if (!isPgMode()) return fail(400, { editError: 'Requires Postgres mode' });
+
+    const fd = await request.formData();
+    const title = String(fd.get('title') ?? '').trim();
+    const description = String(fd.get('description') ?? '').trim() || null;
+    const severity = String(fd.get('severity') ?? '').trim();
+    const dueAt = String(fd.get('dueAt') ?? '').trim() || null;
+
+    if (!title) return fail(400, { editError: 'Title is required.' });
+    if (title.length > 256) return fail(400, { editError: 'Title must be 256 characters or fewer.' });
+    if (description && description.length > 2048) return fail(400, { editError: 'Description must be 2048 characters or fewer.' });
+    if (!VALID_SEVERITIES.includes(severity as typeof VALID_SEVERITIES[number])) return fail(400, { editError: 'Invalid severity.' });
+
+    const pool = getPool();
+    const { rowCount } = await pool.query(
+      `UPDATE issue.issues
+       SET title = $1, description = $2, severity = $3::risk.severity, due_at = $4
+       WHERE id = $5 AND tenant_id = $6`,
+      [title, description, severity, dueAt, params.id, locals.user.tenantId]
+    );
+    if (!rowCount) return fail(404, { editError: 'Issue not found or access denied.' });
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: 'issue.updated',
+      target: `issue:${params.id}`,
+      result: 'success',
+      metadata: { title, severity }
+    });
+
+    return { editSuccess: true };
+  },
+
   addAction: async ({ params, request, locals }) => {
     if (!locals.user) return fail(401, { actionError: 'Not authenticated' });
     if (!isPgMode()) return fail(400, { actionError: 'Requires Postgres mode' });

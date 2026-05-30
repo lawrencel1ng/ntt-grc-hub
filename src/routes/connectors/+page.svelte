@@ -14,39 +14,55 @@
 
   export let data;
 
-  // Local mutable copy so demo actions (sync) produce visible changes.
+  // Local mutable copy so sync/reconnect actions produce visible changes immediately.
   let connectors: Connector[] = data.connectors.map((c) => ({ ...c }));
   let syncing = false;
   let openMenu: string | null = null;
+
+  async function patchConnector(id: string, action: 'sync' | 'reconnect'): Promise<{ lastSyncAt: string; status: string } | null> {
+    try {
+      const res = await fetch(`/api/connectors/${id}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ action })
+      });
+      if (!res.ok) return null;
+      return res.json();
+    } catch {
+      return null;
+    }
+  }
 
   async function syncAll() {
     if (syncing) return;
     syncing = true;
     addToast('info', `Syncing ${connectors.length} connectors…`);
-    await new Promise((r) => setTimeout(r, 700));
+    const targets = connectors.filter((c) => c.status !== 'disconnected');
+    await Promise.all(targets.map((c) => patchConnector(c.id, 'sync')));
     const now = new Date().toISOString();
     connectors = connectors.map((c) =>
       c.status === 'disconnected' ? c : { ...c, lastSyncAt: now }
     );
     syncing = false;
-    const synced = connectors.filter((c) => c.status !== 'disconnected').length;
-    addToast('success', `Synced ${synced} connectors · ${connectors.length - synced} skipped (disconnected).`);
+    addToast('success', `Synced ${targets.length} connectors · ${connectors.length - targets.length} skipped (disconnected).`);
   }
 
-  function syncOne(c: Connector) {
+  async function syncOne(c: Connector) {
     openMenu = null;
     if (c.status === 'disconnected') {
       addToast('error', `${c.name} is disconnected — reauth required before sync.`);
       return;
     }
-    const now = new Date().toISOString();
+    const result = await patchConnector(c.id, 'sync');
+    const now = result?.lastSyncAt ?? new Date().toISOString();
     connectors = connectors.map((x) => (x.id === c.id ? { ...x, lastSyncAt: now } : x));
     addToast('success', `${c.name} synced.`);
   }
 
-  function reconnect(c: Connector) {
+  async function reconnect(c: Connector) {
     openMenu = null;
-    const now = new Date().toISOString();
+    const result = await patchConnector(c.id, 'reconnect');
+    const now = result?.lastSyncAt ?? new Date().toISOString();
     connectors = connectors.map((x) =>
       x.id === c.id ? { ...x, status: 'connected', lastSyncAt: now } : x
     );

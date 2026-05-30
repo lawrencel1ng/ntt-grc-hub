@@ -8,6 +8,11 @@
   import { hashStringToInt, mulberry32 } from '$lib/data/rng';
 
   export let data;
+  export let form: { created?: boolean; error?: string } | null = null;
+
+  // ---------- Add vendor form ----------
+  let showAddForm = false;
+  $: if (form?.created) { addToast('success', 'Vendor added.'); showAddForm = false; }
 
   // ---------- KPIs ----------
   $: total = data.vendors.length;
@@ -170,9 +175,6 @@
     return map[c] ?? '🌐';
   }
 
-  function newVendor() {
-    addToast('info', 'Vendor onboarding form would open here (demo).');
-  }
 </script>
 
 <PageHeader
@@ -180,12 +182,61 @@
   subtitle="{total.toLocaleString()} vendors · {critical} Tier 1 · {renewalsLt90} renewals within 90 days {data.isAll ? '· showing Maybank register (MSSP fallback)' : ''}"
 >
   <svelte:fragment slot="actions">
-    <button class="btn-primary" on:click={newVendor}>
+    <button class="btn-primary" on:click={() => (showAddForm = !showAddForm)}>
       <Plus class="h-4 w-4" />
       <span>New Vendor</span>
     </button>
   </svelte:fragment>
 </PageHeader>
+
+{#if showAddForm}
+  <div class="card mb-6 p-5">
+    <h2 class="mb-4 text-sm font-semibold text-slate-700">Add Vendor</h2>
+    {#if form?.error}
+      <p class="mb-3 rounded-md bg-rose-50 px-3 py-2 text-xs text-rose-700">{form.error}</p>
+    {/if}
+    <form method="POST" action="?/createVendor" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="flex flex-col gap-1">
+        <label for="vendor-name" class="text-xs font-medium text-slate-600">Name <span class="text-rose-500">*</span></label>
+        <input id="vendor-name" name="name" type="text" required class="input" placeholder="Acme Corp" />
+      </div>
+      <div class="flex flex-col gap-1">
+        <label for="vendor-category" class="text-xs font-medium text-slate-600">Category</label>
+        <input id="vendor-category" name="category" type="text" class="input" placeholder="e.g. Cloud, SaaS, Professional Services" />
+      </div>
+      <div class="flex flex-col gap-1">
+        <label for="vendor-tier" class="text-xs font-medium text-slate-600">Tier</label>
+        <select id="vendor-tier" name="tier" class="input">
+          <option value="tier1">Tier 1 (Critical)</option>
+          <option value="tier2">Tier 2 (High)</option>
+          <option value="tier3">Tier 3 (Medium)</option>
+          <option value="tier4" selected>Tier 4 (Low)</option>
+        </select>
+      </div>
+      <div class="flex flex-col gap-1">
+        <label for="vendor-criticality" class="text-xs font-medium text-slate-600">Criticality</label>
+        <select id="vendor-criticality" name="criticality" class="input">
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low" selected>Low</option>
+        </select>
+      </div>
+      <div class="flex flex-col gap-1">
+        <label for="vendor-hq" class="text-xs font-medium text-slate-600">HQ Country</label>
+        <input id="vendor-hq" name="hqCountry" type="text" class="input" placeholder="SG" />
+      </div>
+      <div class="flex flex-col gap-1">
+        <label for="vendor-email" class="text-xs font-medium text-slate-600">Primary Contact Email</label>
+        <input id="vendor-email" name="primaryContactEmail" type="email" class="input" placeholder="contact@vendor.com" />
+      </div>
+      <div class="col-span-full flex items-center gap-3 pt-2">
+        <button type="submit" class="btn-primary">Add Vendor</button>
+        <button type="button" class="btn-ghost" on:click={() => (showAddForm = false)}>Cancel</button>
+      </div>
+    </form>
+  </div>
+{/if}
 
 <div class="space-y-6">
   <!-- KPI strip -->

@@ -9,10 +9,16 @@
   } from 'lucide-svelte';
 
   export let data;
+  export let form;
+
+  $: if (form?.tenantCreated) { addToast('success', `Tenant "${form.createdName}" onboarded.`); showOnboardForm = false; }
+  $: if (form?.tenantError) addToast('error', form.tenantError);
+
+  let showOnboardForm = false;
 
   // ---------- KPIs ----------
   $: total = data.rows.length;
-  $: active = data.rows.filter((r) => true).length; // all tenants currently active in mock
+  $: active = data.rows.filter((r) => true).length;
   $: totalMrr = data.rows.reduce((s, r) => s + r.tenant.mrrSgd, 0);
   $: sovereign = data.rows.filter((r) => r.tenant.classified || r.tenant.slaTier === 'sovereign').length;
 
@@ -38,19 +44,70 @@
     return 'SG';
   }
 
-  function onboard() {
-    addToast('info', 'Tenant onboarding wizard would open here (demo).');
-  }
 </script>
 
 <PageHeader title="Tenants" subtitle="Platform-level tenant operations · {total} on-platform">
   <svelte:fragment slot="actions">
-    <button class="btn-primary" on:click={onboard}>
+    <button class="btn-primary" on:click={() => (showOnboardForm = !showOnboardForm)}>
       <Plus class="h-4 w-4" />
       <span>Onboard Tenant</span>
     </button>
   </svelte:fragment>
 </PageHeader>
+
+{#if showOnboardForm}
+  <div class="card p-5">
+    <h3 class="mb-3 text-sm font-semibold text-grc-ink">Onboard new tenant</h3>
+    <form method="POST" action="?/createTenant" class="flex flex-wrap items-end gap-3">
+      <label class="block flex-1 min-w-[160px]">
+        <span class="mb-1 block text-xs font-medium text-slate-700">Organisation name</span>
+        <input name="name" type="text" class="input" placeholder="Acme Bank Pte Ltd" required />
+      </label>
+      <label class="block flex-1 min-w-[140px]">
+        <span class="mb-1 block text-xs font-medium text-slate-700">Industry</span>
+        <input name="industry" type="text" class="input" placeholder="Banking" required />
+      </label>
+      <label class="block">
+        <span class="mb-1 block text-xs font-medium text-slate-700">Region</span>
+        <select name="region" class="input">
+          <option value="SG">SG</option>
+          <option value="APAC">APAC</option>
+          <option value="MY">MY</option>
+          <option value="AU">AU</option>
+          <option value="HK">HK</option>
+        </select>
+      </label>
+      <label class="block">
+        <span class="mb-1 block text-xs font-medium text-slate-700">SLA Tier</span>
+        <select name="slaTier" class="input">
+          <option value="standard">Standard</option>
+          <option value="gold">Gold</option>
+          <option value="platinum">Platinum</option>
+          <option value="sovereign">Sovereign</option>
+        </select>
+      </label>
+      <label class="block">
+        <span class="mb-1 block text-xs font-medium text-slate-700">Primary Framework</span>
+        <select name="primaryFramework" class="input">
+          <option value="">None</option>
+          <option value="MAS TRM">MAS TRM</option>
+          <option value="ISO 27001">ISO 27001</option>
+          <option value="PCI DSS 4.0">PCI DSS 4.0</option>
+          <option value="NIST CSF 2.0">NIST CSF 2.0</option>
+          <option value="IM8">IM8</option>
+        </select>
+      </label>
+      <label class="block">
+        <span class="mb-1 block text-xs font-medium text-slate-700">MRR (S$)</span>
+        <input name="mrrSgd" type="number" class="input w-32" placeholder="0" min="0" step="100" />
+      </label>
+      <div class="flex gap-2">
+        <button type="submit" class="btn-primary">Create</button>
+        <button type="button" class="btn-secondary" on:click={() => (showOnboardForm = false)}>Cancel</button>
+      </div>
+    </form>
+  </div>
+{/if}
 
 <div class="space-y-6">
   <!-- KPI strip -->

@@ -2,10 +2,11 @@
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Kpi from '$lib/components/Kpi.svelte';
   import { addToast } from '$lib/stores/toast';
-  import { AlertTriangle, ShieldCheck, CheckCircle2, ListChecks, Activity, Search, ChevronRight, Plus, User as UserIcon } from 'lucide-svelte';
+  import { AlertTriangle, ShieldCheck, CheckCircle2, ListChecks, Activity, Search, ChevronRight, Plus, User as UserIcon, X } from 'lucide-svelte';
   import type { Risk, RiskSeverity, RiskLikelihood, RiskStatus, RiskTreatmentStrategy } from '$lib/data/types';
 
   export let data;
+  export let form: { created?: boolean; error?: string } | null = null;
 
   // ---------- Scoring (sev × lik on 1..5 each, scale 0..25) ----------
   const SEV_RANK: Record<RiskSeverity, number> = { critical: 5, high: 4, medium: 3, low: 2, info: 1 };
@@ -154,8 +155,16 @@
     }
   }
 
+  // ---------- Create Risk form ----------
+  let showCreateForm = false;
+
+  $: if (form?.created) {
+    addToast('success', 'Risk created.');
+    showCreateForm = false;
+  }
+
   function newRisk() {
-    addToast('info', 'Risk capture form would open here (demo).');
+    showCreateForm = !showCreateForm;
   }
 </script>
 
@@ -170,6 +179,124 @@
     </button>
   </svelte:fragment>
 </PageHeader>
+
+{#if showCreateForm}
+  <div class="card mt-4 p-5 space-y-4">
+    <div class="flex items-center justify-between">
+      <h2 class="text-base font-semibold text-slate-800">New Risk</h2>
+      <button type="button" class="text-slate-400 hover:text-slate-600" on:click={() => (showCreateForm = false)}>
+        <X class="h-4 w-4" />
+      </button>
+    </div>
+
+    {#if form?.error}
+      <p class="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700 ring-1 ring-rose-200">{form.error}</p>
+    {/if}
+
+    <form method="POST" action="?/createRisk" class="space-y-4">
+      <!-- Row 1: Title + Category -->
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label for="cr-title" class="block text-xs font-semibold text-slate-600 mb-1">Title <span class="text-rose-500">*</span></label>
+          <input id="cr-title" name="title" type="text" required class="input w-full" placeholder="e.g. SQL injection on customer portal" />
+        </div>
+        <div>
+          <label for="cr-category" class="block text-xs font-semibold text-slate-600 mb-1">Category <span class="text-rose-500">*</span></label>
+          <select id="cr-category" name="category" required class="input w-full">
+            <option value="">Select…</option>
+            <option value="Cyber">Cyber</option>
+            <option value="Operational">Operational</option>
+            <option value="Compliance">Compliance</option>
+            <option value="Third-party">Third-party</option>
+            <option value="Strategic">Strategic</option>
+            <option value="Financial">Financial</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div>
+        <label for="cr-description" class="block text-xs font-semibold text-slate-600 mb-1">Description</label>
+        <textarea id="cr-description" name="description" rows="2" class="input w-full resize-none" placeholder="Optional context…"></textarea>
+      </div>
+
+      <!-- Inherent scores -->
+      <fieldset class="rounded-lg border border-slate-200 px-4 py-3 space-y-3">
+        <legend class="px-1 text-xs font-semibold text-slate-500 uppercase tracking-wider">Inherent Risk</legend>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="cr-inh-sev" class="block text-xs font-semibold text-slate-600 mb-1">Severity <span class="text-rose-500">*</span></label>
+            <select id="cr-inh-sev" name="inherentSeverity" required class="input w-full">
+              <option value="">Select…</option>
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+              <option value="info">Info</option>
+            </select>
+          </div>
+          <div>
+            <label for="cr-inh-lik" class="block text-xs font-semibold text-slate-600 mb-1">Likelihood <span class="text-rose-500">*</span></label>
+            <select id="cr-inh-lik" name="inherentLikelihood" required class="input w-full">
+              <option value="">Select…</option>
+              <option value="almost-certain">Almost Certain</option>
+              <option value="likely">Likely</option>
+              <option value="possible">Possible</option>
+              <option value="unlikely">Unlikely</option>
+              <option value="rare">Rare</option>
+            </select>
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- Residual scores -->
+      <fieldset class="rounded-lg border border-slate-200 px-4 py-3 space-y-3">
+        <legend class="px-1 text-xs font-semibold text-slate-500 uppercase tracking-wider">Residual Risk</legend>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label for="cr-res-sev" class="block text-xs font-semibold text-slate-600 mb-1">Severity <span class="text-rose-500">*</span></label>
+            <select id="cr-res-sev" name="residualSeverity" required class="input w-full">
+              <option value="">Select…</option>
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+              <option value="info">Info</option>
+            </select>
+          </div>
+          <div>
+            <label for="cr-res-lik" class="block text-xs font-semibold text-slate-600 mb-1">Likelihood <span class="text-rose-500">*</span></label>
+            <select id="cr-res-lik" name="residualLikelihood" required class="input w-full">
+              <option value="">Select…</option>
+              <option value="almost-certain">Almost Certain</option>
+              <option value="likely">Likely</option>
+              <option value="possible">Possible</option>
+              <option value="unlikely">Unlikely</option>
+              <option value="rare">Rare</option>
+            </select>
+          </div>
+        </div>
+      </fieldset>
+
+      <!-- Treatment Strategy -->
+      <div>
+        <label for="cr-treatment" class="block text-xs font-semibold text-slate-600 mb-1">Treatment Strategy</label>
+        <select id="cr-treatment" name="treatmentStrategy" class="input w-64">
+          <option value="mitigate">Mitigate</option>
+          <option value="accept">Accept</option>
+          <option value="transfer">Transfer</option>
+          <option value="avoid">Avoid</option>
+        </select>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-center gap-3 pt-1">
+        <button type="submit" class="btn-primary">Create Risk</button>
+        <button type="button" class="btn-ghost" on:click={() => (showCreateForm = false)}>Cancel</button>
+      </div>
+    </form>
+  </div>
+{/if}
 
 <div class="space-y-6">
   <!-- KPI strip -->

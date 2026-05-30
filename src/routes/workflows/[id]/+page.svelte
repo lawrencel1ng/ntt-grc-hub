@@ -82,8 +82,17 @@
   $: svgWidth = stepCount * BOX_W + (stepCount - 1) * GAP + 40;
   const SVG_HEIGHT = 140;
 
-  function runNow() {
-    addToast('success', `${data.workflow.name} queued.`);
+  async function runNow() {
+    const res = await fetch(`/api/workflows/${data.workflow.id}/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (res.ok) {
+      addToast('success', `${data.workflow.name} queued.`);
+    } else {
+      const msg = await res.text().catch(() => '');
+      addToast('error', msg || 'Failed to queue workflow execution.');
+    }
   }
 </script>
 

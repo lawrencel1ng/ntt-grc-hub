@@ -200,6 +200,49 @@ export const actions: Actions = {
     return { mfaToggled: true, mfaEnabled: enabled };
   },
 
+  updateTenantSettings: async ({ request, locals }) => {
+    if (!locals.user) return fail(401, { tenantSettingsError: 'Not authenticated.' });
+    if (locals.user.role !== 'admin') return fail(403, { tenantSettingsError: 'Admin role required.' });
+    if (!isPgMode()) return fail(400, { tenantSettingsError: 'Requires Postgres mode.' });
+
+    const data = await request.formData();
+    const dataResidency = String(data.get('dataResidency') ?? '').trim();
+    const aiProvider = String(data.get('aiProvider') ?? '').trim();
+
+    const VALID_RESIDENCIES = ['SG', 'JP', 'AU', 'US', 'EU'];
+    const VALID_PROVIDERS = ['anthropic', 'openai', 'tsuzumi'];
+    if (!VALID_RESIDENCIES.includes(dataResidency)) return fail(400, { tenantSettingsError: 'Invalid data residency.' });
+    if (!VALID_PROVIDERS.includes(aiProvider)) return fail(400, { tenantSettingsError: 'Invalid AI provider.' });
+
+    const pool = getPool();
+    const tenantId = locals.user.tenantId;
+    const check = await pool.query<{ ai_provider: string }>(
+      `SELECT ai_provider FROM platform.tenants WHERE id = $1`,
+      [tenantId]
+    );
+    // Sovereign tenants (tsuzumi) cannot change their AI provider
+    if (check.rows[0]?.ai_provider === 'tsuzumi' && aiProvider !== 'tsuzumi') {
+      return fail(403, { tenantSettingsError: 'Sovereign tenant — AI provider cannot be changed.' });
+    }
+
+    await pool.query(
+      `UPDATE platform.tenants SET data_residency = $1, ai_provider = $2 WHERE id = $3`,
+      [dataResidency, aiProvider, tenantId]
+    );
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId,
+      action: 'tenant.settings.updated',
+      target: `tenant:${tenantId}`,
+      result: 'success',
+      metadata: { dataResidency, aiProvider }
+    });
+
+    return { tenantSettingsSaved: true };
+  },
+
   updateBranding: async ({ request, locals }) => {
     if (!locals.user) return fail(401, { brandingError: 'Not authenticated.' });
     if (locals.user.role !== 'admin') return fail(403, { brandingError: 'Admin role required.' });

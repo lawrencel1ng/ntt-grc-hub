@@ -19,13 +19,12 @@
   $: if (form?.mfaError) addToast('error', form.mfaError);
   $: if (form?.brandingUpdated) addToast('success', `Accent colour updated to ${form.accentColor}.`);
   $: if (form?.brandingError) addToast('error', form.brandingError);
+  $: if (form?.tenantSettingsSaved) addToast('success', 'Tenant settings saved.');
+  $: if (form?.tenantSettingsError) addToast('error', form.tenantSettingsError);
 
   // ---------- Tenant settings local state — read from DB ----------
   $: defaultProvider = data.tenant?.aiProvider ?? 'anthropic';
   $: defaultResidency = data.tenant?.dataResidency ?? 'SG';
-  let residency: string;
-  let provider: string;
-  $: { residency = defaultResidency; provider = defaultProvider; }
 
   // ---------- New token creation state ----------
   let showNewTokenForm = false;
@@ -33,9 +32,6 @@
   let newTokenValue = '';
   let newTokenName = '';
 
-  // ---------- Actions ----------
-  function toast(msg: string) { addToast('info', msg); }
-  function saveTenant() { addToast('success', `Tenant settings saved for ${data.tenant?.name ?? 'tenant'}.`); }
 </script>
 
 <PageHeader title="Settings" subtitle="Profile · tenant settings · API tokens · MFA · branding" />
@@ -129,14 +125,14 @@
         </span>
       {/if}
     </div>
-    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <form method="POST" action="?/updateTenantSettings" class="grid grid-cols-1 gap-3 sm:grid-cols-2">
       <label class="block sm:col-span-2">
         <span class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Current Tenant</span>
         <input value={data.tenant?.name ?? '—'} readonly class="input bg-slate-50" />
       </label>
       <label class="block">
         <span class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">Data Residency</span>
-        <select bind:value={residency} class="input">
+        <select name="dataResidency" class="input" value={defaultResidency}>
           <option value="SG">Singapore (SG)</option>
           <option value="JP">Japan (JP)</option>
           <option value="AU">Australia (AU)</option>
@@ -146,7 +142,7 @@
       </label>
       <label class="block">
         <span class="mb-1 block text-xs font-semibold uppercase tracking-wider text-slate-500">AI Provider</span>
-        <select bind:value={provider} class="input" disabled={provider === 'tsuzumi' && defaultProvider === 'tsuzumi'}>
+        <select name="aiProvider" class="input" value={defaultProvider} disabled={defaultProvider === 'tsuzumi'}>
           <option value="tsuzumi">NTT Tsuzumi (sovereign)</option>
           <option value="anthropic">Anthropic Claude</option>
           <option value="openai">OpenAI</option>
@@ -155,11 +151,11 @@
           <p class="mt-1 text-[11px] text-rose-700">Sovereign tenant — provider locked to NTT Tsuzumi.</p>
         {/if}
       </label>
-    </div>
-    <div class="mt-4 flex items-center justify-between">
-      <p class="text-[11px] text-slate-500">Tenant settings apply to all users in <span class="font-medium">{data.tenant?.name ?? '—'}</span>.</p>
-      <button class="btn-primary" on:click={saveTenant}>Save</button>
-    </div>
+      <div class="sm:col-span-2 mt-1 flex items-center justify-between">
+        <p class="text-[11px] text-slate-500">Tenant settings apply to all users in <span class="font-medium">{data.tenant?.name ?? '—'}</span>.</p>
+        <button type="submit" class="btn-primary">Save</button>
+      </div>
+    </form>
   </div>
 
   <!-- API Tokens -->

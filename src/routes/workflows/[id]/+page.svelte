@@ -3,12 +3,20 @@
   import Kpi from '$lib/components/Kpi.svelte';
   import StatusDot from '$lib/components/StatusDot.svelte';
   import { addToast } from '$lib/stores/toast';
+  import { enhance } from '$app/forms';
   import {
     Play, Bot, Plug, User as UserIcon, GitBranch, CheckCircle2, Workflow as WorkflowIcon, Clock
   } from 'lucide-svelte';
   import type { WorkflowExecutionStatus, WorkflowStepDef } from '$lib/data/types';
 
   export let data;
+  export let form: { toggled?: boolean; enabled?: boolean; toggleError?: string } | null = null;
+
+  $: if (form?.toggled) {
+    data = { ...data, workflow: { ...data.workflow, enabled: form.enabled ?? data.workflow.enabled } };
+    addToast('success', form.enabled ? 'Workflow enabled.' : 'Workflow paused.');
+  }
+  $: if (form?.toggleError) addToast('error', form.toggleError);
 
   let selectedStep: number | null = null;
 
@@ -104,6 +112,12 @@
     <span class="inline-flex items-center gap-1.5 text-xs">
       <StatusDot status={data.workflow.enabled ? 'running' : 'paused'} withLabel />
     </span>
+    <form method="POST" action="?/toggleEnabled" use:enhance>
+      <input type="hidden" name="enabled" value={String(!data.workflow.enabled)} />
+      <button type="submit" class="btn-secondary py-1 text-xs">
+        {data.workflow.enabled ? 'Pause' : 'Enable'}
+      </button>
+    </form>
     <button class="btn-primary" on:click={runNow}>
       <Play class="h-4 w-4" />
       <span>Run Now</span>

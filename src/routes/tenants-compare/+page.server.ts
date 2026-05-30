@@ -9,7 +9,7 @@ import type { PageServerLoad } from './$types';
 import { error } from '@sveltejs/kit';
 import {
   getTenantSummaries,
-  getKpiSnapshot,
+  getKpiSnapshotBatch,
   getVendors,
   getAudits,
   getCostLedger30d,
@@ -63,60 +63,74 @@ export const load: PageServerLoad = async ({ locals }) => {
     shallowIds = [...SHALLOW_TENANT_IDS];
   }
 
+  const allIds = [...heroIds, ...shallowIds];
+
+  // Fetch all entity types for all tenants in one pass each — no per-tenant N+1.
+  const [kpiByTenant, allVendors, allAudits, allRisks, allLedger, allScores] = await Promise.all([
+    getKpiSnapshotBatch(allIds),
+    getVendors(),
+    getAudits(),
+    getRisks(),
+    getCostLedger30d(),
+    getFrameworkScores()
+  ]);
+
+  // Group fetched data by tenantId for O(1) lookups below.
+  const vendorsByTenant = allVendors.reduce<Record<string, typeof allVendors>>((acc, v) => {
+    (acc[v.tenantId] ??= []).push(v); return acc;
+  }, {});
+  const auditsByTenantMap = allAudits.reduce<Record<string, typeof allAudits>>((acc, a) => {
+    (acc[a.tenantId] ??= []).push(a); return acc;
+  }, {});
+  const risksByTenant = allRisks.reduce<Record<string, typeof allRisks>>((acc, r) => {
+    (acc[r.tenantId] ??= []).push(r); return acc;
+  }, {});
+  const ledgerByTenant = allLedger.reduce<Record<string, typeof allLedger>>((acc, e) => {
+    (acc[e.tenantId] ??= []).push(e); return acc;
+  }, {});
+  const scoresByTenant = allScores.reduce<Record<string, typeof allScores>>((acc, s) => {
+    (acc[s.tenantId] ??= []).push(s); return acc;
+  }, {});
+
   // ---------- Per-tenant snapshots ----------
-  const heroes: HeroSnapshot[] = await Promise.all(
-    heroIds.map(async (tid) => {
-      const [kpi, vendors, audits, ledger, scores, risks] = await Promise.all([
-        getKpiSnapshot(tid),
-        getVendors(tid),
-        getAudits(tid),
-        getCostLedger30d(tid),
-        getFrameworkScores(tid),
-        getRisks(tid)
-      ]);
-      const fteHours = ledger.reduce((s, e) => s + e.fteSavedHours, 0);
-      const fteSaved30d = +(fteHours / 160).toFixed(1);
-      const criticalVendors = vendors.filter((v) => v.criticality === 'critical' || v.tier === '1').length;
-      const lastAudit = audits
-        .map((a) => a.openedAt)
-        .sort()
-        .pop();
-      return {
-        tenantId: tid,
-        openCriticalRisks: kpi.openCriticalRisks,
-        avgComplianceScore: kpi.avgComplianceScore,
-        openFindings: kpi.openFindings,
-        vendorRiskIndex: kpi.vendorRiskIndex,
-        agentFteSaved30d: fteSaved30d,
-        totalRisks: risks.length,
-        totalVendors: vendors.length,
-        criticalVendors,
-        activeFrameworks: scores.length,
-        lastAuditAt: lastAudit
-      };
-    })
-  );
+  const heroes: HeroSnapshot[] = heroIds.map((tid) => {
+    const kpi = kpiByTenant[tid] ?? { openCriticalRisks: 0, avgComplianceScore: 0, openFindings: 0, vendorRiskIndex: 50, agentFteSaved30d: 0, evidenceItems30d: 0 };
+    const vendors = vendorsByTenant[tid] ?? [];
+    const audits = auditsByTenantMap[tid] ?? [];
+    const risks = risksByTenant[tid] ?? [];
+    const ledger = ledgerByTenant[tid] ?? [];
+    const scores = scoresByTenant[tid] ?? [];
+    const fteHours = ledger.reduce((s, e) => s + e.fteSavedHours, 0);
+    const criticalVendors = vendors.filter((v) => v.criticality === 'critical' || v.tier === '1').length;
+    const lastAudit = audits.map((a) => a.openedAt).sort().pop();
+    return {
+      tenantId: tid,
+      openCriticalRisks: kpi.openCriticalRisks,
+      avgComplianceScore: kpi.avgComplianceScore,
+      openFindings: kpi.openFindings,
+      vendorRiskIndex: kpi.vendorRiskIndex,
+      agentFteSaved30d: +(fteHours / 160).toFixed(1),
+      totalRisks: risks.length,
+      totalVendors: vendors.length,
+      criticalVendors,
+      activeFrameworks: scores.length,
+      lastAuditAt: lastAudit
+    };
+  });
 
   // ---------- Shallow tenants (lightweight) ----------
-  const shallow: ShallowSnapshot[] = await Promise.all(
-    shallowIds.map(async (tid) => {
-      const [risks, ledger, scores] = await Promise.all([
-        getRisks(tid),
-        getCostLedger30d(tid),
-        getFrameworkScores(tid)
-      ]);
-      const fteHours = ledger.reduce((s, e) => s + e.fteSavedHours, 0);
-      const avg = scores.length
-        ? +(scores.reduce((s, x) => s + (x.score ?? 0), 0) / scores.length).toFixed(1)
-        : 0;
-      return {
-        tenantId: tid,
-        openRisks: risks.length,
-        agentFteSaved30d: +(fteHours / 160).toFixed(1),
-        avgComplianceScore: avg
-      };
-    })
-  );
+  const shallow: ShallowSnapshot[] = shallowIds.map((tid) => {
+    const kpi = kpiByTenant[tid] ?? { openCriticalRisks: 0, avgComplianceScore: 0, openFindings: 0, vendorRiskIndex: 50, agentFteSaved30d: 0, evidenceItems30d: 0 };
+    const risks = risksByTenant[tid] ?? [];
+    const ledger = ledgerByTenant[tid] ?? [];
+    const fteHours = ledger.reduce((s, e) => s + e.fteSavedHours, 0);
+    return {
+      tenantId: tid,
+      openRisks: risks.length,
+      agentFteSaved30d: +(fteHours / 160).toFixed(1),
+      avgComplianceScore: kpi.avgComplianceScore
+    };
+  });
 
   // ---------- Aggregate KPIs across ALL tenants ----------
   const totalCritical = heroes.reduce((s, h) => s + h.openCriticalRisks, 0);
@@ -129,8 +143,7 @@ export const load: PageServerLoad = async ({ locals }) => {
     Math.max(1, heroes.length + shallow.length)
   ).toFixed(1);
 
-  const auditsByTenant = await Promise.all(heroIds.map((tid) => getAudits(tid)));
-  const activeAudits = auditsByTenant.flat().filter((a) => !a.closedAt).length;
+  const activeAudits = allAudits.filter((a) => heroIds.includes(a.tenantId) && !a.closedAt).length;
 
   return {
     tenants,

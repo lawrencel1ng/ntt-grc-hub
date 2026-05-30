@@ -1784,6 +1784,18 @@ export async function getConnectors(tenantId?: string): Promise<Connector[]> {
   return rows;
 }
 
+export async function getConnectorCountsByTenant(): Promise<Record<string, { total: number; connected: number }>> {
+  if (!isPgMode()) return {};
+  const rows = await safeQuery<{ tenantId: string; total: number; connected: number }>(
+    `SELECT tenant_id AS "tenantId",
+            COUNT(*)::int AS total,
+            COUNT(*) FILTER (WHERE status = 'connected')::int AS connected
+     FROM integration.connectors
+     GROUP BY tenant_id`
+  );
+  return Object.fromEntries(rows.map((r) => [r.tenantId, { total: r.total, connected: r.connected }]));
+}
+
 export async function getAuditLog(tenantId?: string, limit = 200): Promise<AuditLogEntry[]> {
   if (!isPgMode()) {
     // Synthesize a believable platform audit feed over the last 30 days using
@@ -2158,6 +2170,68 @@ export async function getKpiSnapshot(tenantId?: string): Promise<KpiSnapshot> {
     agentFteSaved30d,
     evidenceItems30d
   };
+}
+
+export async function getKpiSnapshotBatch(tenantIds: string[]): Promise<Record<string, KpiSnapshot>> {
+  if (!tenantIds.length) return {};
+  if (!isPgMode()) {
+    const result: Record<string, KpiSnapshot> = {};
+    for (const tid of tenantIds) result[tid] = await getKpiSnapshot(tid);
+    return result;
+  }
+  const [riskRows, findingRows, evidenceRows, ledgerRows, scoreRows, vendorRiskRows] = await Promise.all([
+    safeQuery<{ tenantId: string; cnt: number }>(
+      `SELECT tenant_id AS "tenantId", COUNT(*)::int AS cnt
+       FROM risk.risks
+       WHERE tenant_id = ANY($1) AND residual_severity = 'critical' AND status <> 'closed'
+       GROUP BY tenant_id`, [tenantIds]
+    ),
+    safeQuery<{ tenantId: string; cnt: number }>(
+      `SELECT e.tenant_id AS "tenantId", COUNT(f.id)::int AS cnt
+       FROM audit.findings f
+       JOIN audit.engagements e ON e.id = f.engagement_id
+       WHERE e.tenant_id = ANY($1) AND f.status = 'open'
+       GROUP BY e.tenant_id`, [tenantIds]
+    ),
+    safeQuery<{ tenantId: string; cnt: number }>(
+      `SELECT tenant_id AS "tenantId", COUNT(*)::int AS cnt
+       FROM evidence.items
+       WHERE tenant_id = ANY($1) AND captured_at >= now() - interval '30 days'
+       GROUP BY tenant_id`, [tenantIds]
+    ),
+    safeQuery<{ tenantId: string; fteHours: number }>(
+      `SELECT tenant_id AS "tenantId", COALESCE(SUM(fte_saved_hours), 0)::float AS "fteHours"
+       FROM agent.cost_ledger
+       WHERE tenant_id = ANY($1) AND ts >= now() - interval '30 days'
+       GROUP BY tenant_id`, [tenantIds]
+    ),
+    safeQuery<{ tenantId: string; avg: number }>(
+      `SELECT tenant_id AS "tenantId", COALESCE(AVG(score), 0)::float AS avg
+       FROM compliance.framework_score
+       WHERE tenant_id = ANY($1)
+       GROUP BY tenant_id`, [tenantIds]
+    ),
+    safeQuery<{ tenantId: string; idx: number }>(
+      `SELECT tenant_id AS "tenantId",
+              LEAST(100, GREATEST(0, ROUND(100 - COALESCE(AVG(score), 50))))::int AS idx
+       FROM vendor.questionnaires
+       WHERE tenant_id = ANY($1) AND status = 'complete' AND score IS NOT NULL
+       GROUP BY tenant_id`, [tenantIds]
+    )
+  ]);
+
+  const result: Record<string, KpiSnapshot> = {};
+  for (const tid of tenantIds) {
+    result[tid] = {
+      openCriticalRisks: riskRows.find((r) => r.tenantId === tid)?.cnt ?? 0,
+      openFindings: findingRows.find((r) => r.tenantId === tid)?.cnt ?? 0,
+      evidenceItems30d: evidenceRows.find((r) => r.tenantId === tid)?.cnt ?? 0,
+      agentFteSaved30d: +(ledgerRows.find((r) => r.tenantId === tid)?.fteHours ?? 0).toFixed(1),
+      avgComplianceScore: +(scoreRows.find((r) => r.tenantId === tid)?.avg ?? 0).toFixed(1),
+      vendorRiskIndex: vendorRiskRows.find((r) => r.tenantId === tid)?.idx ?? 50
+    };
+  }
+  return result;
 }
 
 export async function getBoardNarrative(tenantId?: string): Promise<string> {

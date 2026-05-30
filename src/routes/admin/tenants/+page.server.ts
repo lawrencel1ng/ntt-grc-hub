@@ -7,7 +7,7 @@ import type { PageServerLoad, Actions } from './$types';
 import { fail, error } from '@sveltejs/kit';
 import {
   getTenantSummaries,
-  getConnectors,
+  getConnectorCountsByTenant,
   getUsers
 } from '$lib/server/data';
 import { writeAuditLog } from '$lib/server/auth';
@@ -19,18 +19,22 @@ export const load: PageServerLoad = async ({ locals }) => {
   if ((locals.tenantId ?? ALL_TENANTS_ID) !== ALL_TENANTS_ID) {
     throw error(403, 'Tenant management requires platform-admin access');
   }
-  const [tenants, usersAll] = await Promise.all([getTenantSummaries(), getUsers()]);
+  const [tenants, usersAll, connectorCounts] = await Promise.all([
+    getTenantSummaries(),
+    getUsers(),
+    getConnectorCountsByTenant()
+  ]);
 
-  const enriched = await Promise.all(tenants.map(async (t) => {
-    const connectors = await getConnectors(t.id);
+  const enriched = tenants.map((t) => {
+    const counts = connectorCounts[t.id] ?? { total: 0, connected: 0 };
     const userCount = usersAll.filter((u) => u.tenantId === t.id).length;
     return {
       tenant: t,
-      connectorCount: connectors.length,
-      connectedCount: connectors.filter((c) => c.status === 'connected').length,
+      connectorCount: counts.total,
+      connectedCount: counts.connected,
       userCount
     };
-  }));
+  });
 
   return { rows: enriched };
 };

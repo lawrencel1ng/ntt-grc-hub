@@ -35,7 +35,7 @@ export const navSections: NavSection[] = [
   {
     title: 'Compliance',
     items: [
-      { label: 'Frameworks', href: '/frameworks', icon: Library, badge: '35+' },
+      { label: 'Frameworks', href: '/frameworks', icon: Library },
       { label: 'Controls', href: '/controls', icon: ShieldCheck },
       { label: 'Evidence Vault', href: '/evidence', icon: FileLock2 },
       { label: 'Audit Mgmt', href: '/audits', icon: ClipboardCheck },
@@ -64,10 +64,10 @@ export const navSections: NavSection[] = [
   {
     title: 'Agentic OS',
     items: [
-      { label: 'Agent Fleet', href: '/agents', icon: Bot, badge: '10' },
+      { label: 'Agent Fleet', href: '/agents', icon: Bot },
       { label: 'Decisions', href: '/decisions', icon: History },
       { label: 'Workflows', href: '/workflows', icon: Workflow },
-      { label: 'Connectors', href: '/connectors', icon: Plug, badge: '40+' }
+      { label: 'Connectors', href: '/connectors', icon: Plug }
     ]
   },
   {

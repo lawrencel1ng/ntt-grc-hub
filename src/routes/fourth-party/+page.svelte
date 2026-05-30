@@ -53,7 +53,7 @@
     return `S$${n}`;
   }
 
-  // Sort concentrations by % desc so the demo's hero rows surface first.
+  // Sort concentrations by % desc to surface highest-risk vendors first.
   $: sortedConcentrations = [...data.concentrations].sort(
     (a, b) => concentrationPct(b) - concentrationPct(a)
   );

@@ -26,7 +26,7 @@
       <ClassifiedBanner />
     {/if}
     <div class="flex flex-1 overflow-hidden">
-      <Sidebar />
+      <Sidebar navBadges={data.navBadges} />
       <div class="flex flex-1 flex-col overflow-hidden">
         <TopBar
           user={data.user}

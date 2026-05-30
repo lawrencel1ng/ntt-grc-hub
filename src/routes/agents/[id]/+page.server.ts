@@ -12,18 +12,20 @@ import {
   getAgentTools,
   getAgentRunsForAgent,
   getAgentDecisions,
-  getCostLedger30d
+  getCostLedger30d,
+  getNavBadgeCounts
 } from '$lib/server/data';
 
 export const load: PageServerLoad = async ({ params }) => {
   const agent = await getAgent(params.id);
   if (!agent) throw error(404, 'Agent not found');
 
-  const [tools, runs, decisions, ledger] = await Promise.all([
+  const [tools, runs, decisions, ledger, navBadges] = await Promise.all([
     getAgentTools(agent.id),
     getAgentRunsForAgent(agent.id, 200),
     getAgentDecisions({ agentId: agent.id, limit: 200 }),
-    getCostLedger30d()
+    getCostLedger30d(),
+    getNavBadgeCounts()
   ]);
 
   // Aggregate this agent's slice of the 30d cost ledger.
@@ -32,5 +34,5 @@ export const load: PageServerLoad = async ({ params }) => {
   const costCents30d = ourSlice.reduce((s, e) => s + e.costCents, 0);
   const fteHours30d = +ourSlice.reduce((s, e) => s + e.fteSavedHours, 0).toFixed(1);
 
-  return { agent, tools, runs, decisions, runs30d, costCents30d, fteHours30d };
+  return { agent, tools, runs, decisions, runs30d, costCents30d, fteHours30d, frameworkCount: navBadges.frameworks };
 };

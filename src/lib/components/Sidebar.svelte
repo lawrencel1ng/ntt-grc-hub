@@ -5,10 +5,20 @@
   import { sidebarOpen } from '$lib/stores/sidebar';
   import { ChevronLeft } from 'lucide-svelte';
 
+  export let navBadges: { agents: number; frameworks: number; connectors: number } | undefined = undefined;
+
   $: pathname = $page.url.pathname;
   function isActive(href: string, current: string) {
     if (href === '/') return current === '/';
     return current === href || current.startsWith(href + '/');
+  }
+
+  function dynamicBadge(href: string): string | undefined {
+    if (!navBadges) return undefined;
+    if (href === '/frameworks') return navBadges.frameworks > 0 ? navBadges.frameworks.toString() : undefined;
+    if (href === '/agents') return navBadges.agents > 0 ? navBadges.agents.toString() : undefined;
+    if (href === '/connectors') return navBadges.connectors > 0 ? navBadges.connectors.toString() : undefined;
+    return undefined;
   }
 </script>
 
@@ -48,8 +58,9 @@
                 <svelte:component this={item.icon} class="h-4 w-4 flex-shrink-0 {active ? 'text-grc-accent' : 'text-white/55 group-hover:text-white/90'}" />
                 {#if $sidebarOpen}
                   <span class="flex-1 truncate">{item.label}</span>
-                  {#if item.badge}
-                    <span class="rounded px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-wider tabular-nums {active ? 'bg-white/15 text-white/80' : 'bg-white/[0.06] text-white/50'}">{item.badge}</span>
+                  {@const badge = dynamicBadge(item.href) ?? item.badge}
+                  {#if badge}
+                    <span class="rounded px-1.5 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-wider tabular-nums {active ? 'bg-white/15 text-white/80' : 'bg-white/[0.06] text-white/50'}">{badge}</span>
                   {/if}
                 {/if}
               </a>

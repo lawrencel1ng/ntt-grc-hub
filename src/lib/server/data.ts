@@ -115,6 +115,24 @@ export async function getLiveAgentCount(): Promise<number> {
   return rows.length ? Number(rows[0].n) : mock.liveAgentCount();
 }
 
+export async function getNavBadgeCounts(): Promise<{ agents: number; frameworks: number; connectors: number }> {
+  if (!isPgMode()) {
+    const { AGENTS } = await import('$lib/data/agents');
+    const { FRAMEWORKS } = await import('$lib/data/frameworks');
+    return { agents: AGENTS.length, frameworks: FRAMEWORKS.length, connectors: 40 };
+  }
+  const [agRows, fwRows, cnRows] = await Promise.all([
+    safeQuery<{ n: string }>(`SELECT COUNT(*)::text AS n FROM agent.agents`),
+    safeQuery<{ n: string }>(`SELECT COUNT(*)::text AS n FROM compliance.frameworks`),
+    safeQuery<{ n: string }>(`SELECT COUNT(*)::text AS n FROM integration.connectors`)
+  ]);
+  return {
+    agents: agRows.length ? Number(agRows[0].n) : 0,
+    frameworks: fwRows.length ? Number(fwRows[0].n) : 0,
+    connectors: cnRows.length ? Number(cnRows[0].n) : 0
+  };
+}
+
 export async function getAgents(): Promise<Agent[]> {
   if (!isPgMode()) return mock.AGENTS;
   const rows = await safeQuery<Agent>(

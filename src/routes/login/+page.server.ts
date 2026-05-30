@@ -4,6 +4,7 @@ import { redirect, fail } from '@sveltejs/kit';
 import { verifyCredentials, createSession, SESSION_COOKIE, SESSION_TTL_DAYS, writeAuditLog } from '$lib/server/auth';
 import { isPgMode } from '$lib/server/pg';
 import { DEMO_USER_COOKIE, findDemoLogin } from '$lib/data/demo-logins';
+import { getNavBadgeCounts } from '$lib/server/data';
 
 const TENANT_COOKIE = 'grc_tenant';
 const DEMO_COOKIE_MAX_AGE = 8 * 60 * 60; // 8h
@@ -51,7 +52,8 @@ function sanitiseNext(next: string | null | undefined): string {
 export const load: PageServerLoad = async ({ locals, url }) => {
   // Already logged in — skip login page
   if (locals.user) throw redirect(303, sanitiseNext(url.searchParams.get('next')));
-  return { next: sanitiseNext(url.searchParams.get('next')) };
+  const { frameworks: frameworkCount, agents: agentCount } = await getNavBadgeCounts();
+  return { next: sanitiseNext(url.searchParams.get('next')), frameworkCount, agentCount };
 };
 
 export const actions: Actions = {

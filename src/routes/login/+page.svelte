@@ -12,7 +12,7 @@
     Fingerprint
   } from 'lucide-svelte';
 
-  export let data: { next: string };
+  export let data: { next: string; frameworkCount: number; agentCount: number };
   export let form: { error?: string } | null = null;
 
   let email = 'admin@maybank.sg';
@@ -76,11 +76,11 @@
       </p>
       <div class="grid grid-cols-3 gap-4 pt-2">
         <div>
-          <div class="font-mono text-2xl font-semibold">10</div>
+          <div class="font-mono text-2xl font-semibold">{data.agentCount || 10}</div>
           <div class="text-xs uppercase tracking-wider text-white/50">Named agents</div>
         </div>
         <div>
-          <div class="font-mono text-2xl font-semibold">35+</div>
+          <div class="font-mono text-2xl font-semibold">{data.frameworkCount || 35}</div>
           <div class="text-xs uppercase tracking-wider text-white/50">Frameworks</div>
         </div>
         <div>

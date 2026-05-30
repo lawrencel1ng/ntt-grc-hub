@@ -44,8 +44,7 @@
   $: pagedRuns = data.runs.slice(runsPage * runsPerPage, (runsPage + 1) * runsPerPage);
   $: totalRunsPages = Math.max(1, Math.ceil(data.runs.length / runsPerPage));
 
-  // Per-agent canned framework tags — keeps the right rail believable
-  // without having to add a new mapping table for the demo.
+  // Per-agent framework tags derived from the agent's documented scope.
   const FRAMEWORKS_BY_AGENT: Record<string, string[]> = {
     ag_evidence: ['ISO 27001', 'SOC 2', 'PCI DSS', 'MAS TRM'],
     ag_tester:   ['SOC 2', 'NIST CSF', 'PCI DSS', 'ISO 27001'],
@@ -55,7 +54,7 @@
     ag_audit:    ['SOC 2', 'ISO 27001', 'PCI DSS', 'MAS TRM'],
     ag_fair:     ['FAIR-MAM', 'NIST CSF', 'DORA'],
     ag_incident: ['NIS 2', 'DORA', 'SOC 2', 'MAS TRM'],
-    ag_mapper:   ['All 35+ frameworks'],
+    ag_mapper:   data.frameworkCount ? [`All ${data.frameworkCount} frameworks`] : ['All configured frameworks'],
     ag_board:    ['Board Pack', 'CRO Charter']
   };
   $: frameworks = FRAMEWORKS_BY_AGENT[data.agent.id] ?? [];

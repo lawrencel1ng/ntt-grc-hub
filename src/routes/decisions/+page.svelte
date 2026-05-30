@@ -3,10 +3,25 @@
   import AgentTypeBadge from '$lib/components/AgentTypeBadge.svelte';
   import ConfidenceBar from '$lib/components/ConfidenceBar.svelte';
   import { toCsv } from '$lib/utils/csv';
-  import { Download, ShieldCheck, UserCheck, ShieldX, Clock } from 'lucide-svelte';
+  import { enhance } from '$app/forms';
+  import { addToast } from '$lib/stores/toast';
+  import { Download, ShieldCheck, UserCheck, ShieldX, Clock, CheckCircle, XCircle } from 'lucide-svelte';
   import type { AgentDecisionOutcome } from '$lib/data/types';
 
   export let data;
+  export let form: { resolved?: boolean; decisionId?: string; newOutcome?: string; decisionError?: string } | null = null;
+
+  $: if (form?.resolved && form.decisionId && form.newOutcome) {
+    data = {
+      ...data,
+      decisions: data.decisions.map((d) =>
+        String(d.id) === form!.decisionId ? { ...d, outcome: form!.newOutcome as AgentDecisionOutcome } : d
+      )
+    };
+    const label = form.newOutcome === 'hitl-approved' ? 'approved' : 'rejected';
+    addToast('success', `Decision ${label}.`);
+  }
+  $: if (form?.decisionError) addToast('error', form.decisionError);
 
   // ---------- Filters ----------
   let agentId: string = 'all';
@@ -180,18 +195,35 @@
               <td class="td max-w-xs truncate font-mono text-xs text-slate-600">{summarize(d.output)}</td>
               <td class="td"><ConfidenceBar value={d.confidence} /></td>
               <td class="td">
-                <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {outcomeCls(d.outcome)}">
-                  {#if d.outcome === 'auto-approved'}
-                    <ShieldCheck class="h-3 w-3" />
-                  {:else if d.outcome === 'hitl-approved'}
-                    <UserCheck class="h-3 w-3" />
-                  {:else if d.outcome === 'hitl-rejected'}
-                    <ShieldX class="h-3 w-3" />
-                  {:else}
-                    <Clock class="h-3 w-3" />
-                  {/if}
-                  {outcomeLabel(d.outcome)}
-                </span>
+                {#if d.outcome === 'awaiting-hitl'}
+                  <div class="flex items-center gap-1">
+                    <form method="POST" action="?/resolveDecision" use:enhance>
+                      <input type="hidden" name="decisionId" value={String(d.id)} />
+                      <input type="hidden" name="approve" value="true" />
+                      <button type="submit" class="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-[11px] font-semibold text-violet-700 ring-1 ring-inset ring-violet-200 hover:bg-violet-100">
+                        <CheckCircle class="h-3 w-3" />Approve
+                      </button>
+                    </form>
+                    <form method="POST" action="?/resolveDecision" use:enhance>
+                      <input type="hidden" name="decisionId" value={String(d.id)} />
+                      <input type="hidden" name="approve" value="false" />
+                      <button type="submit" class="inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-semibold text-rose-700 ring-1 ring-inset ring-rose-200 hover:bg-rose-100">
+                        <XCircle class="h-3 w-3" />Reject
+                      </button>
+                    </form>
+                  </div>
+                {:else}
+                  <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {outcomeCls(d.outcome)}">
+                    {#if d.outcome === 'auto-approved'}
+                      <ShieldCheck class="h-3 w-3" />
+                    {:else if d.outcome === 'hitl-approved'}
+                      <UserCheck class="h-3 w-3" />
+                    {:else if d.outcome === 'hitl-rejected'}
+                      <ShieldX class="h-3 w-3" />
+                    {/if}
+                    {outcomeLabel(d.outcome)}
+                  </span>
+                {/if}
               </td>
               <td class="td text-slate-600">{d.approverUserId ?? '—'}</td>
             </tr>

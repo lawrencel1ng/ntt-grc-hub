@@ -1,8 +1,8 @@
 // =====================================================================
 //  /heatmap — Risk Heatmap & FAIR Quantification. Loads heatmap cells +
 //  appetite + the catalogue of scenarios so the page can switch the LEC
-//  curve via ?scenario=…. Defaults to the Maybank hero scenario so the
-//  $4.2M ALE is visible on first paint regardless of tenant.
+//  curve via ?scenario=…. Picks the first available scenario if none
+//  is specified; FAIR run is null when no DB run exists yet.
 // =====================================================================
 
 import type { PageServerLoad } from './$types';

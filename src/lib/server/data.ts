@@ -326,7 +326,7 @@ export async function getFairRun(scenarioOrRiskId: string): Promise<FAIRRun | nu
      ORDER BY fr.run_at DESC LIMIT 1`,
     [scenarioOrRiskId]
   );
-  return rows[0] ?? mock.fairRunForRisk(scenarioOrRiskId);
+  return rows[0] ?? null;
 }
 
 export async function getFairScenarios(tenantId?: string) {

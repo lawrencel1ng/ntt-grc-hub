@@ -1,9 +1,15 @@
 <script lang="ts">
   import PageHeader from '$lib/components/PageHeader.svelte';
+  import { enhance } from '$app/forms';
+  import { addToast } from '$lib/stores/toast';
   import { ListChecks, ClipboardCheck, Link as LinkIcon, User as UserIcon } from 'lucide-svelte';
   import type { IssueSource, RiskSeverity, IssueStatus, ActionStatus } from '$lib/data/types';
 
+  $: if (form?.statusUpdated) addToast('success', `Status updated to "${form.newStatus}".`);
+  $: if (form?.statusError) addToast('error', form.statusError);
+
   export let data;
+  export let form: { statusUpdated?: boolean; newStatus?: string; statusError?: string } | null = null;
 
   function sevCls(s: RiskSeverity): string {
     if (s === 'critical') return 'bg-rose-100 text-rose-800 ring-rose-200';
@@ -87,7 +93,15 @@
 >
   <svelte:fragment slot="actions">
     <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset {sevCls(data.issue.severity)}">{data.issue.severity}</span>
-    <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset {statusCls(data.issue.status)}">{data.issue.status}</span>
+    <form method="POST" action="?/updateStatus" use:enhance class="flex items-center gap-1.5">
+      <select name="status" class="input py-1 text-xs" value={form?.newStatus ?? data.issue.status}>
+        <option value="open">open</option>
+        <option value="in-progress">in-progress</option>
+        <option value="resolved">resolved</option>
+        <option value="accepted-risk">accepted-risk</option>
+      </select>
+      <button type="submit" class="btn-secondary py-1 text-xs">Update</button>
+    </form>
   </svelte:fragment>
 </PageHeader>
 

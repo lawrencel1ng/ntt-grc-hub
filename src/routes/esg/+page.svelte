@@ -4,12 +4,26 @@
   import LineChart from '$lib/components/LineChart.svelte';
   import ProgressBar from '$lib/components/ProgressBar.svelte';
   import FrameworkBadge from '$lib/components/FrameworkBadge.svelte';
+  import { enhance } from '$app/forms';
+  import { addToast } from '$lib/stores/toast';
   import {
     Leaf, Cloud, Factory, FileText, Target, TrendingDown, BarChart3
   } from 'lucide-svelte';
   import type { ESGMetric, ESGDisclosure, ESGTarget } from '$lib/data/types';
 
   export let data;
+  export let form: { disclosureUpdated?: boolean; disclosureId?: string; newStatus?: string; disclosureError?: string } | null = null;
+
+  $: if (form?.disclosureUpdated && form.disclosureId && form.newStatus) {
+    data = {
+      ...data,
+      disclosures: data.disclosures.map((d: ESGDisclosure) =>
+        d.id === form!.disclosureId ? { ...d, status: form!.newStatus as ESGDisclosure['status'] } : d
+      )
+    };
+    addToast('success', `Disclosure status updated to "${form.newStatus}".`);
+  }
+  $: if (form?.disclosureError) addToast('error', form.disclosureError);
 
   // ---------- KPIs by scope ----------
   function scopeTotal(scope: 'scope1' | 'scope2' | 'scope3'): number {
@@ -243,7 +257,16 @@
                 <div class="mt-2 font-semibold text-grc-ink">{d.framework} {d.period} Disclosure</div>
                 <div class="mt-1 text-xs text-slate-500">Published {fmtDate(d.publishedAt)}</div>
               </div>
-              <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {disclosureStatusCls(d.status)}">{d.status}</span>
+              <form method="POST" action="?/updateDisclosureStatus" use:enhance class="flex items-center gap-1">
+                <input type="hidden" name="disclosureId" value={d.id} />
+                <select name="status" class="input py-0.5 text-[11px]" value={d.status}>
+                  <option value="draft">draft</option>
+                  <option value="in-review">in-review</option>
+                  <option value="published">published</option>
+                  <option value="retired">retired</option>
+                </select>
+                <button type="submit" class="btn-ghost p-1 text-[11px]">✓</button>
+              </form>
             </div>
             <p class="mt-3 text-xs leading-relaxed text-slate-600">
               {d.framework} {d.period} report covering Scope 1/2/3 emissions, energy intensity, water stewardship,

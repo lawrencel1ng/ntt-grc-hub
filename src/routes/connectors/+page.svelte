@@ -38,13 +38,23 @@
     syncing = true;
     addToast('info', `Syncing ${connectors.length} connectors…`);
     const targets = connectors.filter((c) => c.status !== 'disconnected');
-    await Promise.all(targets.map((c) => patchConnector(c.id, 'sync')));
+    const results = await Promise.all(targets.map((c) => patchConnector(c.id, 'sync')));
     const now = new Date().toISOString();
-    connectors = connectors.map((c) =>
-      c.status === 'disconnected' ? c : { ...c, lastSyncAt: now }
-    );
+    let succeeded = 0;
+    connectors = connectors.map((c) => {
+      if (c.status === 'disconnected') return c;
+      const idx = targets.findIndex((t) => t.id === c.id);
+      if (idx === -1 || results[idx] === null) return c;
+      succeeded++;
+      return { ...c, lastSyncAt: results[idx]?.lastSyncAt ?? now };
+    });
     syncing = false;
-    addToast('success', `Synced ${targets.length} connectors · ${connectors.length - targets.length} skipped (disconnected).`);
+    const failed = targets.length - succeeded;
+    if (failed > 0) {
+      addToast(succeeded > 0 ? 'info' : 'error', `${succeeded} synced, ${failed} failed — check connections.`);
+    } else {
+      addToast('success', `Synced ${targets.length} connectors · ${connectors.length - targets.length} skipped (disconnected).`);
+    }
   }
 
   async function syncOne(c: Connector) {

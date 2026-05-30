@@ -2,6 +2,7 @@ import type { RequestHandler } from './$types';
 import { json, error } from '@sveltejs/kit';
 import { isPgMode, getPool } from '$lib/server/pg';
 import { writeAuditLog } from '$lib/server/auth';
+import { checkRateLimit } from '$lib/server/rateLimit';
 
 const VALID_TEMPLATES = ['SIG', 'CAIQ', 'Custom'] as const;
 type Template = (typeof VALID_TEMPLATES)[number];
@@ -9,6 +10,9 @@ type Template = (typeof VALID_TEMPLATES)[number];
 export const POST: RequestHandler = async ({ params, request, locals }) => {
   if (!locals.user) throw error(401, 'Not authenticated');
   if (!isPgMode()) throw error(400, 'Requires Postgres mode');
+  if (!checkRateLimit('vendor.questionnaire', locals.user.id, 10, 5 * 60_000)) {
+    throw error(429, 'Too many questionnaire requests — try again in a few minutes.');
+  }
 
   const body = await request.json().catch(() => ({})) as { template?: string };
   const template: Template = (VALID_TEMPLATES as readonly string[]).includes(body.template ?? '')

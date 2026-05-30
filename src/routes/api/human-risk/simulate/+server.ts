@@ -3,10 +3,14 @@ import { json, error } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { isPgMode, getPool } from '$lib/server/pg';
 import { writeAuditLog } from '$lib/server/auth';
+import { checkRateLimit } from '$lib/server/rateLimit';
 
 export const POST: RequestHandler = async ({ request, locals }) => {
   if (!locals.user) throw error(401, 'Not authenticated');
   if (!isPgMode()) throw error(400, 'Requires Postgres mode');
+  if (!checkRateLimit('human-risk.simulate', locals.user.id, 10, 5 * 60_000)) {
+    throw error(429, 'Too many simulation requests — try again in a few minutes.');
+  }
 
   const body = await request.json().catch(() => ({})) as { userId?: string; userEmail?: string };
   const { userId, userEmail } = body;

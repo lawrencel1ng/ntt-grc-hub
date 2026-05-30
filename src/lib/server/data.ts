@@ -291,8 +291,23 @@ export async function getRisks(tenantId?: string): Promise<Risk[]> {
 
 export async function getRisk(id: string): Promise<Risk | undefined> {
   if (isPgMode()) {
-    const tid = await tenantOfRow('risk.risks', id);
-    if (tid) return (await getRisks(tid)).find((r) => r.id === id);
+    const rows = await safeQuery<Risk>(
+      `SELECT r.id::text AS id, r.tenant_id AS "tenantId", r.register_id::text AS "registerId",
+              r.code, r.title, r.description, r.category,
+              r.inherent_severity::text AS "inherentSeverity",
+              r.inherent_likelihood::text AS "inherentLikelihood",
+              r.residual_severity::text AS "residualSeverity",
+              r.residual_likelihood::text AS "residualLikelihood",
+              r.status::text AS status,
+              r.treatment_strategy::text AS "treatmentStrategy",
+              r.last_assessed_at AS "lastAssessedAt", r.next_review_at AS "nextReviewAt",
+              r.business_service AS "businessService", r.tags,
+              r.owner_user_id::text AS "ownerUserId", u.email AS "ownerEmail"
+         FROM risk.risks r
+         LEFT JOIN platform.users u ON u.id = r.owner_user_id
+        WHERE r.id = $1::uuid LIMIT 1`, [id]
+    );
+    return rows[0];
   }
   // Decode tenant from the mock id prefix.
   const parts = id.split('_');
@@ -778,9 +793,13 @@ export async function getAudits(tenantId?: string): Promise<AuditEngagement[]> {
 
 export async function getAudit(id: string): Promise<AuditEngagement | undefined> {
   if (isPgMode()) {
-    const tid = await tenantOfRow('audit.engagements', id);
-    if (tid) return (await getAudits(tid)).find((a) => a.id === id);
-    return (await getAudits()).find((a) => a.id === id);
+    const rows = await safeQuery<AuditEngagement>(
+      `SELECT id::text AS id, tenant_id AS "tenantId", name, type::text AS type,
+              lead_auditor AS "leadAuditor", opened_at AS "openedAt", closed_at AS "closedAt",
+              scope, framework_id AS "frameworkId"
+         FROM audit.engagements WHERE id = $1::uuid LIMIT 1`, [id]
+    );
+    return rows[0];
   }
   const parts = id.split('_');
   if (parts.length < 3) return undefined;
@@ -827,6 +846,17 @@ export async function getRegChanges(limit = 30): Promise<RegChange[]> {
 }
 
 export async function getRegChange(id: string): Promise<RegChange | undefined> {
+  if (isPgMode()) {
+    const rows = await safeQuery<RegChange>(
+      `SELECT c.id::text AS id, c.source_id AS "sourceId", s.name AS "sourceName",
+              s.regulator_code AS "regulatorCode", c.title, c.summary,
+              c.published_at AS "publishedAt", c.effective_at AS "effectiveAt",
+              c.severity::text AS severity, c.detected_by_agent_id AS "detectedByAgentId"
+         FROM regwatch.changes c JOIN regwatch.sources s ON s.id = c.source_id
+        WHERE c.id = $1::uuid LIMIT 1`, [id]
+    );
+    return rows[0];
+  }
   const all = await getRegChanges(100);
   return all.find((c) => c.id === id);
 }

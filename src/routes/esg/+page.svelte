@@ -10,6 +10,7 @@
     Leaf, Cloud, Factory, FileText, Target, TrendingDown, BarChart3
   } from 'lucide-svelte';
   import type { ESGMetric, ESGDisclosure, ESGTarget } from '$lib/data/types';
+  import { downloadCsv } from '$lib/utils/csv';
 
   export let data;
   export let form: { disclosureUpdated?: boolean; disclosureId?: string; newStatus?: string; disclosureError?: string } | null = null;
@@ -155,6 +156,58 @@
       default:          return 'bg-slate-100 text-slate-600 ring-slate-200';
     }
   }
+
+  function downloadDisclosureReport(d: ESGDisclosure) {
+    const matched = (data.metrics as ESGMetric[]).filter(
+      (m) => m.framework === d.framework || m.period === d.period
+    );
+    const lines = [
+      `# ${d.framework} ESG Disclosure — ${d.period}`,
+      `Status: ${d.status}`,
+      d.publishedAt ? `Published: ${d.publishedAt.slice(0, 10)}` : '',
+      '',
+      '## Emissions (tCO₂e)',
+      ...['scope1', 'scope2', 'scope3'].map((sc) => {
+        const total = matched
+          .filter((m) => m.scope === sc && m.unit === 'tCO2e')
+          .reduce((s, m) => s + m.value, 0);
+        return `- ${sc.replace('scope', 'Scope ')}: ${total.toLocaleString()} tCO₂e`;
+      }),
+      '',
+      '## All Metrics',
+      matched.length
+        ? matched.map((m) => `- [${m.scope}] ${m.category} / ${m.metric}: ${m.value} ${m.unit}`).join('\n')
+        : '- No metrics on record for this period.',
+    ].filter((l) => l !== undefined).join('\n');
+
+    const blob = new Blob([lines], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `esg-${d.framework.toLowerCase()}-${d.period}-report.md`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    addToast('success', `Downloaded ${d.framework} ${d.period} report.`);
+  }
+
+  function downloadDisclosureCSV(d: ESGDisclosure) {
+    const matched = (data.metrics as ESGMetric[]).filter(
+      (m) => m.framework === d.framework || m.period === d.period
+    );
+    if (matched.length === 0) { addToast('error', 'No metrics found for this disclosure period.'); return; }
+    const csvContent = [
+      'period,framework,scope,category,metric,value,unit',
+      ...matched.map((m) =>
+        [m.period, m.framework, m.scope, m.category, m.metric, m.value, m.unit]
+          .map((v) => (String(v).includes(',') ? `"${v}"` : v))
+          .join(',')
+      )
+    ].join('\n');
+    downloadCsv(`esg-${d.framework.toLowerCase()}-${d.period}-metrics.csv`, csvContent);
+    addToast('success', `Downloaded ${matched.length} metric rows as CSV.`);
+  }
 </script>
 
 <PageHeader title="ESG / Sustainability" subtitle="CSRD · ISSB · GHG Protocol · TCFD {data.isAll ? '· aggregated view' : ''}" />
@@ -273,9 +326,9 @@
               and board oversight of climate-related risks per TCFD pillars.
             </p>
             <div class="mt-3 flex items-center gap-2 text-xs">
-              <button type="button" class="text-grc-primary hover:underline">View report →</button>
+              <button type="button" class="text-grc-primary hover:underline" on:click={() => downloadDisclosureReport(d)}>View report →</button>
               <span class="text-slate-300">·</span>
-              <button type="button" class="text-grc-primary hover:underline">Download XBRL</button>
+              <button type="button" class="text-grc-primary hover:underline" on:click={() => downloadDisclosureCSV(d)}>Download CSV</button>
             </div>
           </div>
         {:else}

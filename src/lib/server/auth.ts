@@ -152,3 +152,147 @@ export function can(role: Role, capability: Capability): boolean {
 export async function hashPassword(plain: string): Promise<string> {
   return bcrypt.hash(plain, 12);
 }
+
+// ── Password reset ──────────────────────────────────────────────────────────
+
+const RESET_TTL_MINUTES = 30;
+
+/**
+ * Create a password-reset token for the given email (if the user exists).
+ * Returns { token, resetUrl } for the caller to log/email; returns null if
+ * no user matches (caller should still return a generic success to the UI
+ * to prevent email enumeration).
+ */
+export async function createPasswordResetToken(
+  email: string,
+  baseUrl: string
+): Promise<{ token: string; resetUrl: string; userEmail: string } | null> {
+  const pool = getPool();
+  const { rows } = await pool.query<{ id: string; email: string; status: string }>(
+    `SELECT id, email, status FROM platform.users WHERE email = $1`,
+    [email.trim().toLowerCase()]
+  );
+  const user = rows[0];
+  if (!user || user.status !== 'active') return null;
+
+  // Expire any previous unused tokens for this user
+  await pool.query(
+    `UPDATE platform.password_reset_tokens SET used_at = now()
+     WHERE user_id = $1 AND used_at IS NULL AND expires_at > now()`,
+    [user.id]
+  );
+
+  const token = crypto.randomUUID() + '-' + crypto.randomUUID();
+  const hash = await bcrypt.hash(token, 10);
+  const prefix = tokenPrefix(token);
+  const expiresAt = new Date(Date.now() + RESET_TTL_MINUTES * 60_000);
+
+  await pool.query(
+    `INSERT INTO platform.password_reset_tokens (user_id, token_hash, token_prefix, expires_at)
+     VALUES ($1, $2, $3, $4)`,
+    [user.id, hash, prefix, expiresAt]
+  );
+
+  const resetUrl = `${baseUrl}/reset?token=${encodeURIComponent(token)}`;
+  return { token, resetUrl, userEmail: user.email };
+}
+
+/**
+ * Validate a reset token. Returns { userId, email } if valid, null otherwise.
+ */
+export async function validatePasswordResetToken(
+  token: string
+): Promise<{ userId: string; email: string } | null> {
+  if (!token) return null;
+  const pool = getPool();
+  const prefix = tokenPrefix(token);
+  const { rows } = await pool.query<{
+    id: string; token_hash: string; user_id: string; email: string; status: string;
+  }>(
+    `SELECT t.id, t.token_hash, t.user_id, u.email, u.status
+     FROM platform.password_reset_tokens t
+     JOIN platform.users u ON u.id = t.user_id
+     WHERE t.token_prefix = $1 AND t.expires_at > now() AND t.used_at IS NULL
+     LIMIT 1`,
+    [prefix]
+  );
+  if (!rows.length) return null;
+  const row = rows[0];
+  const match = await bcrypt.compare(token, row.token_hash);
+  if (!match || row.status !== 'active') return null;
+  return { userId: row.user_id, email: row.email };
+}
+
+/**
+ * Consume a reset token: update the user's password and mark the token used.
+ * Returns true on success.
+ */
+export async function consumePasswordResetToken(
+  token: string,
+  newPassword: string
+): Promise<boolean> {
+  const valid = await validatePasswordResetToken(token);
+  if (!valid) return false;
+  const pool = getPool();
+  const prefix = tokenPrefix(token);
+  const newHash = await hashPassword(newPassword);
+  await pool.query(`UPDATE platform.users SET password_hash = $1 WHERE id = $2`, [newHash, valid.userId]);
+  await pool.query(
+    `UPDATE platform.password_reset_tokens SET used_at = now()
+     WHERE token_prefix = $1 AND used_at IS NULL`,
+    [prefix]
+  );
+  return true;
+}
+
+// ── Audit log ───────────────────────────────────────────────────────────────
+
+export interface AuditEvent {
+  tenantId?: string;
+  userId?: string;
+  actorEmail?: string;
+  action: string;
+  target?: string;
+  ip?: string;
+  ua?: string;
+  result: 'success' | 'failure' | 'denied';
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Write a hash-chained entry to platform.audit_log (best-effort, non-blocking).
+ * The hash chain links each row to the previous row's hash so the log is
+ * tamper-evident. Failures are swallowed so a logging error never breaks a
+ * request flow.
+ */
+export function writeAuditLog(event: AuditEvent): void {
+  const pool = getPool();
+  pool.query<{ row_hash: string }>(
+    `SELECT row_hash FROM platform.audit_log ORDER BY id DESC LIMIT 1`
+  ).then(({ rows }) => {
+    const prevHash = rows[0]?.row_hash ?? null;
+    const payload = JSON.stringify({ ...event, prevHash });
+    const rowHash = createHash('sha256').update(payload).digest('hex');
+    return pool.query(
+      `INSERT INTO platform.audit_log
+         (tenant_id, user_id, actor_email, action, target, ip_address, user_agent,
+          result, metadata, prev_hash, row_hash)
+       VALUES ($1, $2, $3, $4, $5, $6::inet, $7, $8, $9, $10, $11)`,
+      [
+        event.tenantId ?? null,
+        event.userId ?? null,
+        event.actorEmail ?? null,
+        event.action,
+        event.target ?? null,
+        event.ip ?? null,
+        event.ua ?? null,
+        event.result,
+        event.metadata ? JSON.stringify(event.metadata) : null,
+        prevHash,
+        rowHash
+      ]
+    );
+  }).catch((e: Error) => {
+    console.warn('[audit] write failed:', e.message);
+  });
+}

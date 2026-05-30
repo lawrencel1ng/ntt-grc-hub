@@ -284,24 +284,61 @@ export async function getHeatmapCells(tenantId?: string): Promise<HeatmapCell[]>
 
 export async function getFairRun(scenarioOrRiskId: string): Promise<FAIRRun | null> {
   if (!isPgMode()) return mock.fairRunForRisk(scenarioOrRiskId);
-  // Treat the id as a risk id; look up the most recent run via scenario join.
-  return mock.fairRunForRisk(scenarioOrRiskId);
+  // Try scenario_id first, then fall back to risk_id join.
+  const rows = await safeQuery<FAIRRun>(
+    `SELECT fr.id::text AS id, fr.tenant_id AS "tenantId", fr.scenario_id::text AS "scenarioId",
+            fr.trials, fr.lec_percentiles AS "lecPercentiles",
+            fr.ale_sgd AS "aleSgd", fr.aro, fr.run_at AS "runAt"
+     FROM risk.fair_runs fr
+     JOIN risk.scenarios s ON s.id = fr.scenario_id
+     WHERE fr.scenario_id = $1::uuid OR s.risk_id = $1::uuid
+     ORDER BY fr.run_at DESC LIMIT 1`,
+    [scenarioOrRiskId]
+  );
+  return rows[0] ?? mock.fairRunForRisk(scenarioOrRiskId);
 }
 
 export async function getFairScenarios(tenantId?: string) {
-  return mock.fairScenariosForTenant(tenantId ?? 't_maybank');
+  if (!isPgMode()) return mock.fairScenariosForTenant(tenantId ?? 't_maybank');
+  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
+  const rows = await safeQuery<import('$lib/data/types').FAIRScenario>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", risk_id::text AS "riskId",
+            name, description, frequency_dist AS "frequencyDist", magnitude_dist AS "magnitudeDist"
+     FROM risk.scenarios ${where} ORDER BY name`,
+    params
+  );
+  return rows.length ? rows : mock.fairScenariosForTenant(tenantId ?? 't_maybank');
 }
 
 export async function getFairScenariosForRisk(riskId: string) {
-  const parts = riskId.split('_');
-  if (parts.length < 3) return [];
-  const tenantId = `${parts[1]}_${parts[2]}`;
-  const all = await getFairScenarios(tenantId);
-  return all.filter((s) => s.riskId === riskId);
+  if (!isPgMode()) {
+    const parts = riskId.split('_');
+    if (parts.length < 3) return [];
+    const tenantId = `${parts[1]}_${parts[2]}`;
+    const all = await getFairScenarios(tenantId);
+    return all.filter((s) => s.riskId === riskId);
+  }
+  const rows = await safeQuery<import('$lib/data/types').FAIRScenario>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", risk_id::text AS "riskId",
+            name, description, frequency_dist AS "frequencyDist", magnitude_dist AS "magnitudeDist"
+     FROM risk.scenarios WHERE risk_id = $1::uuid`,
+    [riskId]
+  );
+  return rows;
 }
 
 export async function getAppetiteStatements(tenantId?: string): Promise<AppetiteStatement[]> {
-  return mock.appetiteStatementsForTenant(tenantId ?? 't_maybank');
+  if (!isPgMode()) return mock.appetiteStatementsForTenant(tenantId ?? 't_maybank');
+  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
+  const rows = await safeQuery<AppetiteStatement>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", category, statement,
+            threshold_sgd AS "thresholdSgd", severity_cap::text AS "severityCap"
+     FROM risk.appetite_statements ${where} ORDER BY category`,
+    params
+  );
+  return rows.length ? rows : mock.appetiteStatementsForTenant(tenantId ?? 't_maybank');
 }
 
 // =====================================================================
@@ -401,12 +438,15 @@ export async function getControlTestRuns(controlId: string, limit = 20): Promise
     return mock.recentControlTestRuns(c.tenantId, limit).filter((r) => r.controlId === controlId);
   }
   const rows = await safeQuery<ControlTestRun>(
-    `SELECT id, tenant_id AS "tenantId", control_id AS "controlId", test_id AS "testId",
+    `SELECT id, tenant_id AS "tenantId", control_id AS "controlId", test_id::text AS "testId",
             ran_at AS "ranAt", result::text AS result, evidence_item_id AS "evidenceItemId",
             agent_run_id AS "agentRunId", notes, duration_ms AS "durationMs"
      FROM control.test_runs WHERE control_id = $1 ORDER BY ran_at DESC LIMIT $2`, [controlId, limit]
   );
-  return rows;
+  if (rows.length) return rows;
+  const c = mock.getControlById(controlId);
+  if (!c) return [];
+  return mock.recentControlTestRuns(c.tenantId, limit).filter((r) => r.controlId === controlId);
 }
 
 export async function getRecentTestRuns(tenantId?: string, limit = 30): Promise<ControlTestRun[]> {
@@ -418,12 +458,15 @@ export async function getRecentTestRuns(tenantId?: string, limit = 30): Promise<
   const where = tenantId ? 'WHERE tenant_id = $2' : '';
   const params: unknown[] = [limit];
   if (tenantId) params.push(tenantId);
-  return safeQuery<ControlTestRun>(
-    `SELECT id, tenant_id AS "tenantId", control_id AS "controlId", test_id AS "testId",
+  const rows = await safeQuery<ControlTestRun>(
+    `SELECT id, tenant_id AS "tenantId", control_id AS "controlId", test_id::text AS "testId",
             ran_at AS "ranAt", result::text AS result, evidence_item_id AS "evidenceItemId",
             agent_run_id AS "agentRunId", notes, duration_ms AS "durationMs"
      FROM control.test_runs ${where} ORDER BY ran_at DESC LIMIT $1`, params
   );
+  if (rows.length) return rows;
+  if (tenantId) return mock.recentControlTestRuns(tenantId, limit);
+  return HERO_TENANTS.flatMap((tid) => mock.recentControlTestRuns(tid, Math.ceil(limit / 3))).slice(0, limit);
 }
 
 // =====================================================================
@@ -541,12 +584,28 @@ export async function getRegChange(id: string): Promise<RegChange | undefined> {
 
 export async function getRegSources(): Promise<RegSource[]> {
   if (!isPgMode()) return mock.REG_SOURCES;
-  return mock.REG_SOURCES;
+  const rows = await safeQuery<RegSource>(
+    `SELECT id, regulator_code AS "regulatorCode", name, source_url AS "sourceUrl",
+            jurisdiction, last_scanned_at AS "lastScannedAt", enabled
+     FROM regwatch.sources ORDER BY name`
+  );
+  return rows.length ? rows : mock.REG_SOURCES;
 }
 
 export async function getImpactAssessments(changeId: string, tenantId?: string): Promise<ImpactAssessment[]> {
   if (!isPgMode()) return mock.impactAssessmentsForChange(changeId, tenantId);
-  return mock.impactAssessmentsForChange(changeId, tenantId);
+  const clauses: string[] = ['change_id = $1::uuid'];
+  const params: unknown[] = [changeId];
+  if (tenantId) { params.push(tenantId); clauses.push(`tenant_id = $${params.length}`); }
+  const rows = await safeQuery<ImpactAssessment>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", change_id::text AS "changeId",
+            framework_id AS "frameworkId", impact::text AS impact,
+            gaps_opened AS "gapsOpened", assessed_by_agent_id AS "assessedByAgentId",
+            assessed_at AS "assessedAt", notes
+     FROM regwatch.impact_assessments WHERE ${clauses.join(' AND ')}`,
+    params
+  );
+  return rows.length ? rows : mock.impactAssessmentsForChange(changeId, tenantId);
 }
 
 // =====================================================================
@@ -778,12 +837,25 @@ export async function getIncident(id: string): Promise<Incident | undefined> {
 
 export async function getIncidentTimeline(incidentId: string): Promise<TimelineEvent[]> {
   if (!isPgMode()) return mock.timelineForIncident(incidentId);
-  return mock.timelineForIncident(incidentId);
+  const rows = await safeQuery<TimelineEvent>(
+    `SELECT id, tenant_id AS "tenantId", incident_id::text AS "incidentId",
+            ts, actor, event, source
+     FROM incident.timeline_events WHERE incident_id = $1::uuid ORDER BY ts`,
+    [incidentId]
+  );
+  return rows.length ? rows : mock.timelineForIncident(incidentId);
 }
 
 export async function getPostmortem(incidentId: string): Promise<Postmortem | null> {
   if (!isPgMode()) return mock.postmortemForIncident(incidentId);
-  return mock.postmortemForIncident(incidentId);
+  const rows = await safeQuery<Postmortem>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", incident_id::text AS "incidentId",
+            root_cause_md AS "rootCauseMd", corrective_actions_md AS "correctiveActionsMd",
+            drafted_by_agent_id AS "draftedByAgentId", signed_off_at AS "signedOffAt"
+     FROM incident.postmortems WHERE incident_id = $1::uuid LIMIT 1`,
+    [incidentId]
+  );
+  return rows[0] ?? mock.postmortemForIncident(incidentId);
 }
 
 export async function getIssues(tenantId?: string): Promise<Issue[]> {
@@ -813,11 +885,27 @@ export async function getIssue(id: string): Promise<Issue | undefined> {
 
 export async function getIssueActions(issueId: string): Promise<IssueAction[]> {
   if (!isPgMode()) return mock.actionsForIssue(issueId);
-  return mock.actionsForIssue(issueId);
+  const rows = await safeQuery<IssueAction>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", issue_id::text AS "issueId",
+            description, due_at AS "dueAt", status
+     FROM issue.actions WHERE issue_id = $1::uuid ORDER BY due_at`,
+    [issueId]
+  );
+  return rows.length ? rows : mock.actionsForIssue(issueId);
 }
 
 export async function getBCMPlans(tenantId?: string): Promise<BCMPlan[]> {
-  return mock.bcmPlansForTenant(tenantId ?? 't_maybank');
+  if (!isPgMode()) return mock.bcmPlansForTenant(tenantId ?? 't_maybank');
+  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
+  const rows = await safeQuery<BCMPlan>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", name, business_service AS "businessService",
+            rto_minutes AS "rtoMinutes", rpo_minutes AS "rpoMinutes",
+            last_tested_at AS "lastTestedAt", next_test_at AS "nextTestAt"
+     FROM bcm.plans ${where} ORDER BY name`,
+    params
+  );
+  return rows.length ? rows : mock.bcmPlansForTenant(tenantId ?? 't_maybank');
 }
 
 export async function getBCMPlan(id: string): Promise<BCMPlan | undefined> {
@@ -829,12 +917,26 @@ export async function getBCMPlan(id: string): Promise<BCMPlan | undefined> {
 
 export async function getBCMDependencies(planId: string): Promise<BCMDependency[]> {
   if (!isPgMode()) return mock.bcmDependenciesForPlan(planId);
-  return mock.bcmDependenciesForPlan(planId);
+  const rows = await safeQuery<BCMDependency>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", plan_id::text AS "planId",
+            dependency_kind AS "dependencyKind", name, criticality::text AS criticality,
+            downtime_tolerance_hours AS "downtimeToleranceHours"
+     FROM bcm.bias WHERE plan_id = $1::uuid`,
+    [planId]
+  );
+  return rows.length ? rows : mock.bcmDependenciesForPlan(planId);
 }
 
 export async function getBCMTests(planId: string): Promise<BCMTest[]> {
   if (!isPgMode()) return mock.bcmTestsForPlan(planId);
-  return mock.bcmTestsForPlan(planId);
+  const rows = await safeQuery<BCMTest>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", plan_id::text AS "planId",
+            kind, conducted_at AS "conductedAt", result::text AS result,
+            lessons_md AS "lessonsMd"
+     FROM bcm.tests WHERE plan_id = $1::uuid ORDER BY conducted_at DESC`,
+    [planId]
+  );
+  return rows.length ? rows : mock.bcmTestsForPlan(planId);
 }
 
 // =====================================================================

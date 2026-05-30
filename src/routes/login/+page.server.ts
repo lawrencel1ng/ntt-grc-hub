@@ -1,7 +1,8 @@
 // src/routes/login/+page.server.ts
 import type { Actions, PageServerLoad } from './$types';
 import { redirect, fail } from '@sveltejs/kit';
-import { verifyCredentials, createSession, SESSION_COOKIE, SESSION_TTL_DAYS } from '$lib/server/auth';
+import { verifyCredentials, createSession, SESSION_COOKIE, SESSION_TTL_DAYS, writeAuditLog } from '$lib/server/auth';
+import { isPgMode } from '$lib/server/pg';
 import { DEMO_USER_COOKIE, findDemoLogin } from '$lib/data/demo-logins';
 
 const TENANT_COOKIE = 'grc_tenant';
@@ -65,8 +66,10 @@ export const actions: Actions = {
     }
 
     const ip = getClientAddress();
+    const ua = request.headers.get('user-agent') ?? '';
     const { blocked, retryAfterSecs } = checkRateLimit(ip);
     if (blocked) {
+      if (isPgMode()) writeAuditLog({ actorEmail: email, action: 'login.rate_limited', ip, ua, result: 'denied' });
       return fail(429, {
         error: `Too many failed attempts. Try again in ${Math.ceil(retryAfterSecs / 60)} minute(s).`,
         email
@@ -94,11 +97,12 @@ export const actions: Actions = {
     const user = await verifyCredentials(email, password);
     if (!user) {
       recordFailure(ip);
+      if (isPgMode()) writeAuditLog({ actorEmail: email, action: 'login.failed', ip, ua, result: 'failure' });
       return fail(401, { error: 'Invalid email or password.', email });
     }
     clearFailures(ip);
+    writeAuditLog({ userId: user.id, actorEmail: user.email, tenantId: user.tenantId, action: 'login.success', ip, ua, result: 'success' });
 
-    const ua = request.headers.get('user-agent') ?? '';
     const token = await createSession(user.id, ip, ua);
 
     cookies.set(SESSION_COOKIE, token, {

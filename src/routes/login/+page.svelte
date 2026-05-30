@@ -27,6 +27,7 @@
   })();
 
   $: ssoUnavailable = $page.url.searchParams.get('sso_unavailable');
+  $: passwordReset = $page.url.searchParams.get('reset') === '1';
 
   const PROVIDER_LABEL: Record<string, string> = {
     okta: 'Okta',
@@ -108,6 +109,12 @@
       <div class="lg:hidden">
         <Logo variant="dark" />
       </div>
+
+      {#if passwordReset}
+        <div class="mb-4 rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-xs text-green-800">
+          Password updated successfully. Sign in with your new credentials.
+        </div>
+      {/if}
 
       {#if ssoUnavailable}
         <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">

@@ -179,6 +179,20 @@ CREATE INDEX ON platform.sessions (expires_at);
 CREATE UNIQUE INDEX sessions_token_prefix_idx ON platform.sessions (token_prefix)
   WHERE token_prefix IS NOT NULL;
 
+CREATE TABLE platform.password_reset_tokens (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id         UUID NOT NULL REFERENCES platform.users(id) ON DELETE CASCADE,
+    token_hash      TEXT NOT NULL,
+    token_prefix    VARCHAR(64),
+    expires_at      TIMESTAMPTZ NOT NULL,
+    used_at         TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX prt_token_prefix_idx ON platform.password_reset_tokens (token_prefix)
+  WHERE token_prefix IS NOT NULL;
+CREATE INDEX ON platform.password_reset_tokens (user_id);
+CREATE INDEX ON platform.password_reset_tokens (expires_at);
+
 CREATE TABLE platform.api_tokens (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id         UUID NOT NULL REFERENCES platform.users(id) ON DELETE CASCADE,

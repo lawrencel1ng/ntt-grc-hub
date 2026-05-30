@@ -42,5 +42,8 @@ export function getPool(): pg.Pool {
 }
 
 export function isPgMode(): boolean {
-  return (env.DATA_MODE ?? 'mock') === 'pg';
+  const explicit = env.DATA_MODE;
+  if (explicit) return explicit === 'pg';
+  // Default to pg in production so deployments work without a DATA_MODE env var.
+  return process.env.NODE_ENV === 'production';
 }

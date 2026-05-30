@@ -51,17 +51,6 @@ export const actions: Actions = {
       throw redirect(303, next);
     }
 
-    // Mock mode: accept any other credentials too (any-email login is fine
-    // for the bare-bones demo with no Postgres).
-    if (!isPgMode()) {
-      cookies.set(DEMO_USER_COOKIE, email.toLowerCase(), {
-        path: '/', httpOnly: true, sameSite: 'lax',
-        maxAge: DEMO_COOKIE_MAX_AGE,
-        secure: process.env.NODE_ENV === 'production'
-      });
-      throw redirect(303, next);
-    }
-
     // ── Postgres mode (real bcrypt) ─────────────────────────────────────
     const user = await verifyCredentials(email, password);
     if (!user) {

@@ -18,27 +18,37 @@ export const handle: Handle = async ({ event, resolve }) => {
   const path = event.url.pathname;
   const isPublic = PUBLIC_PATHS.some((p) => path.startsWith(p));
 
-  // ── Demo-cookie identity (wins regardless of DATA_MODE) ────────────────
-  // The login form sets DEMO_USER_COOKIE for any known demo account
-  // (or any email in mock mode). When that cookie is present we hydrate
-  // locals.user from the shared DEMO_LOGINS list — so the same demo
-  // logins work whether or not Postgres is wired up. Auth pages still
-  // render unauthenticated so /login isn't an infinite redirect.
+  // ── Demo-cookie identity ───────────────────────────────────────────────
+  // In pg mode only known demo accounts (explicit email+password pairs) are
+  // accepted via this cookie path; unrecognised cookies fall through to real
+  // session validation below. In mock mode any email stored in the cookie is
+  // accepted (there is no Postgres to validate against).
   const demoEmail = event.cookies.get(DEMO_USER_COOKIE) ?? '';
   if (demoEmail && !isPublic) {
-    const demo = findDemoLogin(demoEmail) ?? {
-      ...DEFAULT_DEMO_LOGIN,
-      email: demoEmail,
-      name: demoEmail.split('@')[0] || DEFAULT_DEMO_LOGIN.name
-    };
-    event.locals.user = {
-      id: 'u_' + demo.email.replace(/[^a-z0-9]/gi, '_'),
-      email: demo.email,
-      name: demo.name,
-      role: demo.role,
-      tenantId
-    };
-    return resolve(event);
+    const demo = findDemoLogin(demoEmail);
+    if (demo) {
+      event.locals.user = {
+        id: 'u_demo_' + demo.email.replace(/[^a-z0-9]/gi, '_'),
+        email: demo.email,
+        name: demo.name,
+        role: demo.role,
+        tenantId
+      };
+      return resolve(event);
+    }
+    if (!isPgMode()) {
+      event.locals.user = {
+        id: 'u_' + demoEmail.replace(/[^a-z0-9]/gi, '_'),
+        email: demoEmail,
+        name: demoEmail.split('@')[0] || DEFAULT_DEMO_LOGIN.name,
+        role: DEFAULT_DEMO_LOGIN.role,
+        tenantId
+      };
+      return resolve(event);
+    }
+    // pg mode with an unrecognised demo cookie — clear it and validate the
+    // real session cookie below.
+    event.cookies.delete(DEMO_USER_COOKIE, { path: '/' });
   }
 
   // ── Mock mode (no Postgres, no demo cookie) ────────────────────────────

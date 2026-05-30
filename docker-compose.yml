@@ -42,7 +42,7 @@ services:
       NODE_ENV: production
       PORT: 5182
       HOST: 0.0.0.0
-      DATA_MODE: ${DATA_MODE:-mock}
+      DATA_MODE: ${DATA_MODE:-pg}
       DATABASE_URL: postgres://ntt_grc:${PGPASSWORD:-please-change-me}@db:5432/ntt_grc_hub
       SESSION_SECRET: ${SESSION_SECRET:-demo-secret-rotate-in-prod}
       TSUZUMI_ENDPOINT: ${TSUZUMI_ENDPOINT:-stub}

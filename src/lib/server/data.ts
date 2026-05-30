@@ -5,6 +5,7 @@
 //  swapping the backing store is a one-line change.
 // =====================================================================
 
+import { env } from '$env/dynamic/private';
 import { isPgMode, getPool } from './pg';
 import * as mock from '$lib/data/mock';
 import type {
@@ -923,8 +924,25 @@ export async function getTrainingCampaigns(tenantId: string): Promise<TrainingCa
 // KPI snapshot + Board narrative
 // =====================================================================
 
+async function computeVendorRiskIndex(tenantId?: string): Promise<number> {
+  if (!isPgMode()) return 62;
+  try {
+    const sql = tenantId
+      ? `SELECT ROUND(100 - COALESCE(AVG(q.score), 50))::int AS idx
+           FROM vendor.questionnaires q
+          WHERE q.tenant_id = $1 AND q.status = 'completed' AND q.score IS NOT NULL`
+      : `SELECT ROUND(100 - COALESCE(AVG(q.score), 50))::int AS idx
+           FROM vendor.questionnaires q
+          WHERE q.status = 'completed' AND q.score IS NOT NULL`;
+    const rows = await safeQuery<{ idx: number }>(sql, tenantId ? [tenantId] : []);
+    const idx = rows[0]?.idx;
+    return typeof idx === 'number' && !isNaN(idx) ? Math.min(100, Math.max(0, idx)) : 50;
+  } catch {
+    return 50;
+  }
+}
+
 export async function getKpiSnapshot(tenantId?: string): Promise<KpiSnapshot> {
-  // Compute from mock primitives — this is purely demo-grade.
   const tenants = tenantId ? [tenantId] : (HERO_TENANTS as readonly string[]);
   let openCriticalRisks = 0, openFindings = 0, evidenceItems30d = 0, agentFteSaved30d = 0;
   for (const tid of tenants) {
@@ -935,7 +953,16 @@ export async function getKpiSnapshot(tenantId?: string): Promise<KpiSnapshot> {
       const f = await getAuditFindings(a.id);
       openFindings += f.filter((x) => x.status === 'open').length;
     }
-    evidenceItems30d += mock.evidenceCount24h(tid) * 30;
+    evidenceItems30d += isPgMode() ? 0 : mock.evidenceCount24h(tid) * 30;
+  }
+  if (isPgMode()) {
+    const rows = await safeQuery<{ cnt: number }>(
+      tenantId
+        ? `SELECT COUNT(*)::int AS cnt FROM evidence.items WHERE tenant_id = $1 AND collected_at >= now() - interval '30 days'`
+        : `SELECT COUNT(*)::int AS cnt FROM evidence.items WHERE collected_at >= now() - interval '30 days'`,
+      tenantId ? [tenantId] : []
+    );
+    evidenceItems30d = rows[0]?.cnt ?? 0;
   }
   const ledger = await getCostLedger30d(tenantId);
   agentFteSaved30d = +ledger.reduce((s, e) => s + e.fteSavedHours, 0).toFixed(1);
@@ -943,11 +970,12 @@ export async function getKpiSnapshot(tenantId?: string): Promise<KpiSnapshot> {
   const avgComplianceScore = scores.length
     ? +(scores.reduce((s, x) => s + (x.score ?? 0), 0) / scores.length).toFixed(1)
     : 0;
+  const vendorRiskIndex = await computeVendorRiskIndex(tenantId);
   return {
     openCriticalRisks,
     avgComplianceScore,
     openFindings,
-    vendorRiskIndex: 62, // headline metric — fixed for demo storytelling
+    vendorRiskIndex,
     agentFteSaved30d,
     evidenceItems30d
   };
@@ -956,22 +984,54 @@ export async function getKpiSnapshot(tenantId?: string): Promise<KpiSnapshot> {
 export async function getBoardNarrative(tenantId: string): Promise<string> {
   const tenant = await getCurrentTenant(tenantId);
   const name = tenant?.name ?? 'Group';
+  const kpi = await getKpiSnapshot(tenantId);
   const hr = mock.humanRiskSummary(tenantId);
-  const humanPara = hr
-    ? `Human risk — the people layer — is now quantified and trending favourably. The KnowBe4 Virtual Risk Officer integration scores all ${hr.headcount.toLocaleString()} staff, yielding an org Human Risk Score of ${hr.orgRiskScore}/100 (${hr.riskLevel}). The phish-prone percentage has fallen from ${hr.phishPronePct12mAgo}% to ${hr.phishPronePct}% against an industry benchmark of ${hr.industryPhishPronePct}%, with ${hr.trainingCompletionPct}% training completion. Translated through FAIR, this human-risk exposure carries an annualised loss expectancy of S$${(hr.quant.aleSgd / 1e6).toFixed(2)}M — down S$${(hr.quant.aleReducedSgd / 1e6).toFixed(2)}M year-on-year as the awareness programme matured. The exposure feeds the enterprise risk register as ${hr.quant.riskId.includes('maybank') ? 'R-MAYB-HUMAN' : 'a tracked human-risk line'} and is reviewed monthly.`
-    : '';
-  // A short, curated narrative — production wires this to the LLM agent.
-  const paras = [
-    `**${name} — Risk Pack, May 2026**`,
+  const today = new Date().toLocaleDateString('en-SG', { month: 'long', year: 'numeric' });
+
+  const apiKey = env.ANTHROPIC_API_KEY;
+  if (apiKey) {
+    try {
+      const { default: Anthropic } = await import('@anthropic-ai/sdk');
+      const client = new Anthropic({ apiKey });
+      const metrics = [
+        `Organisation: ${name}`,
+        `Report date: ${today}`,
+        `Open critical risks: ${kpi.openCriticalRisks}`,
+        `Average compliance score: ${kpi.avgComplianceScore}/100`,
+        `Open audit findings: ${kpi.openFindings}`,
+        `Vendor risk index: ${kpi.vendorRiskIndex}/100 (higher = more risk)`,
+        `Agent FTE saved (30d): ${kpi.agentFteSaved30d} hours`,
+        `Evidence items collected (30d): ${kpi.evidenceItems30d}`,
+        hr ? [
+          `Human risk score: ${hr.orgRiskScore}/100 (${hr.riskLevel})`,
+          `Phish-prone %: ${hr.phishPronePct}% (industry: ${hr.industryPhishPronePct}%)`,
+          `Training completion: ${hr.trainingCompletionPct}%`,
+          `Human-risk ALE: S$${(hr.quant.aleSgd / 1e6).toFixed(2)}M`
+        ].join('\n') : ''
+      ].filter(Boolean).join('\n');
+
+      const message = await client.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 600,
+        messages: [{
+          role: 'user',
+          content: `You are a senior GRC analyst at NTT preparing a concise board risk pack narrative. Write 4–5 short paragraphs in a formal, data-driven tone suitable for a board risk committee. Use markdown bold for the title. Reference the exact metrics below. Focus on: (1) overall risk posture, (2) compliance, (3) third-party/vendor risk, (4) agentic AI operations ROI, and (5) human risk if data is provided. Do not invent numbers not listed below.\n\nMetrics:\n${metrics}`
+        }]
+      });
+      const text = message.content[0].type === 'text' ? message.content[0].text : '';
+      if (text.trim()) return text.trim();
+    } catch (e) {
+      console.warn('[board] LLM narrative failed, falling back to template:', (e as Error).message);
+    }
+  }
+
+  // Template fallback when ANTHROPIC_API_KEY is not configured.
+  const hr2 = hr ? `\n\nHuman risk — the people layer — is quantified via the KnowBe4 Virtual Risk Officer integration, scoring all ${hr.headcount.toLocaleString()} staff with an organisation Human Risk Score of ${hr.orgRiskScore}/100 (${hr.riskLevel}). The phish-prone percentage stands at ${hr.phishPronePct}% vs. an industry benchmark of ${hr.industryPhishPronePct}%, with ${hr.trainingCompletionPct}% training completion. Translated through FAIR, the annualised loss expectancy is S$${(hr.quant.aleSgd / 1e6).toFixed(2)}M.` : '';
+  return [
+    `**${name} — Risk Pack, ${today}**`,
     '',
-    `Aggregate risk posture is stable with the residual heatmap mass concentrated in the *medium / possible* band. Critical risks are bounded and within board-approved appetite. The Risk Quantifier agent computed a fleet-wide annualised loss expectancy (ALE) of S$4.2M for the most material scenario — cross-border outsourcing concentration — triggered by the MAS Notice 655 update detected by Regulatory Horizon eleven minutes ago.`,
+    `Aggregate risk posture: ${kpi.openCriticalRisks} open critical risk(s), average compliance score ${kpi.avgComplianceScore}/100, ${kpi.openFindings} open audit finding(s).`,
     '',
-    `Compliance scores against the eight tracked frameworks averaged 81/100 with SOC 2, ISO 27001 and MAS TRM all green; PCI DSS 4.0 readiness has lifted 6 points after the Control Tester closed three KMS rotation gaps this cycle. Outstanding audit findings are tracking down quarter-on-quarter and the Audit Companion has reduced evidence-pack assembly time from ~3 days to 8 seconds per engagement.`,
-    '',
-    `Third-party posture is the largest watch item: concentration on AWS ap-southeast-1 across 22 vendors equates to an SGD 11.5M exposure. The Vendor Risk Analyst auto-completed 81% of in-flight questionnaires, recovering an estimated 320 analyst hours. A vendor exit-plan workstream is recommended for the next quarter.`,
-    '',
-    `Agentic operations delivered 4.7 FTE-equivalent capacity at a run-rate cost of S$950/month against an avoided cost of ~S$97,500/month, a 100× ROI. The fleet operated within its cost cap with no HITL escalations rejected. The board may wish to expand the Risk Quantifier and Policy Drafter deployment to MINDEF and Grab tenancies in H2.`
-  ];
-  if (humanPara) { paras.push('', humanPara); }
-  return paras.join('\n');
+    `Vendor risk index: ${kpi.vendorRiskIndex}/100. Agent operations recovered ${kpi.agentFteSaved30d} FTE hours over the past 30 days; ${kpi.evidenceItems30d} evidence items collected.` + hr2
+  ].join('\n');
 }

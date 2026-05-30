@@ -15,22 +15,14 @@ export interface AgentBusEvent {
 
 const STATUS_POOL: AgentRunStatus[] = ['success','success','success','success','success','success','failed','awaiting-approval'];
 
-/**
- * Singleton event emitter that ticks every 7 seconds and emits a synthetic
- * `agent-run` event drawn from the universal AGENTS pool. The SSE endpoint
- * subscribes to this bus and pushes each event over the wire.
- *
- * Keep ticks moderate — a bit faster than the spec's "every 10s" floor
- * so the dashboard always feels alive on demo.
- */
 class AgentBus extends EventEmitter {
   private timer: NodeJS.Timeout | null = null;
   private cursor = 0;
 
+  /** Start synthetic event loop (development only). */
   start(): void {
     if (this.timer) return;
     this.timer = setInterval(() => this.tick(), 7000);
-    // Unref so the timer doesn't keep the process alive in tests.
     this.timer.unref?.();
   }
 
@@ -39,6 +31,15 @@ class AgentBus extends EventEmitter {
       clearInterval(this.timer);
       this.timer = null;
     }
+  }
+
+  /**
+   * Dispatch a real agent-run event from production job completion.
+   * Call this from any server route or background job that finishes
+   * an agent task, e.g. after writing to agent.runs in Postgres.
+   */
+  dispatch(event: AgentBusEvent): void {
+    this.emit('agent-run', event);
   }
 
   private tick(): void {
@@ -60,7 +61,9 @@ class AgentBus extends EventEmitter {
 }
 
 export const agentBus = new AgentBus();
-// Start eagerly so the first SSE subscriber sees activity immediately.
-agentBus.start();
-// Allow more than 10 concurrent SSE clients without warning spam.
+// Only run synthetic events in development — production relies on real
+// agent.runs rows dispatched via agentBus.dispatch().
+if (process.env.NODE_ENV !== 'production') {
+  agentBus.start();
+}
 agentBus.setMaxListeners(64);

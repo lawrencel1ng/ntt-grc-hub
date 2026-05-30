@@ -822,6 +822,25 @@ export async function getAudit(id: string): Promise<AuditEngagement | undefined>
   return (await getAudits(tenantId)).find((a) => a.id === id);
 }
 
+export async function getAuditFindingsByTenant(tenantId?: string): Promise<Record<string, AuditFinding[]>> {
+  if (!isPgMode()) return {};
+  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
+  const rows = await safeQuery<AuditFinding>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", engagement_id::text AS "engagementId",
+            severity::text AS severity, title, description, control_id AS "controlId",
+            due_at AS "dueAt", status::text AS status
+     FROM audit.findings ${where}`,
+    params
+  );
+  const map: Record<string, AuditFinding[]> = {};
+  for (const f of rows) {
+    if (!map[f.engagementId]) map[f.engagementId] = [];
+    map[f.engagementId].push(f);
+  }
+  return map;
+}
+
 export async function getAuditFindings(engagementId: string): Promise<AuditFinding[]> {
   if (!isPgMode()) return mock.auditFindings(engagementId);
   const rows = await safeQuery<AuditFinding>(
@@ -954,6 +973,27 @@ export async function getPolicy(id: string): Promise<Policy | undefined> {
   if (parts.length < 3) return undefined;
   const tenantId = `${parts[1]}_${parts[2]}`;
   return (await getPolicies(tenantId)).find((p) => p.id === id);
+}
+
+export async function getPolicyCurrentVersionByTenant(tenantId?: string): Promise<Record<string, PolicyVersion | undefined>> {
+  if (!isPgMode()) return {};
+  const where = tenantId ? 'WHERE v.tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
+  const rows = await safeQuery<PolicyVersion & { documentId: string }>(
+    `SELECT DISTINCT ON (v.document_id)
+            v.id::text AS id, v.tenant_id AS "tenantId", v.document_id::text AS "documentId",
+            v.version_no AS "versionNo", v.content_md AS "contentMd", v.status::text AS status,
+            v.effective_at AS "effectiveAt", v.drafted_by_agent_id AS "draftedByAgentId"
+     FROM policy.versions v
+     ${where}
+     ORDER BY v.document_id, (v.status = 'approved') DESC, v.version_no DESC`,
+    params
+  );
+  const map: Record<string, PolicyVersion | undefined> = {};
+  for (const v of rows) {
+    map[v.documentId] = v;
+  }
+  return map;
 }
 
 export async function getPolicyVersions(id: string): Promise<PolicyVersion[]> {

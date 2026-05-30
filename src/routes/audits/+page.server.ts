@@ -5,7 +5,7 @@
 
 import type { PageServerLoad, Actions } from './$types';
 import { fail } from '@sveltejs/kit';
-import { getAudits, getAuditFindings } from '$lib/server/data';
+import { getAudits, getAuditFindingsByTenant } from '$lib/server/data';
 import { ALL_TENANTS_ID } from '$lib/stores/tenant';
 import type { AuditFinding } from '$lib/data/types';
 import { isPgMode, getPool } from '$lib/server/pg';
@@ -14,10 +14,10 @@ import { writeAuditLog } from '$lib/server/auth';
 export const load: PageServerLoad = async ({ locals }) => {
   const tenantId = locals.tenantId ?? ALL_TENANTS_ID;
   const effective = tenantId === ALL_TENANTS_ID ? undefined : tenantId;
-  const audits = await getAudits(effective);
-  const pairs = await Promise.all(audits.map((a) => getAuditFindings(a.id).then((f) => ({ id: a.id, f }))));
-  const findingsByAudit: Record<string, AuditFinding[]> = {};
-  for (const p of pairs) findingsByAudit[p.id] = p.f;
+  const [audits, findingsByAudit] = await Promise.all([
+    getAudits(effective),
+    getAuditFindingsByTenant(effective)
+  ]);
   return { audits, findingsByAudit, isAll: tenantId === ALL_TENANTS_ID };
 };
 

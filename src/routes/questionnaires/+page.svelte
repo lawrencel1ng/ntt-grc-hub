@@ -1,13 +1,20 @@
 <script lang="ts">
+  import { enhance } from '$app/forms';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Kpi from '$lib/components/Kpi.svelte';
   import Gauge from '$lib/components/Gauge.svelte';
   import ConfidenceBar from '$lib/components/ConfidenceBar.svelte';
   import AgentTypeBadge from '$lib/components/AgentTypeBadge.svelte';
-  import { FileQuestion, CheckCircle2, Clock, Bot, ChevronRight, Search } from 'lucide-svelte';
+  import { addToast } from '$lib/stores/toast';
+  import { FileQuestion, CheckCircle2, Clock, Bot, ChevronRight, Search, Plus } from 'lucide-svelte';
   import type { Questionnaire, QuestionnaireStatus } from '$lib/data/types';
 
   export let data;
+  export let form: { qError?: string; qSent?: boolean; vendorName?: string } | undefined = undefined;
+
+  let showSendForm = false;
+
+  $: if (form?.qSent) { addToast('success', `Questionnaire sent to ${form.vendorName ?? 'vendor'}.`); showSendForm = false; }
 
   // ---------- KPIs ----------
   $: total = data.questionnaires.length;
@@ -84,9 +91,51 @@
 <PageHeader
   title="Vendor Questionnaires"
   subtitle="{total} questionnaires · Vendor Risk Analyst agent auto-completed {autoCompleted} of {total} ({autoPct}%) — saved ~{hoursSaved} analyst hours {data.isAll ? '· aggregated view' : ''}"
-/>
+>
+  <svelte:fragment slot="actions">
+    {#if !data.isAll}
+      <button class="btn-secondary" on:click={() => (showSendForm = !showSendForm)}>
+        <Plus class="h-4 w-4" />
+        Send Questionnaire
+      </button>
+    {/if}
+  </svelte:fragment>
+</PageHeader>
 
 <div class="space-y-6">
+  <!-- Send questionnaire form -->
+  {#if showSendForm && !data.isAll}
+    <div class="card p-5">
+      <h2 class="mb-4 text-sm font-semibold text-slate-800">Send Questionnaire</h2>
+      {#if form?.qError}
+        <p class="mb-3 rounded-lg bg-rose-50 px-3 py-2 text-xs text-rose-700 ring-1 ring-inset ring-rose-200">{form.qError}</p>
+      {/if}
+      <form method="POST" action="?/sendQuestionnaire" use:enhance class="grid gap-4 sm:grid-cols-3">
+        <label class="form-label sm:col-span-2">
+          Vendor
+          <select name="vendorId" required class="input mt-1 w-full">
+            <option value="">— select vendor —</option>
+            {#each data.vendors as v (v.id)}
+              <option value={v.id}>{v.name}</option>
+            {/each}
+          </select>
+        </label>
+        <label class="form-label">
+          Template
+          <select name="template" class="input mt-1 w-full">
+            <option value="SIG">SIG</option>
+            <option value="CAIQ">CAIQ</option>
+            <option value="Custom">Custom</option>
+          </select>
+        </label>
+        <div class="flex items-center gap-2 sm:col-span-3">
+          <button type="submit" class="btn-primary text-sm">Send</button>
+          <button type="button" class="btn-ghost text-sm" on:click={() => (showSendForm = false)}>Cancel</button>
+        </div>
+      </form>
+    </div>
+  {/if}
+
   <!-- Hero badge / agent ROI panel -->
   <div class="card flex items-center gap-3 bg-white px-5 py-3 ring-1 ring-inset ring-violet-200">
     <div class="rounded-md bg-violet-50 p-2 text-violet-700">

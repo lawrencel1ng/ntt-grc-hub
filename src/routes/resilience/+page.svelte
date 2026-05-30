@@ -4,10 +4,35 @@
   import StatusDot from '$lib/components/StatusDot.svelte';
   import Sankey from '$lib/components/Sankey.svelte';
   import Sparkline from '$lib/components/Sparkline.svelte';
-  import { ShieldAlert, CheckCircle2, Activity, Network, ChevronDown, ChevronRight } from 'lucide-svelte';
+  import { addToast } from '$lib/stores/toast';
+  import { ShieldAlert, CheckCircle2, Activity, Network, ChevronDown, ChevronRight, CalendarClock } from 'lucide-svelte';
   import type { BCMPlan, BCMDependency, BCMTest, BCMTestResult } from '$lib/data/types';
 
   export let data;
+
+  let scheduling: string | null = null; // planId being scheduled
+
+  async function scheduleTest(planId: string, kind = 'tabletop') {
+    if (scheduling) return;
+    scheduling = planId;
+    try {
+      const res = await fetch(`/api/bcm/${planId}/schedule-test`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ kind })
+      });
+      if (res.ok) {
+        addToast('success', `${kind} test scheduled.`);
+      } else {
+        const msg = await res.text().catch(() => '');
+        addToast('error', msg || 'Could not schedule test — check permissions.');
+      }
+    } catch {
+      addToast('error', 'Network error scheduling test.');
+    } finally {
+      scheduling = null;
+    }
+  }
 
   type Row = { plan: BCMPlan; deps: BCMDependency[]; tests: BCMTest[] };
 
@@ -252,6 +277,23 @@
                           <span class="text-rose-700">open · view in Issues →</span>
                         </a>
                       </div>
+                      {#if !data.isAll}
+                        <div>
+                          <div class="section-title mb-1 text-xs">Actions</div>
+                          <div class="flex flex-wrap gap-2">
+                            {#each ['tabletop', 'walkthrough', 'simulation', 'full-failover'] as kind}
+                              <button
+                                class="btn-secondary py-1 text-xs"
+                                disabled={scheduling === r.plan.id}
+                                on:click|stopPropagation={() => scheduleTest(r.plan.id, kind)}
+                              >
+                                <CalendarClock class="h-3 w-3" />
+                                {kind}
+                              </button>
+                            {/each}
+                          </div>
+                        </div>
+                      {/if}
                     </div>
                   </div>
                 </td>

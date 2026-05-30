@@ -62,10 +62,9 @@
   <div class="border-t border-white/10 px-3 py-3 text-[11px] text-white/40">
     {#if $sidebarOpen}
       <div class="flex items-center justify-between">
-        <span>v1.0.0-demo</span>
-        <span class="text-[9px] uppercase text-white/30">demo</span>
+        <span>v1.0.0</span>
       </div>
-      <div class="mt-1 text-white/30">© 2026 NTT Singapore. Demo build.</div>
+      <div class="mt-1 text-white/30">© 2026 NTT Singapore.</div>
     {:else}
       <span class="block text-center">v1</span>
     {/if}

@@ -744,38 +744,127 @@ export async function getConcentrations(tenantId?: string): Promise<Concentratio
 // =====================================================================
 
 export async function getPrivacyActivities(tenantId?: string): Promise<PrivacyActivity[]> {
-  return mock.privacyActivitiesForTenant(tenantId ?? 't_maybank');
+  if (!isPgMode()) return mock.privacyActivitiesForTenant(tenantId ?? 't_maybank');
+  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
+  const rows = await safeQuery<PrivacyActivity>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", code, name, controller, processor,
+            purpose, lawful_basis AS "lawfulBasis", data_categories AS "dataCategories",
+            retention_period AS "retentionPeriod", cross_border AS "crossBorder",
+            jurisdictions
+     FROM privacy.processing_activities ${where} ORDER BY code`,
+    params
+  );
+  return rows.length ? rows : mock.privacyActivitiesForTenant(tenantId ?? 't_maybank');
 }
 
 export async function getDPIAs(tenantId?: string): Promise<DPIA[]> {
-  return mock.dpiasForTenant(tenantId ?? 't_maybank');
+  if (!isPgMode()) return mock.dpiasForTenant(tenantId ?? 't_maybank');
+  const where = tenantId ? 'WHERE d.tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
+  const rows = await safeQuery<DPIA>(
+    `SELECT d.id::text AS id, d.tenant_id AS "tenantId",
+            d.activity_id::text AS "activityId", a.name AS "activityName",
+            d.status, d.residual_risk_severity::text AS "residualRiskSeverity",
+            d.conducted_at AS "conductedAt"
+     FROM privacy.dpias d
+     JOIN privacy.processing_activities a ON a.id = d.activity_id
+     ${where} ORDER BY d.created_at DESC`,
+    params
+  );
+  return rows.length ? rows : mock.dpiasForTenant(tenantId ?? 't_maybank');
 }
 
 export async function getSubjectRequests(tenantId?: string): Promise<SubjectRequest[]> {
-  return mock.subjectRequestsForTenant(tenantId ?? 't_maybank');
+  if (!isPgMode()) return mock.subjectRequestsForTenant(tenantId ?? 't_maybank');
+  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
+  const rows = await safeQuery<SubjectRequest>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", kind::text AS kind,
+            requester_email AS "requesterEmail", received_at AS "receivedAt",
+            due_at AS "dueAt", status::text AS status, resolved_at AS "resolvedAt"
+     FROM privacy.subject_requests ${where} ORDER BY received_at DESC`,
+    params
+  );
+  return rows.length ? rows : mock.subjectRequestsForTenant(tenantId ?? 't_maybank');
 }
 
 export async function getBreaches(tenantId?: string): Promise<Breach[]> {
-  return mock.breachesForTenant(tenantId ?? 't_maybank');
+  if (!isPgMode()) return mock.breachesForTenant(tenantId ?? 't_maybank');
+  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
+  const rows = await safeQuery<Breach>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", code,
+            severity::text AS severity, occurred_at AS "occurredAt",
+            detected_at AS "detectedAt", reported_at AS "reportedAt",
+            affected_subjects AS "affectedSubjects",
+            regulator_notified AS "regulatorNotified", root_cause AS "rootCause"
+     FROM privacy.breaches ${where} ORDER BY occurred_at DESC`,
+    params
+  );
+  return rows.length ? rows : mock.breachesForTenant(tenantId ?? 't_maybank');
 }
 
 export async function getESGMetrics(tenantId?: string): Promise<ESGMetric[]> {
-  return mock.esgMetricsForTenant(tenantId ?? 't_maybank');
+  if (!isPgMode()) return mock.esgMetricsForTenant(tenantId ?? 't_maybank');
+  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
+  const rows = await safeQuery<ESGMetric>(
+    `SELECT id, tenant_id AS "tenantId", period, scope, category,
+            metric, value, unit, framework
+     FROM esg.metrics ${where} ORDER BY period DESC, category, metric`,
+    params
+  );
+  return rows.length ? rows : mock.esgMetricsForTenant(tenantId ?? 't_maybank');
 }
 
 export async function getESGDisclosures(tenantId?: string): Promise<ESGDisclosure[]> {
-  return mock.esgDisclosuresForTenant(tenantId ?? 't_maybank');
+  if (!isPgMode()) return mock.esgDisclosuresForTenant(tenantId ?? 't_maybank');
+  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
+  const rows = await safeQuery<ESGDisclosure>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", framework, period,
+            status, published_at AS "publishedAt"
+     FROM esg.disclosures ${where} ORDER BY period DESC, framework`,
+    params
+  );
+  return rows.length ? rows : mock.esgDisclosuresForTenant(tenantId ?? 't_maybank');
 }
 
 export async function getESGTargets(tenantId?: string): Promise<ESGTarget[]> {
-  return mock.esgTargetsForTenant(tenantId ?? 't_maybank');
+  if (!isPgMode()) return mock.esgTargetsForTenant(tenantId ?? 't_maybank');
+  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
+  const rows = await safeQuery<ESGTarget>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", framework, metric,
+            baseline_value AS "baselineValue", baseline_period AS "baselinePeriod",
+            target_value AS "targetValue", target_period AS "targetPeriod"
+     FROM esg.targets ${where} ORDER BY framework, metric`,
+    params
+  );
+  return rows.length ? rows : mock.esgTargetsForTenant(tenantId ?? 't_maybank');
 }
 
 export async function getAIModels(tenantId?: string): Promise<AIModel[]> {
-  return mock.aiModelsForTenant(tenantId ?? 't_maybank');
+  if (!isPgMode()) return mock.aiModelsForTenant(tenantId ?? 't_maybank');
+  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
+  const rows = await safeQuery<AIModel>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", name, kind,
+            risk_tier::text AS "riskTier", jurisdiction,
+            eu_ai_act_class AS "euAiActClass",
+            iso_42001_status::text AS "iso42001Status"
+     FROM ai_gov.models ${where} ORDER BY name`,
+    params
+  );
+  return rows.length ? rows : mock.aiModelsForTenant(tenantId ?? 't_maybank');
 }
 
 export async function getAIModel(id: string): Promise<AIModel | undefined> {
+  if (isPgMode()) {
+    const tid = await tenantOfRow('ai_gov.models', id);
+    if (tid) return (await getAIModels(tid)).find((m) => m.id === id);
+  }
   const parts = id.split('_');
   if (parts.length < 3) return undefined;
   const tenantId = `${parts[1]}_${parts[2]}`;
@@ -784,31 +873,125 @@ export async function getAIModel(id: string): Promise<AIModel | undefined> {
 
 export async function getModelRisks(modelId: string): Promise<ModelRisk[]> {
   if (!isPgMode()) return mock.modelRisksForModel(modelId);
-  return mock.modelRisksForModel(modelId);
+  const rows = await safeQuery<ModelRisk>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", model_id::text AS "modelId",
+            risk_type AS "riskType", severity::text AS severity, mitigation
+     FROM ai_gov.model_risk WHERE model_id = $1::uuid ORDER BY severity`,
+    [modelId]
+  );
+  return rows.length ? rows : mock.modelRisksForModel(modelId);
 }
 
-export async function getPromptsAudit(tenantId?: string, limit?: number): Promise<PromptAuditEntry[]> {
-  return mock.promptsAuditForTenant(tenantId ?? 't_maybank', limit);
+export async function getPromptsAudit(tenantId?: string, limit = 50): Promise<PromptAuditEntry[]> {
+  if (!isPgMode()) return mock.promptsAuditForTenant(tenantId ?? 't_maybank', limit);
+  const clauses: string[] = [];
+  const params: unknown[] = [limit];
+  if (tenantId) { params.push(tenantId); clauses.push(`tenant_id = $${params.length}`); }
+  const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
+  const rows = await safeQuery<PromptAuditEntry>(
+    `SELECT id, tenant_id AS "tenantId", model_id::text AS "modelId",
+            agent_run_id AS "agentRunId", prompt_redacted AS "promptRedacted",
+            response_redacted AS "responseRedacted", tokens_in AS "tokensIn",
+            tokens_out AS "tokensOut", cost_cents AS "costCents",
+            captured_at AS "capturedAt"
+     FROM ai_gov.prompts_audit ${where} ORDER BY captured_at DESC LIMIT $1`,
+    params
+  );
+  return rows.length ? rows : mock.promptsAuditForTenant(tenantId ?? 't_maybank', limit);
 }
 
 // =====================================================================
-// SOX (synthesised — never PG)
+// SOX
 // =====================================================================
 
 export async function getSOXItgcs(tenantId?: string) {
-  return mock.soxItgcsForTenant(tenantId ?? 't_maybank');
+  const tid = tenantId ?? 't_maybank';
+  if (!isPgMode()) return mock.soxItgcsForTenant(tid);
+  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
+  const rows = await safeQuery<import('$lib/data/specialized').SOXItgc>(
+    `SELECT id::text AS id, tenant_id AS "tenantId",
+            control_ref AS code,
+            title AS name,
+            COALESCE(description, '') AS domain,
+            '' AS owner,
+            tested_at AS "lastTestedAt",
+            CASE status::text
+              WHEN 'effective'         THEN 'pass'
+              WHEN 'deficiency'        THEN 'partial'
+              WHEN 'material_weakness' THEN 'fail'
+              ELSE 'pass'
+            END AS result,
+            COALESCE(frequency, 'quarterly') AS frequency
+     FROM sox.itgcs ${where} ORDER BY control_ref`,
+    params
+  );
+  return rows.length ? rows : mock.soxItgcsForTenant(tid);
 }
 
 export async function getSOXKcas(tenantId?: string) {
-  return mock.soxKcasForTenant(tenantId ?? 't_maybank');
+  const tid = tenantId ?? 't_maybank';
+  if (!isPgMode()) return mock.soxKcasForTenant(tid);
+  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
+  const rows = await safeQuery<import('$lib/data/specialized').SOXKca>(
+    `SELECT id::text AS id, tenant_id AS "tenantId",
+            attribute AS code,
+            attribute AS name,
+            '' AS process,
+            '' AS owner,
+            'monthly' AS frequency,
+            0 AS "automationPct",
+            assessed_at AS "lastTestedAt",
+            'pass' AS result
+     FROM sox.kcas ${where} ORDER BY attribute`,
+    params
+  );
+  return rows.length ? rows : mock.soxKcasForTenant(tid);
 }
 
 export async function getSOXWalkthroughs(tenantId?: string) {
-  return mock.soxWalkthroughsForTenant(tenantId ?? 't_maybank');
+  const tid = tenantId ?? 't_maybank';
+  if (!isPgMode()) return mock.soxWalkthroughsForTenant(tid);
+  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
+  const rows = await safeQuery<import('$lib/data/specialized').SOXWalkthrough>(
+    `SELECT id::text AS id, tenant_id AS "tenantId",
+            COALESCE(description, '') AS process,
+            EXTRACT(YEAR FROM COALESCE(completed_at, created_at))::int AS year,
+            CASE
+              WHEN completed_at IS NOT NULL THEN 'complete'
+              ELSE 'in-progress'
+            END AS status,
+            '' AS "conductedBy",
+            COALESCE(completed_at, created_at) AS "conductedAt"
+     FROM sox.walkthroughs ${where} ORDER BY COALESCE(completed_at, created_at) DESC`,
+    params
+  );
+  return rows.length ? rows : mock.soxWalkthroughsForTenant(tid);
 }
 
 export async function getSOXDeficiencies(tenantId?: string) {
-  return mock.soxDeficienciesForTenant(tenantId ?? 't_maybank');
+  const tid = tenantId ?? 't_maybank';
+  if (!isPgMode()) return mock.soxDeficienciesForTenant(tid);
+  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
+  const rows = await safeQuery<import('$lib/data/specialized').SOXDeficiency>(
+    `SELECT id::text AS id, tenant_id AS "tenantId",
+            CASE severity::text
+              WHEN 'material'    THEN 'high'
+              WHEN 'significant' THEN 'medium'
+              ELSE 'medium'
+            END AS severity,
+            description,
+            '' AS "rootCause",
+            COALESCE(remediation_plan, '') AS remediation,
+            COALESCE(remediated_at::date::text, (created_at + interval '90 days')::date::text) AS "targetDate",
+            (remediated_at IS NOT NULL) AS "onTrack"
+     FROM sox.deficiencies ${where} ORDER BY created_at DESC`,
+    params
+  );
+  return rows.length ? rows : mock.soxDeficienciesForTenant(tid);
 }
 
 // =====================================================================
@@ -944,10 +1127,23 @@ export async function getBCMTests(planId: string): Promise<BCMTest[]> {
 // =====================================================================
 
 export async function getWorkflows(tenantId?: string): Promise<Workflow[]> {
-  return mock.workflowsForTenant(tenantId ?? 't_maybank');
+  if (!isPgMode()) return mock.workflowsForTenant(tenantId ?? 't_maybank');
+  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
+  const rows = await safeQuery<Workflow>(
+    `SELECT id::text AS id, tenant_id AS "tenantId", name, description,
+            steps, version, enabled
+     FROM workflow.definitions ${where} ORDER BY name`,
+    params
+  );
+  return rows.length ? rows : mock.workflowsForTenant(tenantId ?? 't_maybank');
 }
 
 export async function getWorkflow(id: string): Promise<Workflow | undefined> {
+  if (isPgMode()) {
+    const tid = await tenantOfRow('workflow.definitions', id);
+    if (tid) return (await getWorkflows(tid)).find((w) => w.id === id);
+  }
   const parts = id.split('_');
   if (parts.length < 3) return undefined;
   const tenantId = `${parts[1]}_${parts[2]}`;
@@ -955,7 +1151,21 @@ export async function getWorkflow(id: string): Promise<Workflow | undefined> {
 }
 
 export async function getWorkflowExecutions(tenantId?: string, limit = 20): Promise<WorkflowExecution[]> {
-  return mock.workflowExecutionsForTenant(tenantId ?? 't_maybank', limit);
+  if (!isPgMode()) return mock.workflowExecutionsForTenant(tenantId ?? 't_maybank', limit);
+  const clauses: string[] = [];
+  const params: unknown[] = [limit];
+  if (tenantId) { params.push(tenantId); clauses.push(`e.tenant_id = $${params.length}`); }
+  const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
+  const rows = await safeQuery<WorkflowExecution>(
+    `SELECT e.id, e.tenant_id AS "tenantId", e.workflow_id::text AS "workflowId",
+            d.name AS "workflowName", e.trigger, e.started_at AS "startedAt",
+            e.ended_at AS "endedAt", e.status::text AS status
+     FROM workflow.executions e
+     JOIN workflow.definitions d ON d.id = e.workflow_id
+     ${where} ORDER BY e.started_at DESC LIMIT $1`,
+    params
+  );
+  return rows.length ? rows : mock.workflowExecutionsForTenant(tenantId ?? 't_maybank', limit);
 }
 
 export async function getConnectors(tenantId?: string): Promise<Connector[]> {

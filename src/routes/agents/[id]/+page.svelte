@@ -301,7 +301,7 @@
           </div>
           <div class="md:col-span-2 inline-flex items-center gap-2 text-xs text-slate-500">
             <SettingsIcon class="h-3.5 w-3.5" />
-            Read-only in demo build.
+            HITL rules are configured by an admin in Settings → Agent Policy.
           </div>
         </div>
       {/if}

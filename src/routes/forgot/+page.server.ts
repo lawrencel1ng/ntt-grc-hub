@@ -1,6 +1,7 @@
 import type { Actions, PageServerLoad } from './$types';
 import { isPgMode } from '$lib/server/pg';
 import { createPasswordResetToken, writeAuditLog } from '$lib/server/auth';
+import { sendMail, passwordResetHtml, passwordResetText } from '$lib/server/email';
 
 export const load: PageServerLoad = async ({ url }) => {
   return { email: url.searchParams.get('email') ?? '' };
@@ -17,9 +18,15 @@ export const actions: Actions = {
       const ip = getClientAddress();
       const ua = request.headers.get('user-agent') ?? '';
       if (result) {
-        // Log the reset URL — in production replace this with a real email send.
-        // Set SMTP_HOST (and related vars) in your environment to enable email delivery.
-        console.info(`[password-reset] Reset URL for ${result.userEmail}: ${result.resetUrl}`);
+        const sent = await sendMail({
+          to: result.userEmail,
+          subject: 'Reset your NTT GRC Hub password',
+          text: passwordResetText(result.resetUrl),
+          html: passwordResetHtml(result.resetUrl)
+        });
+        if (!sent) {
+          console.info(`[password-reset] Reset URL for ${result.userEmail}: ${result.resetUrl}`);
+        }
         writeAuditLog({ actorEmail: email, action: 'password_reset.requested', target: email, ip, ua, result: 'success' });
       } else {
         // User not found — log silently to prevent email enumeration

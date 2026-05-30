@@ -36,7 +36,7 @@
       </p>
     </div>
 
-    <div class="relative text-xs text-white/40">© 2026 NTT Singapore. Confidential — Demo Build.</div>
+    <div class="relative text-xs text-white/40">© 2026 NTT Singapore. Confidential.</div>
   </div>
 
   <!-- Right: form -->

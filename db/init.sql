@@ -6,7 +6,7 @@
 --  and views for the Agentic GRC Operating System.
 --
 --  Design highlights:
---    - 18 domain schemas (platform, risk, control, compliance, evidence,
+--    - 19 domain schemas (platform, risk, control, sox, compliance, evidence,
 --      audit, policy, vendor, privacy, esg, ai_gov, incident, issue,
 --      bcm, regwatch, agent, workflow, integration)
 --    - Tenant isolation via tenant_id FK to platform.tenants on every
@@ -23,6 +23,7 @@
 --    2. platform.*                                    [Task 2.1]
 --    3. risk.*                                        [Task 2.1]
 --    4. control.*                                     [Task 2.1]
+--    4b. sox.*                                        [Task 2.1+]
 --    5. compliance.*                                  [Task 2.2]
 --    6. evidence.*                                    [Task 2.2]
 --    7. audit.*                                       [Task 2.2]
@@ -57,6 +58,7 @@ CREATE EXTENSION IF NOT EXISTS pgcrypto;
 CREATE SCHEMA IF NOT EXISTS platform;     -- tenants, users, sessions, audit log
 CREATE SCHEMA IF NOT EXISTS risk;         -- registers, risks, FAIR scenarios, appetite
 CREATE SCHEMA IF NOT EXISTS control;      -- control library, mappings, tests, runs
+CREATE SCHEMA IF NOT EXISTS sox;          -- Sarbanes-Oxley IT General Controls, KCAs, walkthroughs, deficiencies
 CREATE SCHEMA IF NOT EXISTS compliance;   -- frameworks, requirements, assessments, gaps
 CREATE SCHEMA IF NOT EXISTS evidence;     -- collectors, items, hash-chain seals, attachments
 CREATE SCHEMA IF NOT EXISTS audit;        -- engagements, findings, workpapers
@@ -413,6 +415,73 @@ CREATE INDEX ON control.exceptions (tenant_id);
 CREATE INDEX ON control.exceptions (control_id);
 
 \echo ' >> platform/risk/control schemas created'
+
+-- =====================================================================
+-- 4b. sox.*
+--
+-- SOX IT General Controls (ITGCs), Key Control Attributes (KCAs),
+-- Walkthroughs, and Control Deficiencies.  All tables are tenant-scoped.
+-- =====================================================================
+CREATE TYPE sox.control_type   AS ENUM ('manual','automated','itdm');
+CREATE TYPE sox.itgc_status    AS ENUM ('effective','deficiency','material_weakness');
+CREATE TYPE sox.deficiency_sev AS ENUM ('significant','material');
+
+CREATE TABLE sox.itgcs (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id       TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    control_ref     TEXT NOT NULL,
+    title           TEXT NOT NULL,
+    description     TEXT,
+    objective       TEXT,
+    control_type    sox.control_type NOT NULL DEFAULT 'manual',
+    frequency       TEXT,
+    status          sox.itgc_status NOT NULL DEFAULT 'effective',
+    tested_at       TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON sox.itgcs (tenant_id);
+CREATE INDEX ON sox.itgcs (status);
+CREATE UNIQUE INDEX ON sox.itgcs (tenant_id, control_ref);
+
+CREATE TABLE sox.kcas (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id       TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    itgc_id         UUID NOT NULL REFERENCES sox.itgcs(id) ON DELETE CASCADE,
+    attribute       TEXT NOT NULL,
+    value           TEXT NOT NULL,
+    assessed_at     TIMESTAMPTZ,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON sox.kcas (tenant_id);
+CREATE INDEX ON sox.kcas (itgc_id);
+
+CREATE TABLE sox.walkthroughs (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id       TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    itgc_id         UUID NOT NULL REFERENCES sox.itgcs(id) ON DELETE CASCADE,
+    description     TEXT NOT NULL,
+    completed_at    TIMESTAMPTZ,
+    evidence_link   TEXT,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON sox.walkthroughs (tenant_id);
+CREATE INDEX ON sox.walkthroughs (itgc_id);
+
+CREATE TABLE sox.deficiencies (
+    id                  UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id           TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    itgc_id             UUID NOT NULL REFERENCES sox.itgcs(id) ON DELETE CASCADE,
+    severity            sox.deficiency_sev NOT NULL,
+    description         TEXT NOT NULL,
+    remediation_plan    TEXT,
+    remediated_at       TIMESTAMPTZ,
+    created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON sox.deficiencies (tenant_id);
+CREATE INDEX ON sox.deficiencies (itgc_id);
+CREATE INDEX ON sox.deficiencies (severity);
+
+\echo ' >> sox schemas created'
 
 -- =====================================================================
 -- 5. compliance.*

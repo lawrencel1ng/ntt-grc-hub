@@ -6,9 +6,14 @@
   import { addToast } from '$lib/stores/toast';
   import { runFAIR } from '$lib/utils/fair';
   import { AlertTriangle, Calculator, Calendar, User as UserIcon, ListChecks, Layers, Activity, BookOpen, Hammer, History as HistoryIcon, ShieldCheck, Bot } from 'lucide-svelte';
+  import { enhance } from '$app/forms';
   import type { Risk, RiskSeverity, RiskLikelihood, FAIRScenario } from '$lib/data/types';
 
   export let data;
+  export let form: { statusUpdated?: boolean; newStatus?: string; statusError?: string } | null = null;
+
+  $: if (form?.statusUpdated) addToast('success', `Risk status updated to "${form.newStatus}".`);
+  $: if (form?.statusError) addToast('error', form.statusError);
 
   // ---------- Scoring ----------
   const SEV_RANK: Record<RiskSeverity, number> = { critical: 5, high: 4, medium: 3, low: 2, info: 1 };
@@ -134,7 +139,16 @@
 >
   <svelte:fragment slot="actions">
     <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset {sevCls(data.risk.residualSeverity)}">{data.risk.residualSeverity}</span>
-    <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset {statusCls(data.risk.status)}">{data.risk.status}</span>
+    <form method="POST" action="?/updateStatus" use:enhance class="flex items-center gap-1.5">
+      <select name="status" class="input py-1 text-xs" value={form?.newStatus ?? data.risk.status}>
+        <option value="identified">identified</option>
+        <option value="assessed">assessed</option>
+        <option value="treated">treated</option>
+        <option value="monitoring">monitoring</option>
+        <option value="closed">closed</option>
+      </select>
+      <button type="submit" class="btn-secondary py-1 text-xs">Update</button>
+    </form>
     <button class="btn-primary" on:click={runFairAction}>
       <Calculator class="h-4 w-4" />
       <span>Run FAIR Analysis</span>

@@ -4,10 +4,24 @@
   import AgentTypeBadge from '$lib/components/AgentTypeBadge.svelte';
   import { addToast } from '$lib/stores/toast';
   import { downloadCsv } from '$lib/utils/csv';
+  import { enhance } from '$app/forms';
   import { Download, FileBarChart, FileText, Package, Zap, ClipboardCheck } from 'lucide-svelte';
   import type { EngagementType, AuditFinding } from '$lib/data/types';
 
   export let data;
+  export let form: { findingUpdated?: boolean; findingId?: string; newStatus?: string; findingError?: string } | null = null;
+
+  // Optimistically update finding status in the local list on success
+  $: if (form?.findingUpdated && form.findingId && form.newStatus) {
+    data = {
+      ...data,
+      findings: data.findings.map((f) =>
+        f.id === form!.findingId ? { ...f, status: form!.newStatus as AuditFinding['status'] } : f
+      )
+    };
+    addToast('success', `Finding status updated to "${form.newStatus}".`);
+  }
+  $: if (form?.findingError) addToast('error', form.findingError);
 
   type Tab = 'findings' | 'workpapers' | 'pack';
   let tab: Tab = 'findings';
@@ -187,7 +201,17 @@
                   {/if}
                 </td>
                 <td class="td font-mono text-xs text-slate-500">{fmtDate(f.dueAt)}</td>
-                <td class="td"><span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {statusCls(f.status)}">{f.status}</span></td>
+                <td class="td">
+                  <form method="POST" action="?/updateFindingStatus" use:enhance class="flex items-center gap-1">
+                    <input type="hidden" name="findingId" value={f.id} />
+                    <select name="status" class="input py-0.5 text-[11px]" value={f.status}>
+                      <option value="open">open</option>
+                      <option value="closed">closed</option>
+                      <option value="accepted-risk">accepted-risk</option>
+                    </select>
+                    <button type="submit" class="btn-ghost p-1 text-[11px]">✓</button>
+                  </form>
+                </td>
               </tr>
             {:else}
               <tr><td colspan="6" class="px-4 py-6 text-center text-sm text-slate-500">No findings recorded.</td></tr>

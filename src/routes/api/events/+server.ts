@@ -8,7 +8,10 @@ import { agentBus, type AgentBusEvent } from '$lib/server/sse';
  * `agent-run` from the in-process bus, plus a keepalive comment every
  * 15s to defeat proxies that drop idle connections.
  */
-export const GET: RequestHandler = async () => {
+export const GET: RequestHandler = async ({ locals }) => {
+  if (!locals.user) {
+    return new Response('Unauthorized', { status: 401 });
+  }
   const stream = new ReadableStream({
     start(controller) {
       const encoder = new TextEncoder();

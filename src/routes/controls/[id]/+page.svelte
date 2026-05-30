@@ -44,8 +44,17 @@
     return `${Math.floor(diff / 86400)}d ago`;
   }
 
-  function runTest() {
-    addToast('success', `Test queued for ${data.control.code}`);
+  async function runTest() {
+    const res = await fetch(`/api/controls/${data.control.id}/run-test`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (res.ok) {
+      addToast('success', `Test queued for ${data.control.code}.`);
+    } else {
+      const msg = await res.text().catch(() => '');
+      addToast('error', msg || 'Failed to queue control test.');
+    }
   }
 </script>
 

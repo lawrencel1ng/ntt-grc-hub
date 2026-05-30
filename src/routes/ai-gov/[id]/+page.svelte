@@ -132,8 +132,17 @@
   })();
 
   // ---------- Actions ----------
-  function runRiskAssessment() {
-    addToast('success', `Risk assessment queued for ${data.model.name}. Risk Quantifier agent will report in ~30s.`);
+  async function runRiskAssessment() {
+    const res = await fetch(`/api/ai-gov/${data.model.id}/assess`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (res.ok) {
+      addToast('success', `Risk assessment queued for ${data.model.name}. Risk Quantifier agent will report in ~30s.`);
+    } else {
+      const msg = await res.text().catch(() => '');
+      addToast('error', msg || 'Failed to queue risk assessment.');
+    }
   }
 
   function fmtTime(iso: string): string {

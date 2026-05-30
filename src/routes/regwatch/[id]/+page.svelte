@@ -48,11 +48,22 @@
 
   $: suggestions = (data.requirementSuggestions as Requirement[]).map((r) => ({
     id: r.id,
+    frameworkId: r.frameworkId,
     label: `${r.code} — ${r.title}`
   }));
 
-  function applySuggestion(label: string) {
-    addToast('success', `Mapping applied: ${label}`);
+  async function applySuggestion(sug: { id: string; frameworkId: string; label: string }) {
+    const res = await fetch(`/api/regwatch/${data.change.id}/map`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requirementId: sug.id, frameworkId: sug.frameworkId, action: 'mapped' })
+    });
+    if (res.ok) {
+      addToast('success', `Mapping applied: ${sug.label}`);
+    } else {
+      const msg = await res.text().catch(() => '');
+      addToast('error', msg || 'Failed to apply mapping.');
+    }
   }
 </script>
 
@@ -166,7 +177,7 @@
         {#each suggestions as sug (sug.id)}
           <li class="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm">
             <span class="font-mono text-xs text-slate-600">Map to requirement <span class="text-grc-primary">{sug.label}</span></span>
-            <button class="btn-secondary py-1 text-xs" on:click={() => applySuggestion(sug.label)}>Apply</button>
+            <button class="btn-secondary py-1 text-xs" on:click={() => applySuggestion(sug)}>Apply</button>
           </li>
         {/each}
       </ul>

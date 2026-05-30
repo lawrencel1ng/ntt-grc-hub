@@ -83,8 +83,17 @@
     return `${Math.floor(diff / 86400)}d ago`;
   }
 
-  function runNow() {
-    addToast('success', `${data.agent.name} queued for execution.`);
+  async function runNow() {
+    const res = await fetch(`/api/agents/${data.agent.id}/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    if (res.ok) {
+      addToast('success', `${data.agent.name} queued for execution.`);
+    } else {
+      const msg = await res.text().catch(() => '');
+      addToast('error', msg || 'Failed to queue agent execution.');
+    }
   }
 
   const TABS: { id: Tab; label: string }[] = [

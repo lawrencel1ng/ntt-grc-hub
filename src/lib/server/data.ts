@@ -143,8 +143,14 @@ export async function getAgents(): Promise<Agent[]> {
 }
 
 export async function getAgent(id: string): Promise<Agent | undefined> {
-  const all = await getAgents();
-  return all.find((a) => a.id === id);
+  if (!isPgMode()) return (await getAgents()).find((a) => a.id === id);
+  const rows = await safeQuery<Agent>(
+    `SELECT id, name, slug, description, type::text AS type, status, owner_team AS "ownerTeam",
+            cost_per_run_cents AS "costPerRunCents", cost_monthly_estimate_cents AS "costMonthlyEstimateCents",
+            fte_equivalent AS "fteEquivalent"
+     FROM agent.agents WHERE id = $1::uuid LIMIT 1`, [id]
+  );
+  return rows[0];
 }
 
 export async function getAgentTools(agentId: string): Promise<AgentTool[]> {
@@ -257,38 +263,36 @@ export async function getAgentFleetSummary(): Promise<AgentFleetSummary[]> {
 // Risk
 // =====================================================================
 
-export async function getRisks(tenantId?: string): Promise<Risk[]> {
-  if (!isPgMode()) return tenantId ? mock.risksForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.risksForTenant(t));
-  const sql = tenantId
-    ? `SELECT r.id::text AS id, r.tenant_id AS "tenantId", r.register_id::text AS "registerId",
-              r.code, r.title, r.description, r.category,
-              r.inherent_severity::text AS "inherentSeverity",
-              r.inherent_likelihood::text AS "inherentLikelihood",
-              r.residual_severity::text AS "residualSeverity",
-              r.residual_likelihood::text AS "residualLikelihood",
-              r.status::text AS status,
-              r.treatment_strategy::text AS "treatmentStrategy",
-              r.last_assessed_at AS "lastAssessedAt", r.next_review_at AS "nextReviewAt",
-              r.business_service AS "businessService", r.tags,
-              r.owner_user_id::text AS "ownerUserId", u.email AS "ownerEmail"
-       FROM risk.risks r
-       LEFT JOIN platform.users u ON u.id = r.owner_user_id
-       WHERE r.tenant_id = $1 ORDER BY r.code`
-    : `SELECT r.id::text AS id, r.tenant_id AS "tenantId", r.register_id::text AS "registerId",
-              r.code, r.title, r.description, r.category,
-              r.inherent_severity::text AS "inherentSeverity",
-              r.inherent_likelihood::text AS "inherentLikelihood",
-              r.residual_severity::text AS "residualSeverity",
-              r.residual_likelihood::text AS "residualLikelihood",
-              r.status::text AS status,
-              r.treatment_strategy::text AS "treatmentStrategy",
-              r.last_assessed_at AS "lastAssessedAt", r.next_review_at AS "nextReviewAt",
-              r.business_service AS "businessService", r.tags,
-              r.owner_user_id::text AS "ownerUserId", u.email AS "ownerEmail"
-       FROM risk.risks r
-       LEFT JOIN platform.users u ON u.id = r.owner_user_id
-       ORDER BY r.tenant_id, r.code`;
-  const rows = await safeQuery<Risk>(sql, tenantId ? [tenantId] : []);
+export async function getRisks(tenantId?: string, businessServiceLike?: string): Promise<Risk[]> {
+  if (!isPgMode()) {
+    const all = tenantId ? mock.risksForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.risksForTenant(t));
+    return businessServiceLike
+      ? all.filter((r) => r.businessService?.toLowerCase().includes(businessServiceLike.toLowerCase()))
+      : all;
+  }
+  const clauses: string[] = [];
+  const params: unknown[] = [];
+  if (tenantId) { params.push(tenantId); clauses.push(`r.tenant_id = $${params.length}`); }
+  if (businessServiceLike) { params.push(`%${businessServiceLike}%`); clauses.push(`r.business_service ILIKE $${params.length}`); }
+  const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
+  const orderBy = tenantId ? 'ORDER BY r.code' : 'ORDER BY r.tenant_id, r.code';
+  const rows = await safeQuery<Risk>(
+    `SELECT r.id::text AS id, r.tenant_id AS "tenantId", r.register_id::text AS "registerId",
+            r.code, r.title, r.description, r.category,
+            r.inherent_severity::text AS "inherentSeverity",
+            r.inherent_likelihood::text AS "inherentLikelihood",
+            r.residual_severity::text AS "residualSeverity",
+            r.residual_likelihood::text AS "residualLikelihood",
+            r.status::text AS status,
+            r.treatment_strategy::text AS "treatmentStrategy",
+            r.last_assessed_at AS "lastAssessedAt", r.next_review_at AS "nextReviewAt",
+            r.business_service AS "businessService", r.tags,
+            r.owner_user_id::text AS "ownerUserId", u.email AS "ownerEmail"
+     FROM risk.risks r
+     LEFT JOIN platform.users u ON u.id = r.owner_user_id
+     ${where} ${orderBy}`,
+    params
+  );
   return rows;
 }
 
@@ -1492,10 +1496,16 @@ export async function getPostmortem(incidentId: string): Promise<Postmortem | nu
   return rows[0] ?? null;
 }
 
-export async function getIssues(tenantId?: string): Promise<Issue[]> {
-  if (!isPgMode()) return tenantId ? mock.issuesForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.issuesForTenant(t));
-  const where = tenantId ? 'WHERE tenant_id = $1' : '';
-  const params = tenantId ? [tenantId] : [];
+export async function getIssues(tenantId?: string, openOnly?: boolean): Promise<Issue[]> {
+  if (!isPgMode()) {
+    const all = tenantId ? mock.issuesForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.issuesForTenant(t));
+    return openOnly ? all.filter((i) => i.status === 'open' || i.status === 'in-progress') : all;
+  }
+  const clauses: string[] = [];
+  const params: unknown[] = [];
+  if (tenantId) { params.push(tenantId); clauses.push(`i.tenant_id = $${params.length}`); }
+  if (openOnly) clauses.push(`i.status IN ('open', 'in-progress')`);
+  const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
   const rows = await safeQuery<Issue>(
     `SELECT i.id::text AS id, i.tenant_id AS "tenantId", i.source::text AS source,
             i.source_id AS "sourceId", i.title, i.description, i.severity::text AS severity,

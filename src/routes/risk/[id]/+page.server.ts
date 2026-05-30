@@ -19,18 +19,14 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     throw error(403, 'Access denied');
   }
 
-  const [scenarios, fair, issues, linkedControls, treatments, history] = await Promise.all([
+  const [scenarios, fair, openIssues, linkedControls, treatments, history] = await Promise.all([
     getFairScenariosForRisk(risk.id),
     getFairRun(risk.id),
-    getIssues(risk.tenantId),
+    getIssues(risk.tenantId, true),
     getRecentlyTestedControls(risk.tenantId, 6),
     getRiskTreatments(risk.id),
     getRiskHistory(risk.id)
   ]);
-
-  const openIssues = issues.filter((i) =>
-    i.status === 'open' || i.status === 'in-progress'
-  );
 
   return { risk, scenarios, fair, openIssues, linkedControls, treatments, history };
 };

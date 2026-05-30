@@ -15,15 +15,12 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     throw error(403, 'Access denied');
   }
 
-  const [deps, tests, escalationContacts, risks] = await Promise.all([
+  const [deps, tests, escalationContacts, linkedRisks] = await Promise.all([
     getBCMDependencies(plan.id),
     getBCMTests(plan.id),
     getBCMEscalationContacts(plan.id),
-    getRisks(plan.tenantId)
+    getRisks(plan.tenantId, plan.businessService)
   ]);
-
-  const linkedRisks = risks.filter((r) =>
-    r.businessService && r.businessService.toLowerCase().includes(plan.businessService.toLowerCase()));
 
   return { plan, deps, tests, escalationContacts, linkedRisks };
 };

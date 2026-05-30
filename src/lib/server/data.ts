@@ -357,7 +357,7 @@ export async function getFairScenarios(tenantId?: string) {
      FROM risk.scenarios ${where} ORDER BY name`,
     params
   );
-  return rows.length ? rows : mock.fairScenariosForTenant(tenantId ?? 't_maybank');
+  return rows;
 }
 
 export async function getFairScenariosForRisk(riskId: string) {
@@ -432,7 +432,7 @@ export async function getAppetiteStatements(tenantId?: string): Promise<Appetite
      FROM risk.appetite_statements ${where} ORDER BY category`,
     params
   );
-  return rows.length ? rows : mock.appetiteStatementsForTenant(tenantId ?? 't_maybank');
+  return rows;
 }
 
 // =====================================================================
@@ -1097,7 +1097,7 @@ export async function getPrivacyActivities(tenantId?: string): Promise<PrivacyAc
      FROM privacy.processing_activities ${where} ORDER BY code`,
     params
   );
-  return rows.length ? rows : mock.privacyActivitiesForTenant(tenantId ?? 't_maybank');
+  return rows;
 }
 
 export async function getDPIAs(tenantId?: string): Promise<DPIA[]> {
@@ -1116,7 +1116,7 @@ export async function getDPIAs(tenantId?: string): Promise<DPIA[]> {
      ${where} ORDER BY d.created_at DESC`,
     params
   );
-  return rows.length ? rows : mock.dpiasForTenant(tenantId ?? 't_maybank');
+  return rows;
 }
 
 export async function getSubjectRequests(tenantId?: string): Promise<SubjectRequest[]> {
@@ -1130,7 +1130,7 @@ export async function getSubjectRequests(tenantId?: string): Promise<SubjectRequ
      FROM privacy.subject_requests ${where} ORDER BY received_at DESC`,
     params
   );
-  return rows.length ? rows : mock.subjectRequestsForTenant(tenantId ?? 't_maybank');
+  return rows;
 }
 
 export async function getBreaches(tenantId?: string): Promise<Breach[]> {
@@ -1146,7 +1146,7 @@ export async function getBreaches(tenantId?: string): Promise<Breach[]> {
      FROM privacy.breaches ${where} ORDER BY occurred_at DESC`,
     params
   );
-  return rows.length ? rows : mock.breachesForTenant(tenantId ?? 't_maybank');
+  return rows;
 }
 
 export async function getESGMetrics(tenantId?: string): Promise<ESGMetric[]> {
@@ -1159,7 +1159,7 @@ export async function getESGMetrics(tenantId?: string): Promise<ESGMetric[]> {
      FROM esg.metrics ${where} ORDER BY period DESC, category, metric`,
     params
   );
-  return rows.length ? rows : mock.esgMetricsForTenant(tenantId ?? 't_maybank');
+  return rows;
 }
 
 export async function getESGDisclosures(tenantId?: string): Promise<ESGDisclosure[]> {
@@ -1172,7 +1172,7 @@ export async function getESGDisclosures(tenantId?: string): Promise<ESGDisclosur
      FROM esg.disclosures ${where} ORDER BY period DESC, framework`,
     params
   );
-  return rows.length ? rows : mock.esgDisclosuresForTenant(tenantId ?? 't_maybank');
+  return rows;
 }
 
 export async function getESGTargets(tenantId?: string): Promise<ESGTarget[]> {
@@ -1189,7 +1189,7 @@ export async function getESGTargets(tenantId?: string): Promise<ESGTarget[]> {
      ${where.replace('tenant_id', 't.tenant_id')} ORDER BY t.framework, t.metric`,
     params
   );
-  return rows.length ? rows : mock.esgTargetsForTenant(tenantId ?? 't_maybank');
+  return rows;
 }
 
 export async function getAIModels(tenantId?: string): Promise<AIModel[]> {
@@ -1209,7 +1209,7 @@ export async function getAIModels(tenantId?: string): Promise<AIModel[]> {
      ${where} ORDER BY m.name`,
     params
   );
-  return rows.length ? rows : mock.aiModelsForTenant(tenantId ?? 't_maybank');
+  return rows;
 }
 
 export async function getAIModel(id: string): Promise<AIModel | undefined> {
@@ -1249,7 +1249,7 @@ export async function getPromptsAudit(tenantId?: string, limit = 50): Promise<Pr
      FROM ai_gov.prompts_audit ${where} ORDER BY captured_at DESC LIMIT $1`,
     params
   );
-  return rows.length ? rows : mock.promptsAuditForTenant(tenantId ?? 't_maybank', limit);
+  return rows;
 }
 
 // =====================================================================
@@ -1471,7 +1471,7 @@ export async function getBCMPlans(tenantId?: string): Promise<BCMPlan[]> {
      ${where} ORDER BY p.name`,
     params
   );
-  return rows.length ? rows : mock.bcmPlansForTenant(tenantId ?? 't_maybank');
+  return rows;
 }
 
 export async function getBCMPlan(id: string): Promise<BCMPlan | undefined> {
@@ -1545,7 +1545,7 @@ export async function getWorkflows(tenantId?: string): Promise<Workflow[]> {
      FROM workflow.definitions ${where} ORDER BY name`,
     params
   );
-  return rows.length ? rows : mock.workflowsForTenant(tenantId ?? 't_maybank');
+  return rows;
 }
 
 export async function getWorkflow(id: string): Promise<Workflow | undefined> {
@@ -1574,7 +1574,7 @@ export async function getWorkflowExecutions(tenantId?: string, limit = 20): Prom
      ${where} ORDER BY e.started_at DESC LIMIT $1`,
     params
   );
-  return rows.length ? rows : mock.workflowExecutionsForTenant(tenantId ?? 't_maybank', limit);
+  return rows;
 }
 
 export async function getConnectors(tenantId?: string): Promise<Connector[]> {
@@ -1586,7 +1586,7 @@ export async function getConnectors(tenantId?: string): Promise<Connector[]> {
             last_sync_at AS "lastSyncAt"
      FROM integration.connectors ${where}`, params
   );
-  return rows.length ? rows : mock.connectorsForTenant(tenantId ?? 't_maybank');
+  return rows;
 }
 
 export async function getAuditLog(tenantId?: string, limit = 200): Promise<AuditLogEntry[]> {

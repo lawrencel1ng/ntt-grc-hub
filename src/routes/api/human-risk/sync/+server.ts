@@ -4,6 +4,17 @@ import { env } from '$env/dynamic/private';
 import { isPgMode, getPool } from '$lib/server/pg';
 import { writeAuditLog } from '$lib/server/auth';
 
+// 1 sync per 5 minutes per tenant to avoid hammering the KnowBe4 API.
+const SYNC_COOLDOWN_MS = 5 * 60_000;
+const lastSyncAt = new Map<string, number>();
+
+function checkSyncCooldown(tenantId: string): boolean {
+  const last = lastSyncAt.get(tenantId) ?? 0;
+  if (Date.now() - last < SYNC_COOLDOWN_MS) return false;
+  lastSyncAt.set(tenantId, Date.now());
+  return true;
+}
+
 interface KnowBe4User {
   id: number;
   first_name: string;
@@ -79,6 +90,10 @@ export const POST: RequestHandler = async ({ locals }) => {
   }
 
   const tenantId = locals.user.tenantId;
+  if (!checkSyncCooldown(tenantId)) {
+    throw error(429, `Sync is rate-limited to once per ${SYNC_COOLDOWN_MS / 60_000} minutes per tenant.`);
+  }
+
   const pool = getPool();
   const startedAt = Date.now();
 

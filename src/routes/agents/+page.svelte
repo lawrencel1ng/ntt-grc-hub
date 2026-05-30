@@ -86,7 +86,7 @@
 
 <PageHeader
   title="Agent Fleet"
-  subtitle="10 agents · {totalFte} FTE replaced · {fmtMoney(annualSavings)} saved annually"
+  subtitle="{data.agents.length} agents · {totalFte} FTE replaced · {fmtMoney(annualSavings)} saved annually"
 />
 
 <div class="space-y-6">
@@ -94,13 +94,13 @@
   <!-- KPI strip (6)                                                   -->
   <!-- ============================================================== -->
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-    <Kpi label="Total Runs (30d)" value={totalRuns30d.toLocaleString()} delta={14} hint="across fleet">
+    <Kpi label="Total Runs (30d)" value={totalRuns30d.toLocaleString()} hint="across fleet">
       <Bot slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
-    <Kpi label="Total Cost (30d)" value={fmtMoney(totalCostCents30d / 100)} delta={6} hint="run rate">
+    <Kpi label="Total Cost (30d)" value={fmtMoney(totalCostCents30d / 100)} hint="run rate">
       <DollarSign slot="icon" class="h-4 w-4 text-violet-600" />
     </Kpi>
-    <Kpi label="FTE Hours (30d)" value={totalFteHours30d.toFixed(0)} delta={22} hint="≈ {totalFte} FTE">
+    <Kpi label="FTE Hours (30d)" value={totalFteHours30d.toFixed(0)} hint="≈ {totalFte} FTE">
       <Clock slot="icon" class="h-4 w-4 text-violet-500" />
     </Kpi>
     <Kpi
@@ -194,7 +194,7 @@
       </div>
       <div class="num text-[28px] font-semibold tracking-tight text-grc-ink">{fmtMoney(annualSavings)} <span class="font-sans text-sm font-medium text-slate-500">saved annually</span></div>
       <div class="mt-1 max-w-2xl text-sm text-slate-600">
-        10 agents replaced <span class="font-semibold text-slate-800">{totalFte} FTE</span> across the
+        {data.agents.length} agents replaced <span class="font-semibold text-slate-800">{totalFte} FTE</span> across the
         fleet — equivalent to <span class="font-semibold text-slate-800">{totalFteHours30d.toFixed(0)} analyst hours</span>
         of work in the last 30 days.
       </div>

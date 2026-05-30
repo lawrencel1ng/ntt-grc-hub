@@ -212,12 +212,13 @@ export async function getAgentDecisions(filter: { agentId?: string; tenantId?: s
 
 export async function getCostLedger30d(tenantId?: string): Promise<CostLedgerEntry[]> {
   if (!isPgMode()) return mock.agentCostLedger30d(tenantId);
-  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const timeClause = `ts >= now() - interval '30 days'`;
+  const where = tenantId ? `WHERE tenant_id = $1 AND ${timeClause}` : `WHERE ${timeClause}`;
   const params = tenantId ? [tenantId] : [];
   const rows = await safeQuery<CostLedgerEntry>(
     `SELECT tenant_id AS "tenantId", agent_id AS "agentId", ts, runs, cost_cents AS "costCents",
             fte_saved_hours AS "fteSavedHours"
-     FROM agent.cost_ledger ${where} AND ts >= now() - interval '30 days'`.replace('WHERE  AND', 'WHERE'),
+     FROM agent.cost_ledger ${where}`,
     params
   );
   return rows.length ? rows : mock.agentCostLedger30d(tenantId);

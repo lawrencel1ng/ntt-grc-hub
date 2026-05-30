@@ -54,7 +54,11 @@
       return;
     }
     const result = await patchConnector(c.id, 'sync');
-    const now = result?.lastSyncAt ?? new Date().toISOString();
+    if (!result) {
+      addToast('error', `${c.name} sync failed — check connection.`);
+      return;
+    }
+    const now = result.lastSyncAt ?? new Date().toISOString();
     connectors = connectors.map((x) => (x.id === c.id ? { ...x, lastSyncAt: now } : x));
     addToast('success', `${c.name} synced.`);
   }
@@ -62,7 +66,11 @@
   async function reconnect(c: Connector) {
     openMenu = null;
     const result = await patchConnector(c.id, 'reconnect');
-    const now = result?.lastSyncAt ?? new Date().toISOString();
+    if (!result) {
+      addToast('error', `Could not reconnect ${c.name} — check credentials.`);
+      return;
+    }
+    const now = result.lastSyncAt ?? new Date().toISOString();
     connectors = connectors.map((x) =>
       x.id === c.id ? { ...x, status: 'connected', lastSyncAt: now } : x
     );

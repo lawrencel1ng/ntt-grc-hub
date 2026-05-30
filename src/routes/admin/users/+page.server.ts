@@ -67,7 +67,7 @@ export const actions: Actions = {
         text: `Hi ${name},\n\nYou've been invited to NTT GRC Hub. Set your password via the link below (expires in 30 minutes):\n\n${result.resetUrl}\n\nIf you did not expect this invitation, you can ignore this email.`,
         html: passwordResetHtml(result.resetUrl, 30).replace('Reset your NTT GRC Hub password', `You've been invited to NTT GRC Hub`).replace('You requested a password reset.', `${name}, you've been invited by ${locals.user.email}.`)
       });
-      if (!sent) console.info(`[invite] Invite URL for ${email}: ${result.resetUrl}`);
+      if (!sent && process.env.NODE_ENV !== 'production') console.info(`[invite] Invite URL for ${email}: ${result.resetUrl}`);
     }
 
     writeAuditLog({ userId: locals.user.id, actorEmail: locals.user.email, tenantId, action: 'user.invited', target: `user:${email}`, result: 'success' });

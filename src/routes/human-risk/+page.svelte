@@ -111,10 +111,6 @@
       syncing = false;
     }
   }
-  function pushToRegister() {
-    // Status indicator — the register entry and FAIR scenario links above provide navigation.
-    addToast('info', 'Human-risk exposure is linked to the ERM register entry and FAIR scenario shown above.');
-  }
 </script>
 
 <PageHeader
@@ -199,9 +195,9 @@
           <a href="/heatmap?scenario={s.quant.scenarioId}" class="btn-secondary justify-start text-xs">
             <Calculator class="h-4 w-4" /> Open FAIR scenario
           </a>
-          <button class="btn-ghost justify-start text-xs" on:click={pushToRegister}>
+          <div class="inline-flex items-center gap-1.5 px-2 py-1 text-xs text-violet-700">
             <CheckCircle2 class="h-4 w-4 text-violet-600" /> Linked to ERM &amp; quant reporting
-          </button>
+          </div>
         </div>
       </div>
     </div>

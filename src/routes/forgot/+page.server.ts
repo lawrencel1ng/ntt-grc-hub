@@ -45,7 +45,7 @@ export const actions: Actions = {
           text: passwordResetText(result.resetUrl),
           html: passwordResetHtml(result.resetUrl)
         });
-        if (!sent) {
+        if (!sent && process.env.NODE_ENV !== 'production') {
           console.info(`[password-reset] Reset URL for ${result.userEmail}: ${result.resetUrl}`);
         }
         writeAuditLog({ actorEmail: email, action: 'password_reset.requested', target: email, ip, ua, result: 'success' });

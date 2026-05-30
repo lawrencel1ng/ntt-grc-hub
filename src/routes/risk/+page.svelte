@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { enhance } from '$app/forms';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Kpi from '$lib/components/Kpi.svelte';
   import { addToast } from '$lib/stores/toast';
@@ -193,7 +194,7 @@
       <p class="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700 ring-1 ring-rose-200">{form.error}</p>
     {/if}
 
-    <form method="POST" action="?/createRisk" class="space-y-4">
+    <form method="POST" action="?/createRisk" use:enhance class="space-y-4">
       <!-- Row 1: Title + Category -->
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>

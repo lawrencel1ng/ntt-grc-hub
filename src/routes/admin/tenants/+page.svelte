@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { enhance } from '$app/forms';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Kpi from '$lib/components/Kpi.svelte';
   import StatusDot from '$lib/components/StatusDot.svelte';
@@ -58,7 +59,7 @@
 {#if showOnboardForm}
   <div class="card p-5">
     <h3 class="mb-3 text-sm font-semibold text-grc-ink">Onboard new tenant</h3>
-    <form method="POST" action="?/createTenant" class="flex flex-wrap items-end gap-3">
+    <form method="POST" action="?/createTenant" use:enhance class="flex flex-wrap items-end gap-3">
       <label class="block flex-1 min-w-[160px]">
         <span class="mb-1 block text-xs font-medium text-slate-700">Organisation name</span>
         <input name="name" type="text" class="input" placeholder="Acme Bank Pte Ltd" required />

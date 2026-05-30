@@ -96,7 +96,7 @@
 {#if showInviteForm}
   <div class="card p-5">
     <h3 class="mb-3 text-sm font-semibold text-grc-ink">Invite a new user</h3>
-    <form method="POST" action="?/inviteUser" class="flex flex-wrap items-end gap-3">
+    <form method="POST" action="?/inviteUser" use:enhance class="flex flex-wrap items-end gap-3">
       <label class="block flex-1 min-w-[160px]">
         <span class="mb-1 block text-xs font-medium text-slate-700">Email</span>
         <input name="email" type="email" class="input" placeholder="user@company.com" required />

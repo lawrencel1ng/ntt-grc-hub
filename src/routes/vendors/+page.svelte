@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { enhance } from '$app/forms';
   import PageHeader from '$lib/components/PageHeader.svelte';
   import Kpi from '$lib/components/Kpi.svelte';
   import Sparkline from '$lib/components/Sparkline.svelte';
@@ -193,7 +194,7 @@
     {#if form?.error}
       <p class="mb-3 rounded-md bg-rose-50 px-3 py-2 text-xs text-rose-700">{form.error}</p>
     {/if}
-    <form method="POST" action="?/createVendor" class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <form method="POST" action="?/createVendor" use:enhance class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <div class="flex flex-col gap-1">
         <label for="vendor-name" class="text-xs font-medium text-slate-600">Name <span class="text-rose-500">*</span></label>
         <input id="vendor-name" name="name" type="text" required class="input" placeholder="Acme Corp" />

@@ -1644,11 +1644,12 @@ export async function getWorkflow(id: string): Promise<Workflow | undefined> {
   return (await getWorkflows(tenantId)).find((w) => w.id === id);
 }
 
-export async function getWorkflowExecutions(tenantId?: string, limit = 20): Promise<WorkflowExecution[]> {
-  if (!isPgMode()) return mock.workflowExecutionsForTenant(tenantId ?? 't_maybank', limit);
+export async function getWorkflowExecutions(tenantId?: string, limit = 20, workflowId?: string): Promise<WorkflowExecution[]> {
+  if (!isPgMode()) return mock.workflowExecutionsForTenant(tenantId ?? 't_maybank', limit).filter((e) => !workflowId || e.workflowId === workflowId);
   const clauses: string[] = [];
   const params: unknown[] = [limit];
   if (tenantId) { params.push(tenantId); clauses.push(`e.tenant_id = $${params.length}`); }
+  if (workflowId) { params.push(workflowId); clauses.push(`e.workflow_id = $${params.length}::uuid`); }
   const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
   const rows = await safeQuery<WorkflowExecution>(
     `SELECT e.id, e.tenant_id AS "tenantId", e.workflow_id::text AS "workflowId",

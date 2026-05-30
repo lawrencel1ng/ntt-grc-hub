@@ -17,8 +17,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     throw error(403, 'Access denied');
   }
 
-  const allExecs = await getWorkflowExecutions(workflow.tenantId, 100);
-  const executions = allExecs.filter((x) => x.workflowId === workflow.id);
+  const executions = await getWorkflowExecutions(workflow.tenantId, 100, workflow.id);
   return { workflow, executions };
 };
 

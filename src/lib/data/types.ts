@@ -379,6 +379,7 @@ export interface Policy {
   jurisdiction: string;
   currentVersionId?: string;
   status?: PolicyVersionStatus;
+  ownerEmail?: string;
 }
 
 export interface PolicyVersion {

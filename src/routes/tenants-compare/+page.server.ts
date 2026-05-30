@@ -6,6 +6,7 @@
 // =====================================================================
 
 import type { PageServerLoad } from './$types';
+import { error } from '@sveltejs/kit';
 import {
   getTenantSummaries,
   getKpiSnapshot,
@@ -16,6 +17,7 @@ import {
   getRisks
 } from '$lib/server/data';
 import { isPgMode } from '$lib/server/pg';
+import { can } from '$lib/server/auth';
 import { HERO_TENANT_IDS, SHALLOW_TENANT_IDS } from '$lib/data/tenants';
 
 interface HeroSnapshot {
@@ -39,7 +41,12 @@ interface ShallowSnapshot {
   avgComplianceScore: number;
 }
 
-export const load: PageServerLoad = async () => {
+export const load: PageServerLoad = async ({ locals }) => {
+  if (!locals.user) throw error(401, 'Not authenticated');
+  if (!can(locals.user.role, 'admin-settings')) {
+    throw error(403, 'Tenant Compare requires admin access');
+  }
+
   const tenants = await getTenantSummaries();
 
   // In pg mode derive hero/shallow from the real tenant list.

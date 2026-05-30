@@ -926,9 +926,12 @@ export async function getPolicies(tenantId?: string): Promise<Policy[]> {
 export async function getPolicy(id: string): Promise<Policy | undefined> {
   if (isPgMode()) {
     const rows = await safeQuery<Policy>(
-      `SELECT id::text AS id, tenant_id AS "tenantId", code, title, jurisdiction,
-              current_version_id::text AS "currentVersionId"
-         FROM policy.documents WHERE id = $1::uuid LIMIT 1`, [id]
+      `SELECT pd.id::text AS id, pd.tenant_id AS "tenantId", pd.code, pd.title, pd.jurisdiction,
+              pd.current_version_id::text AS "currentVersionId",
+              u.email AS "ownerEmail"
+         FROM policy.documents pd
+         LEFT JOIN platform.users u ON u.id = pd.owner_user_id
+        WHERE pd.id = $1::uuid LIMIT 1`, [id]
     );
     return rows[0];
   }

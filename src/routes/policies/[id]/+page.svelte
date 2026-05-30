@@ -93,7 +93,7 @@
         </div>
         <div>
           <div class="section-title text-xs">Owner</div>
-          <div class="mt-1 text-slate-800">Policy Office</div>
+          <div class="mt-1 text-slate-800">{data.policy.ownerEmail ?? 'Policy Office'}</div>
         </div>
       </div>
     </div>
@@ -193,7 +193,7 @@
                       <span class="text-[11px] text-slate-500">Policy Drafter</span>
                     </div>
                   {:else}
-                    <span class="text-xs text-slate-500">Policy Office</span>
+                    <span class="text-xs text-slate-500">{data.policy.ownerEmail ?? 'Policy Office'}</span>
                   {/if}
                 </td>
               </tr>

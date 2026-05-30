@@ -3,16 +3,25 @@
   import Kpi from '$lib/components/Kpi.svelte';
   import { addToast } from '$lib/stores/toast';
   import { formatRelative } from '$lib/utils/dates';
+  import { enhance } from '$app/forms';
   import {
-    Users, Plus, ShieldCheck, KeyRound, ShieldAlert, Check, X
+    Users, Plus, ShieldCheck, KeyRound, ShieldAlert, Check, X, UserMinus, UserCheck2
   } from 'lucide-svelte';
   import type { Role, UserStatus, User } from '$lib/data/types';
 
   export let data;
-  export let form;
+  export let form: {
+    inviteSuccess?: boolean; invitedEmail?: string; inviteError?: string;
+    deactivateSuccess?: boolean; deactivatedEmail?: string; deactivateError?: string;
+    reactivateSuccess?: boolean; reactivatedEmail?: string; reactivateError?: string;
+  } | null = null;
 
   $: if (form?.inviteSuccess) { addToast('success', `Invitation sent to ${form.invitedEmail}.`); showInviteForm = false; }
   $: if (form?.inviteError) addToast('error', form.inviteError);
+  $: if (form?.deactivateSuccess) addToast('success', `${form.deactivatedEmail} deactivated and sessions revoked.`);
+  $: if (form?.deactivateError) addToast('error', form.deactivateError);
+  $: if (form?.reactivateSuccess) addToast('success', `${form.reactivatedEmail} reactivated.`);
+  $: if (form?.reactivateError) addToast('error', form.reactivateError);
 
   let showInviteForm = false;
 
@@ -167,6 +176,7 @@
             <th class="px-4 py-2 text-left">Last Login</th>
             <th class="px-4 py-2 text-center">MFA</th>
             <th class="px-4 py-2 text-left">Status</th>
+            <th class="px-4 py-2 text-left">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -206,9 +216,27 @@
                   {u.status}
                 </span>
               </td>
+              <td class="td">
+                {#if u.status !== 'disabled'}
+                  <form method="POST" action="?/deactivateUser" use:enhance
+                    on:submit={(e) => { if (!confirm(`Deactivate ${u.name}? This will immediately revoke all active sessions.`)) e.preventDefault(); }}>
+                    <input type="hidden" name="userId" value={u.id} />
+                    <button type="submit" class="btn-ghost p-1 text-rose-600 hover:text-rose-800" title="Deactivate user">
+                      <UserMinus class="h-3.5 w-3.5" />
+                    </button>
+                  </form>
+                {:else}
+                  <form method="POST" action="?/reactivateUser" use:enhance>
+                    <input type="hidden" name="userId" value={u.id} />
+                    <button type="submit" class="btn-ghost p-1 text-violet-600 hover:text-violet-800" title="Reactivate user">
+                      <UserCheck2 class="h-3.5 w-3.5" />
+                    </button>
+                  </form>
+                {/if}
+              </td>
             </tr>
           {:else}
-            <tr><td colspan="7" class="px-4 py-8 text-center text-sm text-slate-500">No users match.</td></tr>
+            <tr><td colspan="8" class="px-4 py-8 text-center text-sm text-slate-500">No users match.</td></tr>
           {/each}
         </tbody>
       </table>

@@ -29,7 +29,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
     getAgentRunsForAgent(agent.id, 200, effective),
     getAgentDecisions({ agentId: agent.id, tenantId: effective, limit: 200 }),
     getCostLedger30d(effective),
-    getNavBadgeCounts()
+    getNavBadgeCounts(effective)
   ]);
 
   // Aggregate this agent's slice of the 30d cost ledger.

@@ -5,11 +5,12 @@ import { ALL_TENANTS_ID } from '$lib/stores/tenant';
 export const load: LayoutServerLoad = async ({ locals }) => {
   const tenantId = locals.tenantId ?? ALL_TENANTS_ID;
   const isAll = tenantId === ALL_TENANTS_ID;
+  const effective = isAll ? undefined : tenantId;
   const [tenants, liveAgents, currentTenant, navBadges] = await Promise.all([
     getTenantSummaries(),
-    getLiveAgentCount(),
+    getLiveAgentCount(effective),
     isAll ? Promise.resolve(null) : getCurrentTenant(tenantId),
-    getNavBadgeCounts()
+    getNavBadgeCounts(effective)
   ]);
   return {
     user: locals.user ?? null,

@@ -89,15 +89,22 @@
 
   $: escalationContacts = data.escalationContacts as BCMEscalationContact[];
 
-  // ---------- Action ----------
+  // ---------- Schedule Test ----------
+  let testKindInput: BCMTestKind = 'tabletop';
+  let testDateInput = '';
+  let showScheduleForm = false;
+
   async function scheduleTest() {
     try {
       const res = await fetch(`/api/bcm/${data.plan.id}/schedule-test`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind: testKindInput, scheduledAt: testDateInput || undefined })
       });
       if (res.ok) {
-        addToast('success', `Test scheduled for ${data.plan.name}. Resilience Coach agent will draft scenario and notify owners.`);
+        addToast('success', `${testKindInput} test scheduled for ${data.plan.name}.`);
+        showScheduleForm = false;
+        testDateInput = '';
       } else {
         const msg = await res.text().catch(() => '');
         addToast('error', msg || 'Failed to schedule BCM test.');
@@ -115,12 +122,35 @@
   <svelte:fragment slot="actions">
     <span class="inline-flex items-center rounded-full bg-rose-50 px-2 py-0.5 text-[11px] font-semibold text-rose-700 ring-1 ring-inset ring-rose-200">RTO {fmtMin(data.plan.rtoMinutes)}</span>
     <span class="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700 ring-1 ring-inset ring-amber-200">RPO {fmtMin(data.plan.rpoMinutes)}</span>
-    <button class="btn-primary" on:click={scheduleTest}>
+    <button class="btn-primary" on:click={() => (showScheduleForm = !showScheduleForm)}>
       <Calendar class="h-4 w-4" />
       <span>Schedule Test</span>
     </button>
   </svelte:fragment>
 </PageHeader>
+
+{#if showScheduleForm}
+  <div class="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
+    <div class="flex flex-wrap items-end gap-2 rounded-xl border border-violet-200 bg-violet-50 px-4 py-3">
+      <div>
+        <label for="bcm-test-kind" class="block text-[11px] text-slate-500 mb-0.5">Test type</label>
+        <select id="bcm-test-kind" class="input py-1 text-xs" bind:value={testKindInput}>
+          <option value="tabletop">Tabletop</option>
+          <option value="walkthrough">Walkthrough</option>
+          <option value="simulation">Simulation</option>
+          <option value="full-failover">Full Failover</option>
+        </select>
+      </div>
+      <div>
+        <label for="bcm-test-date" class="block text-[11px] text-slate-500 mb-0.5">Scheduled date</label>
+        <input id="bcm-test-date" type="date" class="input py-1 text-xs" bind:value={testDateInput}
+          min={new Date().toISOString().slice(0, 10)} />
+      </div>
+      <button class="btn-primary py-1 text-xs" on:click={scheduleTest}>Confirm</button>
+      <button class="btn-secondary py-1 text-xs" on:click={() => (showScheduleForm = false)}>Cancel</button>
+    </div>
+  </div>
+{/if}
 
 <div class="space-y-6">
   <!-- Title card -->

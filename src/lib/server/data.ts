@@ -107,22 +107,27 @@ export async function getUsers(tenantId?: string): Promise<import('$lib/data/typ
 // Agents
 // =====================================================================
 
-export async function getLiveAgentCount(): Promise<number> {
+export async function getLiveAgentCount(tenantId?: string): Promise<number> {
   if (!isPgMode()) return mock.liveAgentCount();
-  const rows = await safeQuery<{ n: string }>(`SELECT COUNT(*)::text AS n FROM agent.agents WHERE status = 'running'`);
+  const where = tenantId ? `WHERE status = 'running' AND tenant_id = $1` : `WHERE status = 'running'`;
+  const params = tenantId ? [tenantId] : [];
+  const rows = await safeQuery<{ n: string }>(`SELECT COUNT(*)::text AS n FROM agent.agents ${where}`, params);
   return rows.length ? Number(rows[0].n) : 0;
 }
 
-export async function getNavBadgeCounts(): Promise<{ agents: number; frameworks: number; connectors: number }> {
+export async function getNavBadgeCounts(tenantId?: string): Promise<{ agents: number; frameworks: number; connectors: number }> {
   if (!isPgMode()) {
     const { AGENTS } = await import('$lib/data/agents');
     const { FRAMEWORKS } = await import('$lib/data/frameworks');
     return { agents: AGENTS.length, frameworks: FRAMEWORKS.length, connectors: 40 };
   }
+  // frameworks are a global catalog — no tenant filter
+  const tenantParams = tenantId ? [tenantId] : [];
+  const tenantWhere = tenantId ? 'WHERE tenant_id = $1' : '';
   const [agRows, fwRows, cnRows] = await Promise.all([
-    safeQuery<{ n: string }>(`SELECT COUNT(*)::text AS n FROM agent.agents`),
+    safeQuery<{ n: string }>(`SELECT COUNT(*)::text AS n FROM agent.agents ${tenantWhere}`, tenantParams),
     safeQuery<{ n: string }>(`SELECT COUNT(*)::text AS n FROM compliance.frameworks`),
-    safeQuery<{ n: string }>(`SELECT COUNT(*)::text AS n FROM integration.connectors`)
+    safeQuery<{ n: string }>(`SELECT COUNT(*)::text AS n FROM integration.connectors ${tenantWhere}`, tenantParams)
   ]);
   return {
     agents: agRows.length ? Number(agRows[0].n) : 0,

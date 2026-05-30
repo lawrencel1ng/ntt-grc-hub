@@ -72,5 +72,92 @@ export const actions: Actions = {
 
     writeAuditLog({ userId: locals.user.id, actorEmail: locals.user.email, tenantId, action: 'user.invited', target: `user:${email}`, result: 'success' });
     return { inviteSuccess: true, invitedEmail: email };
+  },
+
+  deactivateUser: async ({ request, locals }) => {
+    if (!locals.user) return fail(401, { deactivateError: 'Not authenticated.' });
+    if (locals.user.role !== 'admin') return fail(403, { deactivateError: 'Admin role required.' });
+    if (!isPgMode()) return fail(400, { deactivateError: 'User management requires Postgres mode.' });
+
+    const data = await request.formData();
+    const targetUserId = String(data.get('userId') ?? '').trim();
+    if (!targetUserId) return fail(400, { deactivateError: 'User ID required.' });
+
+    // Prevent self-deactivation
+    if (targetUserId === locals.user.id) return fail(400, { deactivateError: 'You cannot deactivate your own account.' });
+
+    const pool = getPool();
+
+    // Verify target user is in the same tenant (unless platform admin viewing all)
+    const { rows } = await pool.query<{ id: string; email: string; tenant_id: string; status: string }>(
+      `SELECT id, email, tenant_id, status::text FROM platform.users WHERE id = $1::uuid LIMIT 1`,
+      [targetUserId]
+    );
+    if (!rows.length) return fail(404, { deactivateError: 'User not found.' });
+    if (rows[0].tenant_id !== locals.user.tenantId && locals.user.tenantId !== '__all__') {
+      return fail(403, { deactivateError: 'Access denied.' });
+    }
+    if (rows[0].status === 'disabled') return fail(409, { deactivateError: 'User is already disabled.' });
+
+    await pool.query(
+      `UPDATE platform.users SET status = 'disabled' WHERE id = $1`,
+      [targetUserId]
+    );
+
+    // Revoke all active sessions for the deactivated user
+    await pool.query(
+      `DELETE FROM platform.sessions WHERE user_id = $1`,
+      [targetUserId]
+    );
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: 'user.deactivated',
+      target: `user:${rows[0].email}`,
+      result: 'success',
+      metadata: { targetUserId, targetEmail: rows[0].email }
+    });
+
+    return { deactivateSuccess: true, deactivatedEmail: rows[0].email };
+  },
+
+  reactivateUser: async ({ request, locals }) => {
+    if (!locals.user) return fail(401, { reactivateError: 'Not authenticated.' });
+    if (locals.user.role !== 'admin') return fail(403, { reactivateError: 'Admin role required.' });
+    if (!isPgMode()) return fail(400, { reactivateError: 'User management requires Postgres mode.' });
+
+    const data = await request.formData();
+    const targetUserId = String(data.get('userId') ?? '').trim();
+    if (!targetUserId) return fail(400, { reactivateError: 'User ID required.' });
+
+    const pool = getPool();
+
+    const { rows } = await pool.query<{ id: string; email: string; tenant_id: string; status: string }>(
+      `SELECT id, email, tenant_id, status::text FROM platform.users WHERE id = $1::uuid LIMIT 1`,
+      [targetUserId]
+    );
+    if (!rows.length) return fail(404, { reactivateError: 'User not found.' });
+    if (rows[0].tenant_id !== locals.user.tenantId && locals.user.tenantId !== '__all__') {
+      return fail(403, { reactivateError: 'Access denied.' });
+    }
+
+    await pool.query(
+      `UPDATE platform.users SET status = 'active' WHERE id = $1`,
+      [targetUserId]
+    );
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: 'user.reactivated',
+      target: `user:${rows[0].email}`,
+      result: 'success',
+      metadata: { targetUserId, targetEmail: rows[0].email }
+    });
+
+    return { reactivateSuccess: true, reactivatedEmail: rows[0].email };
   }
 };

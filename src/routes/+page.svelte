@@ -329,8 +329,6 @@
     <Kpi
       label="Open Critical Risks"
       value={String(data.kpis.openCriticalRisks)}
-      delta={-12}
-      hint="vs last 30d"
       tone="bad"
     >
       <AlertTriangle slot="icon" class="h-4 w-4" />
@@ -339,16 +337,13 @@
       label="Avg Compliance Score"
       value={data.kpis.avgComplianceScore.toFixed(1)}
       suffix="%"
-      delta={3}
-      hint="8 frameworks"
+      hint="{data.frameworks.length} framework{data.frameworks.length === 1 ? '' : 's'}"
     >
       <ShieldCheck slot="icon" class="h-4 w-4" />
     </Kpi>
     <Kpi
       label="Open Findings"
       value={String(data.kpis.openFindings)}
-      delta={-8}
-      hint="closing fast"
       tone="bad"
     >
       <FileBarChart slot="icon" class="h-4 w-4" />
@@ -357,8 +352,6 @@
       label="Vendor Risk Index"
       value={String(data.kpis.vendorRiskIndex)}
       suffix="/100"
-      delta={2}
-      hint="of 47 vendors"
     >
       <BookOpen slot="icon" class="h-4 w-4" />
     </Kpi>
@@ -366,7 +359,6 @@
       label="Agent FTE Saved (30d)"
       value={fteSaved.toFixed(1)}
       suffix="FTE"
-      delta={18}
       hint="160 h/FTE"
     >
       <Bot slot="icon" class="h-4 w-4" />
@@ -374,7 +366,6 @@
     <Kpi
       label="Evidence Items (30d)"
       value={data.evidenceStats.total.toLocaleString()}
-      delta={6}
       hint={data.evidenceStats.chainOk ? 'hash-chain OK' : 'chain broken'}
     >
       <DollarSign slot="icon" class="h-4 w-4" />

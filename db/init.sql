@@ -146,6 +146,9 @@ CREATE TABLE platform.tenants (
     primary_framework   TEXT,
     headquartered_in    TEXT NOT NULL DEFAULT 'Singapore',
     mrr_sgd             NUMERIC(14,2) NOT NULL DEFAULT 0,
+    accent_color        TEXT NOT NULL DEFAULT '#6d28d9',
+    ai_provider         TEXT NOT NULL DEFAULT 'anthropic',
+    data_residency      TEXT NOT NULL DEFAULT 'SG',
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
@@ -475,6 +478,7 @@ CREATE TABLE sox.deficiencies (
     severity            sox.deficiency_sev NOT NULL,
     description         TEXT NOT NULL,
     remediation_plan    TEXT,
+    root_cause          TEXT,
     remediated_at       TIMESTAMPTZ,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -743,6 +747,15 @@ CREATE TABLE policy.exceptions (
 CREATE INDEX ON policy.exceptions (tenant_id);
 CREATE INDEX ON policy.exceptions (document_id);
 
+CREATE TABLE policy.document_frameworks (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    document_id     UUID NOT NULL REFERENCES policy.documents(id) ON DELETE CASCADE,
+    framework_id    TEXT NOT NULL REFERENCES compliance.frameworks(id) ON DELETE CASCADE,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    UNIQUE (document_id, framework_id)
+);
+CREATE INDEX ON policy.document_frameworks (document_id);
+
 -- =====================================================================
 -- 9. vendor.*
 -- =====================================================================
@@ -757,6 +770,7 @@ CREATE TABLE vendor.vendors (
     primary_contact_email   TEXT,
     status                  vendor.status NOT NULL DEFAULT 'active',
     tags                    JSONB,
+    employee_count          INT,
     created_at              TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX ON vendor.vendors (tenant_id);
@@ -962,6 +976,7 @@ CREATE TABLE ai_gov.models (
     jurisdiction            TEXT,
     eu_ai_act_class         TEXT,
     iso_42001_status        ai_gov.iso_42001_status NOT NULL DEFAULT 'in-progress',
+    training_data_summary   TEXT,
     created_at              TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX ON ai_gov.models (tenant_id);
@@ -1058,12 +1073,15 @@ CREATE TABLE issue.issues (
     status          issue.status NOT NULL DEFAULT 'open',
     owner_user_id   UUID REFERENCES platform.users(id) ON DELETE SET NULL,
     due_at          TIMESTAMPTZ,
+    vendor_id       UUID REFERENCES vendor.vendors(id) ON DELETE SET NULL,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX ON issue.issues (tenant_id);
+CREATE INDEX ON issue.issues (tenant_id, due_at);
 CREATE INDEX ON issue.issues (status);
 CREATE INDEX ON issue.issues (severity);
 CREATE INDEX ON issue.issues (source);
+CREATE INDEX ON issue.issues (vendor_id) WHERE vendor_id IS NOT NULL;
 
 CREATE TABLE issue.actions (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -1091,6 +1109,8 @@ CREATE TABLE bcm.plans (
     rpo_minutes         INT NOT NULL,
     last_tested_at      TIMESTAMPTZ,
     next_test_at        TIMESTAMPTZ,
+    description         TEXT,
+    recovery_strategy   TEXT,
     created_at          TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX ON bcm.plans (tenant_id);
@@ -1107,6 +1127,19 @@ CREATE TABLE bcm.bias (
 );
 CREATE INDEX ON bcm.bias (tenant_id);
 CREATE INDEX ON bcm.bias (plan_id);
+
+CREATE TABLE bcm.escalation_contacts (
+    id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    tenant_id   TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
+    plan_id     UUID NOT NULL REFERENCES bcm.plans(id) ON DELETE CASCADE,
+    role        TEXT NOT NULL,
+    name        TEXT NOT NULL,
+    email       TEXT,
+    phone       TEXT,
+    sort_order  INT NOT NULL DEFAULT 0,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON bcm.escalation_contacts (plan_id);
 
 CREATE TABLE bcm.tests (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -1370,6 +1403,7 @@ CREATE TABLE integration.connectors (
 CREATE INDEX ON integration.connectors (tenant_id);
 CREATE INDEX ON integration.connectors (kind);
 CREATE INDEX ON integration.connectors (status);
+CREATE UNIQUE INDEX ON integration.connectors (tenant_id, kind, name);
 
 CREATE TABLE integration.sync_jobs (
     id                  BIGSERIAL PRIMARY KEY,
@@ -1405,7 +1439,7 @@ CREATE TABLE human_risk.sync_jobs (
     id              BIGSERIAL PRIMARY KEY,
     tenant_id       TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
     synced_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
-    status          TEXT NOT NULL DEFAULT 'ok'  -- 'ok' | 'error' | 'partial'
+    status          TEXT NOT NULL DEFAULT 'ok' CHECK (status IN ('ok','error','partial'))
 );
 CREATE INDEX ON human_risk.sync_jobs (tenant_id, synced_at DESC);
 
@@ -1423,7 +1457,7 @@ CREATE TABLE human_risk.org_scores (
     users_at_critical_risk      INT NOT NULL DEFAULT 0,
     campaigns_run_12m           INT NOT NULL DEFAULT 0,
     reporting_rate_pct          NUMERIC(5,2) NOT NULL DEFAULT 0,
-    risk_level                  TEXT NOT NULL DEFAULT 'moderate',
+    risk_level                  TEXT NOT NULL DEFAULT 'moderate' CHECK (risk_level IN ('low','moderate','high','critical')),
     risk_score_history          JSONB NOT NULL DEFAULT '[]',
     synced_at                   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -1438,13 +1472,13 @@ CREATE TABLE human_risk.users (
     department              TEXT NOT NULL DEFAULT '',
     job_title               TEXT NOT NULL DEFAULT '',
     risk_score              INT NOT NULL DEFAULT 0,
-    risk_level              TEXT NOT NULL DEFAULT 'low',
+    risk_level              TEXT NOT NULL DEFAULT 'low' CHECK (risk_level IN ('low','moderate','high','critical')),
     risk_score_30d_delta    INT NOT NULL DEFAULT 0,
     phishing_sent           INT NOT NULL DEFAULT 0,
     phishing_clicked        INT NOT NULL DEFAULT 0,
     phishing_reported       INT NOT NULL DEFAULT 0,
     phishing_data_entered   INT NOT NULL DEFAULT 0,
-    last_phish_result       TEXT NOT NULL DEFAULT 'no-action',
+    last_phish_result       TEXT NOT NULL DEFAULT 'no-action' CHECK (last_phish_result IN ('clicked','reported','no-action')),
     last_phish_at           TIMESTAMPTZ,
     training_assigned       INT NOT NULL DEFAULT 0,
     training_completed      INT NOT NULL DEFAULT 0,
@@ -1456,7 +1490,7 @@ CREATE TABLE human_risk.users (
     synced_at               TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX ON human_risk.users (tenant_id, risk_score DESC);
-CREATE INDEX ON human_risk.users (tenant_id, email);
+CREATE UNIQUE INDEX ON human_risk.users (tenant_id, email);
 
 CREATE TABLE human_risk.departments (
     id                      BIGSERIAL PRIMARY KEY,
@@ -1464,7 +1498,7 @@ CREATE TABLE human_risk.departments (
     department              TEXT NOT NULL,
     headcount               INT NOT NULL DEFAULT 0,
     avg_risk_score          INT NOT NULL DEFAULT 0,
-    risk_level              TEXT NOT NULL DEFAULT 'low',
+    risk_level              TEXT NOT NULL DEFAULT 'low' CHECK (risk_level IN ('low','moderate','high','critical')),
     phish_prone_pct         NUMERIC(5,2) NOT NULL DEFAULT 0,
     training_completion_pct NUMERIC(5,2) NOT NULL DEFAULT 0,
     high_risk_users         INT NOT NULL DEFAULT 0,
@@ -1493,7 +1527,7 @@ CREATE TABLE human_risk.remediation_actions (
     id              BIGSERIAL PRIMARY KEY,
     tenant_id       TEXT NOT NULL REFERENCES platform.tenants(id) ON DELETE CASCADE,
     user_id         TEXT NOT NULL REFERENCES human_risk.users(id) ON DELETE CASCADE,
-    action_type     TEXT NOT NULL,   -- 'training_enrollment' | 'phishing_simulation'
+    action_type     TEXT NOT NULL CHECK (action_type IN ('training_enrollment','phishing_simulation')),
     actor_id        TEXT,
     notes           TEXT,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -1584,6 +1618,15 @@ SELECT
     COUNT(*) AS n
 FROM vendor.vendors
 GROUP BY tenant_id, tier, criticality;
+
+-- =====================================================================
+-- Additional performance indexes
+-- =====================================================================
+CREATE INDEX ON incident.incidents (tenant_id, opened_at DESC);
+CREATE INDEX ON audit.findings (control_id);
+CREATE INDEX ON compliance.gaps (requirement_id);
+CREATE INDEX ON agent.approvals (approver_user_id);
+CREATE INDEX ON workflow.approvals (approver_user_id);
 
 \echo ' >> agent/workflow/integration schemas + dashboard views created'
 \echo ' >> NTT GRC Hub database initialisation complete.'

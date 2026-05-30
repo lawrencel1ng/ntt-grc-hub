@@ -1310,11 +1310,15 @@ export async function getModelRisks(modelId: string): Promise<ModelRisk[]> {
   return rows;
 }
 
-export async function getPromptsAudit(tenantId?: string, limit = 50): Promise<PromptAuditEntry[]> {
-  if (!isPgMode()) return mock.promptsAuditForTenant(tenantId ?? 't_maybank', limit);
+export async function getPromptsAudit(tenantId?: string, limit = 50, modelId?: string): Promise<PromptAuditEntry[]> {
+  if (!isPgMode()) {
+    const all = mock.promptsAuditForTenant(tenantId ?? 't_maybank', limit);
+    return modelId ? all.filter((p) => p.modelId === modelId) : all;
+  }
   const clauses: string[] = [];
   const params: unknown[] = [limit];
   if (tenantId) { params.push(tenantId); clauses.push(`tenant_id = $${params.length}`); }
+  if (modelId) { params.push(modelId); clauses.push(`model_id = $${params.length}::uuid`); }
   const where = clauses.length ? `WHERE ${clauses.join(' AND ')}` : '';
   const rows = await safeQuery<PromptAuditEntry>(
     `SELECT id, tenant_id AS "tenantId", model_id::text AS "modelId",

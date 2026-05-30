@@ -17,10 +17,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
   const [risks, prompts] = await Promise.all([
     getModelRisks(model.id),
-    getPromptsAudit(model.tenantId, 1000)
+    getPromptsAudit(model.tenantId, 100, model.id)
   ]);
 
-  const promptsForModel = prompts.filter((p) => p.modelId === model.id).slice(0, 100);
-
-  return { model, risks, prompts: promptsForModel };
+  return { model, risks, prompts };
 };

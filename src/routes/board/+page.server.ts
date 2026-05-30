@@ -1,10 +1,3 @@
-// =====================================================================
-//  /board — Board Pack. A magazine-style read assembled by the
-//  Board Narrator agent. Loads top risks, framework posture, vendor
-//  concentrations, resilience snapshot and agent ROI in parallel.
-//  MSSP rollup falls back to Maybank as the headline tenant.
-// =====================================================================
-
 import type { PageServerLoad } from './$types';
 import {
   getCurrentTenant,
@@ -27,7 +20,7 @@ import { ALL_TENANTS_ID } from '$lib/stores/tenant';
 export const load: PageServerLoad = async ({ locals }) => {
   const tenantId = locals.tenantId ?? ALL_TENANTS_ID;
   const isAll = tenantId === ALL_TENANTS_ID;
-  const effective = isAll ? 't_maybank' : tenantId;
+  const effective = isAll ? undefined : tenantId;
 
   const [
     tenant,
@@ -43,7 +36,7 @@ export const load: PageServerLoad = async ({ locals }) => {
     kpis,
     scenarios
   ] = await Promise.all([
-    getCurrentTenant(effective),
+    effective ? getCurrentTenant(effective) : Promise.resolve(null),
     getTopRisks(5, effective),
     getFrameworkScores(effective),
     getConcentrations(effective),

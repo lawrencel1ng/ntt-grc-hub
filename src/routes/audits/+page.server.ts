@@ -10,7 +10,7 @@ import type { AuditFinding } from '$lib/data/types';
 
 export const load: PageServerLoad = async ({ locals }) => {
   const tenantId = locals.tenantId ?? ALL_TENANTS_ID;
-  const effective = tenantId === ALL_TENANTS_ID ? 't_maybank' : tenantId;
+  const effective = tenantId === ALL_TENANTS_ID ? undefined : tenantId;
   const audits = await getAudits(effective);
   const pairs = await Promise.all(audits.map((a) => getAuditFindings(a.id).then((f) => ({ id: a.id, f }))));
   const findingsByAudit: Record<string, AuditFinding[]> = {};

@@ -2,11 +2,45 @@
 import type { Actions, PageServerLoad } from './$types';
 import { redirect, fail } from '@sveltejs/kit';
 import { verifyCredentials, createSession, SESSION_COOKIE, SESSION_TTL_DAYS } from '$lib/server/auth';
-import { isPgMode } from '$lib/server/pg';
 import { DEMO_USER_COOKIE, findDemoLogin } from '$lib/data/demo-logins';
 
 const TENANT_COOKIE = 'grc_tenant';
 const DEMO_COOKIE_MAX_AGE = 8 * 60 * 60; // 8h
+
+// ── In-memory rate limiter ─────────────────────────────────────────────────
+// Keyed by IP. 5 failures within a 15-minute window triggers a 15-minute
+// lockout. The Map is module-level so it persists across requests in the
+// same server process. In a multi-instance deployment, use Redis instead.
+const MAX_ATTEMPTS = 5;
+const WINDOW_MS = 15 * 60 * 1000;
+interface RateEntry { count: number; windowStart: number; lockedUntil: number }
+const loginAttempts = new Map<string, RateEntry>();
+
+function checkRateLimit(ip: string): { blocked: boolean; retryAfterSecs: number } {
+  const now = Date.now();
+  const entry = loginAttempts.get(ip) ?? { count: 0, windowStart: now, lockedUntil: 0 };
+  if (entry.lockedUntil > now) {
+    return { blocked: true, retryAfterSecs: Math.ceil((entry.lockedUntil - now) / 1000) };
+  }
+  if (now - entry.windowStart > WINDOW_MS) {
+    entry.count = 0;
+    entry.windowStart = now;
+  }
+  return { blocked: false, retryAfterSecs: 0 };
+}
+
+function recordFailure(ip: string): void {
+  const now = Date.now();
+  const entry = loginAttempts.get(ip) ?? { count: 0, windowStart: now, lockedUntil: 0 };
+  if (now - entry.windowStart > WINDOW_MS) { entry.count = 0; entry.windowStart = now; }
+  entry.count += 1;
+  if (entry.count >= MAX_ATTEMPTS) entry.lockedUntil = now + WINDOW_MS;
+  loginAttempts.set(ip, entry);
+}
+
+function clearFailures(ip: string): void {
+  loginAttempts.delete(ip);
+}
 
 function sanitiseNext(next: string | null | undefined): string {
   const n = next ?? '/';
@@ -30,14 +64,19 @@ export const actions: Actions = {
       return fail(400, { error: 'Email and password are required.', email });
     }
 
-    // ── Demo accounts: always work (regardless of DATA_MODE) ────────────
-    // Demo emails with password "demo" sign in via a cookie-based shortcut
-    // so the demo path doesn't require seeded bcrypt hashes. The picked
-    // identity is persisted in DEMO_USER_COOKIE; hooks.server.ts hydrates
-    // event.locals.user from it so the avatar, name, role and tenant in
-    // the TopBar match what you signed in as.
+    const ip = getClientAddress();
+    const { blocked, retryAfterSecs } = checkRateLimit(ip);
+    if (blocked) {
+      return fail(429, {
+        error: `Too many failed attempts. Try again in ${Math.ceil(retryAfterSecs / 60)} minute(s).`,
+        email
+      });
+    }
+
+    // ── Demo accounts (explicit email+password pairs) ────────────────────
     const demo = findDemoLogin(email);
     if (demo && password === demo.password) {
+      clearFailures(ip);
       cookies.set(DEMO_USER_COOKIE, email.toLowerCase(), {
         path: '/', httpOnly: true, sameSite: 'lax',
         maxAge: DEMO_COOKIE_MAX_AGE,
@@ -54,11 +93,12 @@ export const actions: Actions = {
     // ── Postgres mode (real bcrypt) ─────────────────────────────────────
     const user = await verifyCredentials(email, password);
     if (!user) {
+      recordFailure(ip);
       return fail(401, { error: 'Invalid email or password.', email });
     }
+    clearFailures(ip);
 
     const ua = request.headers.get('user-agent') ?? '';
-    const ip = getClientAddress();
     const token = await createSession(user.id, ip, ua);
 
     cookies.set(SESSION_COOKIE, token, {

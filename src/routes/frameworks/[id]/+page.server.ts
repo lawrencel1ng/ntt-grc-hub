@@ -19,7 +19,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
   if (!framework) throw error(404, 'Framework not found');
 
   const tenantId = locals.tenantId ?? ALL_TENANTS_ID;
-  const effective = tenantId === ALL_TENANTS_ID ? 't_maybank' : tenantId;
+  const effective = tenantId === ALL_TENANTS_ID ? undefined : tenantId;
 
   const [requirements, scores, controls, evidence] = await Promise.all([
     getRequirementsForFramework(framework.id),

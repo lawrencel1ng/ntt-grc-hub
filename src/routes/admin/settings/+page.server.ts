@@ -9,7 +9,7 @@ import { isPgMode, getPool } from '$lib/server/pg';
 export const load: PageServerLoad = async ({ locals }) => {
   const tenants = await getTenantSummaries();
   const tenantId = locals.tenantId ?? ALL_TENANTS_ID;
-  const effective = tenantId === ALL_TENANTS_ID ? 't_maybank' : tenantId;
+  const effective = tenantId === ALL_TENANTS_ID ? undefined : tenantId;
   const tenant = tenants.find((t) => t.id === effective);
 
   const apiTokens = [

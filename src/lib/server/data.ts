@@ -213,22 +213,33 @@ export async function getAgentFleetSummary(): Promise<AgentFleetSummary[]> {
 // Risk
 // =====================================================================
 
-export async function getRisks(tenantId: string): Promise<Risk[]> {
-  if (!isPgMode()) return mock.risksForTenant(tenantId);
-  const rows = await safeQuery<Risk>(
-    `SELECT id::text AS id, tenant_id AS "tenantId", register_id::text AS "registerId",
-            code, title, description, category,
-            inherent_severity::text AS "inherentSeverity",
-            inherent_likelihood::text AS "inherentLikelihood",
-            residual_severity::text AS "residualSeverity",
-            residual_likelihood::text AS "residualLikelihood",
-            status::text AS status,
-            treatment_strategy::text AS "treatmentStrategy",
-            last_assessed_at AS "lastAssessedAt", next_review_at AS "nextReviewAt",
-            business_service AS "businessService", tags
-     FROM risk.risks WHERE tenant_id = $1 ORDER BY code`, [tenantId]
-  );
-  return rows.length ? rows : mock.risksForTenant(tenantId);
+export async function getRisks(tenantId?: string): Promise<Risk[]> {
+  if (!isPgMode()) return tenantId ? mock.risksForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.risksForTenant(t));
+  const sql = tenantId
+    ? `SELECT id::text AS id, tenant_id AS "tenantId", register_id::text AS "registerId",
+              code, title, description, category,
+              inherent_severity::text AS "inherentSeverity",
+              inherent_likelihood::text AS "inherentLikelihood",
+              residual_severity::text AS "residualSeverity",
+              residual_likelihood::text AS "residualLikelihood",
+              status::text AS status,
+              treatment_strategy::text AS "treatmentStrategy",
+              last_assessed_at AS "lastAssessedAt", next_review_at AS "nextReviewAt",
+              business_service AS "businessService", tags
+       FROM risk.risks WHERE tenant_id = $1 ORDER BY code`
+    : `SELECT id::text AS id, tenant_id AS "tenantId", register_id::text AS "registerId",
+              code, title, description, category,
+              inherent_severity::text AS "inherentSeverity",
+              inherent_likelihood::text AS "inherentLikelihood",
+              residual_severity::text AS "residualSeverity",
+              residual_likelihood::text AS "residualLikelihood",
+              status::text AS status,
+              treatment_strategy::text AS "treatmentStrategy",
+              last_assessed_at AS "lastAssessedAt", next_review_at AS "nextReviewAt",
+              business_service AS "businessService", tags
+       FROM risk.risks ORDER BY tenant_id, code`;
+  const rows = await safeQuery<Risk>(sql, tenantId ? [tenantId] : []);
+  return rows.length ? rows : (tenantId ? mock.risksForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.risksForTenant(t)));
 }
 
 export async function getRisk(id: string): Promise<Risk | undefined> {
@@ -244,11 +255,20 @@ export async function getRisk(id: string): Promise<Risk | undefined> {
   return all.find((r) => r.id === id);
 }
 
+const SEV_RANK: Record<string, number> = { critical: 5, high: 4, medium: 3, low: 2, informational: 1 };
+const LIK_RANK: Record<string, number> = { almost_certain: 5, likely: 4, possible: 3, unlikely: 2, rare: 1 };
+
 export async function getTopRisks(n: number, tenantId?: string): Promise<Risk[]> {
   if (!isPgMode()) return mock.topRisks(tenantId, n);
-  // For PG we mirror the mock heuristic — order by sev*lik rank desc.
-  // (Not worth a stored function; the rank is small.)
-  return mock.topRisks(tenantId, n);
+  const all = await getRisks(tenantId);
+  return all
+    .filter((r) => r.status !== 'closed')
+    .sort((a, b) => {
+      const rankA = (SEV_RANK[a.residualSeverity] ?? 0) * (LIK_RANK[a.residualLikelihood] ?? 0);
+      const rankB = (SEV_RANK[b.residualSeverity] ?? 0) * (LIK_RANK[b.residualLikelihood] ?? 0);
+      return rankB - rankA;
+    })
+    .slice(0, n);
 }
 
 export async function getHeatmapCells(tenantId?: string): Promise<HeatmapCell[]> {
@@ -268,8 +288,8 @@ export async function getFairRun(scenarioOrRiskId: string): Promise<FAIRRun | nu
   return mock.fairRunForRisk(scenarioOrRiskId);
 }
 
-export async function getFairScenarios(tenantId: string) {
-  return mock.fairScenariosForTenant(tenantId);
+export async function getFairScenarios(tenantId?: string) {
+  return mock.fairScenariosForTenant(tenantId ?? 't_maybank');
 }
 
 export async function getFairScenariosForRisk(riskId: string) {
@@ -280,9 +300,8 @@ export async function getFairScenariosForRisk(riskId: string) {
   return all.filter((s) => s.riskId === riskId);
 }
 
-export async function getAppetiteStatements(tenantId: string): Promise<AppetiteStatement[]> {
-  if (!isPgMode()) return mock.appetiteStatementsForTenant(tenantId);
-  return mock.appetiteStatementsForTenant(tenantId);
+export async function getAppetiteStatements(tenantId?: string): Promise<AppetiteStatement[]> {
+  return mock.appetiteStatementsForTenant(tenantId ?? 't_maybank');
 }
 
 // =====================================================================
@@ -352,14 +371,17 @@ export async function getFrameworkScores(tenantId?: string): Promise<FrameworkSc
 // Controls
 // =====================================================================
 
-export async function getControls(tenantId: string): Promise<Control[]> {
-  if (!isPgMode()) return mock.controlsForTenant(tenantId);
-  const rows = await safeQuery<Control>(
-    `SELECT id, tenant_id AS "tenantId", code, title, description, type::text AS type,
-            family, frequency, automated, maturity::text AS maturity
-     FROM control.library WHERE tenant_id = $1 ORDER BY code`, [tenantId]
-  );
-  return rows.length ? rows : mock.controlsForTenant(tenantId);
+export async function getControls(tenantId?: string): Promise<Control[]> {
+  if (!isPgMode()) return tenantId ? mock.controlsForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.controlsForTenant(t));
+  const sql = tenantId
+    ? `SELECT id, tenant_id AS "tenantId", code, title, description, type::text AS type,
+              family, frequency, automated, maturity::text AS maturity
+       FROM control.library WHERE tenant_id = $1 ORDER BY code`
+    : `SELECT id, tenant_id AS "tenantId", code, title, description, type::text AS type,
+              family, frequency, automated, maturity::text AS maturity
+       FROM control.library ORDER BY tenant_id, code`;
+  const rows = await safeQuery<Control>(sql, tenantId ? [tenantId] : []);
+  return rows.length ? rows : (tenantId ? mock.controlsForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.controlsForTenant(t)));
 }
 
 export async function getControl(id: string): Promise<Control | undefined> {
@@ -408,11 +430,14 @@ export async function getRecentTestRuns(tenantId?: string, limit = 30): Promise<
 // Evidence
 // =====================================================================
 
-export async function getEvidence(tenantId: string, limit?: number): Promise<EvidenceItem[]> {
-  if (!isPgMode()) return mock.evidenceForTenant(tenantId, limit);
-  const params: unknown[] = [tenantId];
+export async function getEvidence(tenantId?: string, limit?: number): Promise<EvidenceItem[]> {
+  if (!isPgMode()) return tenantId ? mock.evidenceForTenant(tenantId, limit) : HERO_TENANTS.flatMap((t) => mock.evidenceForTenant(t, limit));
+  const params: unknown[] = [];
+  const whereParts: string[] = [];
+  if (tenantId) { params.push(tenantId); whereParts.push(`i.tenant_id = $${params.length}`); }
   let limitSql = '';
   if (limit) { params.push(limit); limitSql = `LIMIT $${params.length}`; }
+  const where = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
   const rows = await safeQuery<EvidenceItem>(
     `SELECT i.id, i.tenant_id AS "tenantId", i.collector_id AS "collectorId",
             i.control_id AS "controlId", i.kind::text AS kind, (i.metadata->>'domain') AS domain,
@@ -420,18 +445,31 @@ export async function getEvidence(tenantId: string, limit?: number): Promise<Evi
             i.blob_url AS "blobUrl", i.captured_at AS "capturedAt", i.metadata,
             s.row_hash AS "rowHash", s.prev_hash AS "prevHash"
      FROM evidence.items i LEFT JOIN evidence.seals s ON s.item_id = i.id
-     WHERE i.tenant_id = $1 ORDER BY i.captured_at DESC ${limitSql}`, params
+     ${where} ORDER BY i.captured_at DESC ${limitSql}`, params
   );
-  return rows.length ? rows : mock.evidenceForTenant(tenantId, limit);
+  return rows.length ? rows : (tenantId ? mock.evidenceForTenant(tenantId, limit) : HERO_TENANTS.flatMap((t) => mock.evidenceForTenant(t, limit)));
 }
 
-export async function getEvidenceStats(tenantId: string): Promise<{ total: number; last24h: number; chainOk: boolean }> {
+export async function getEvidenceStats(tenantId?: string): Promise<{ total: number; last24h: number; chainOk: boolean }> {
   if (!isPgMode()) {
-    const c = mock.evidenceHashChainOk(tenantId);
-    return { total: c.total, last24h: mock.evidenceCount24h(tenantId), chainOk: c.ok };
+    const tid = tenantId ?? 't_maybank';
+    const c = mock.evidenceHashChainOk(tid);
+    return { total: c.total, last24h: mock.evidenceCount24h(tid), chainOk: c.ok };
   }
-  const totalRows = await safeQuery<{ n: string }>(`SELECT COUNT(*)::text AS n FROM evidence.items WHERE tenant_id = $1`, [tenantId]);
-  const recentRows = await safeQuery<{ n: string }>(`SELECT COUNT(*)::text AS n FROM evidence.items WHERE tenant_id = $1 AND captured_at >= now() - interval '24 hours'`, [tenantId]);
+  const [totalRows, recentRows] = await Promise.all([
+    safeQuery<{ n: string }>(
+      tenantId
+        ? `SELECT COUNT(*)::text AS n FROM evidence.items WHERE tenant_id = $1`
+        : `SELECT COUNT(*)::text AS n FROM evidence.items`,
+      tenantId ? [tenantId] : []
+    ),
+    safeQuery<{ n: string }>(
+      tenantId
+        ? `SELECT COUNT(*)::text AS n FROM evidence.items WHERE tenant_id = $1 AND captured_at >= now() - interval '24 hours'`
+        : `SELECT COUNT(*)::text AS n FROM evidence.items WHERE captured_at >= now() - interval '24 hours'`,
+      tenantId ? [tenantId] : []
+    )
+  ]);
   return {
     total: totalRows[0] ? Number(totalRows[0].n) : 0,
     last24h: recentRows[0] ? Number(recentRows[0].n) : 0,
@@ -443,21 +481,24 @@ export async function getEvidenceStats(tenantId: string): Promise<{ total: numbe
 // Audits
 // =====================================================================
 
-export async function getAudits(tenantId: string): Promise<AuditEngagement[]> {
-  if (!isPgMode()) return mock.auditsForTenant(tenantId);
+export async function getAudits(tenantId?: string): Promise<AuditEngagement[]> {
+  if (!isPgMode()) return tenantId ? mock.auditsForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.auditsForTenant(t));
+  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
   const rows = await safeQuery<AuditEngagement>(
     `SELECT id::text AS id, tenant_id AS "tenantId", name, type::text AS type,
             lead_auditor AS "leadAuditor", opened_at AS "openedAt", closed_at AS "closedAt",
             scope, framework_id AS "frameworkId"
-     FROM audit.engagements WHERE tenant_id = $1 ORDER BY opened_at DESC`, [tenantId]
+     FROM audit.engagements ${where} ORDER BY opened_at DESC`, params
   );
-  return rows.length ? rows : mock.auditsForTenant(tenantId);
+  return rows.length ? rows : (tenantId ? mock.auditsForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.auditsForTenant(t)));
 }
 
 export async function getAudit(id: string): Promise<AuditEngagement | undefined> {
   if (isPgMode()) {
     const tid = await tenantOfRow('audit.engagements', id);
     if (tid) return (await getAudits(tid)).find((a) => a.id === id);
+    return (await getAudits()).find((a) => a.id === id);
   }
   const parts = id.split('_');
   if (parts.length < 3) return undefined;
@@ -512,14 +553,16 @@ export async function getImpactAssessments(changeId: string, tenantId?: string):
 // Policies
 // =====================================================================
 
-export async function getPolicies(tenantId: string): Promise<Policy[]> {
-  if (!isPgMode()) return mock.policiesForTenant(tenantId);
+export async function getPolicies(tenantId?: string): Promise<Policy[]> {
+  if (!isPgMode()) return tenantId ? mock.policiesForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.policiesForTenant(t));
+  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
   const rows = await safeQuery<Policy>(
     `SELECT id::text AS id, tenant_id AS "tenantId", code, title, jurisdiction,
             current_version_id::text AS "currentVersionId"
-     FROM policy.documents WHERE tenant_id = $1 ORDER BY code`, [tenantId]
+     FROM policy.documents ${where} ORDER BY code`, params
   );
-  return rows.length ? rows : mock.policiesForTenant(tenantId);
+  return rows.length ? rows : (tenantId ? mock.policiesForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.policiesForTenant(t)));
 }
 
 export async function getPolicy(id: string): Promise<Policy | undefined> {
@@ -548,16 +591,21 @@ export async function getPolicyVersions(id: string): Promise<PolicyVersion[]> {
 // Vendors
 // =====================================================================
 
-export async function getVendors(tenantId: string): Promise<Vendor[]> {
-  if (!isPgMode()) return mock.vendorsForTenant(tenantId);
-  const rows = await safeQuery<Vendor>(
-    `SELECT id::text AS id, tenant_id AS "tenantId", name, category,
-            tier::text AS tier, criticality::text AS criticality,
-            hq_country AS "hqCountry", primary_contact_email AS "primaryContactEmail",
-            status::text AS status
-     FROM vendor.vendors WHERE tenant_id = $1 ORDER BY name`, [tenantId]
-  );
-  return rows.length ? rows : mock.vendorsForTenant(tenantId);
+export async function getVendors(tenantId?: string): Promise<Vendor[]> {
+  if (!isPgMode()) return tenantId ? mock.vendorsForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.vendorsForTenant(t));
+  const sql = tenantId
+    ? `SELECT id::text AS id, tenant_id AS "tenantId", name, category,
+              tier::text AS tier, criticality::text AS criticality,
+              hq_country AS "hqCountry", primary_contact_email AS "primaryContactEmail",
+              status::text AS status
+       FROM vendor.vendors WHERE tenant_id = $1 ORDER BY name`
+    : `SELECT id::text AS id, tenant_id AS "tenantId", name, category,
+              tier::text AS tier, criticality::text AS criticality,
+              hq_country AS "hqCountry", primary_contact_email AS "primaryContactEmail",
+              status::text AS status
+       FROM vendor.vendors ORDER BY tenant_id, name`;
+  const rows = await safeQuery<Vendor>(sql, tenantId ? [tenantId] : []);
+  return rows.length ? rows : (tenantId ? mock.vendorsForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.vendorsForTenant(t)));
 }
 
 export async function getVendor(id: string): Promise<Vendor | undefined> {
@@ -571,17 +619,19 @@ export async function getVendor(id: string): Promise<Vendor | undefined> {
   return (await getVendors(tenantId)).find((v) => v.id === id);
 }
 
-export async function getQuestionnaires(tenantId: string): Promise<Questionnaire[]> {
-  if (!isPgMode()) return mock.questionnairesForVendor(tenantId);
+export async function getQuestionnaires(tenantId?: string): Promise<Questionnaire[]> {
+  if (!isPgMode()) return tenantId ? mock.questionnairesForVendor(tenantId) : HERO_TENANTS.flatMap((t) => mock.questionnairesForVendor(t));
+  const where = tenantId ? 'WHERE q.tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
   const rows = await safeQuery<Questionnaire>(
     `SELECT q.id::text AS id, q.tenant_id AS "tenantId", q.vendor_id::text AS "vendorId",
             v.name AS "vendorName", q.template, q.status::text AS status,
             q.sent_at AS "sentAt", q.completed_at AS "completedAt",
             q.completed_by_agent_id AS "completedByAgentId", q.score
      FROM vendor.questionnaires q JOIN vendor.vendors v ON v.id = q.vendor_id
-     WHERE q.tenant_id = $1 ORDER BY q.sent_at DESC`, [tenantId]
+     ${where} ORDER BY q.sent_at DESC`, params
   );
-  return rows.length ? rows : mock.questionnairesForVendor(tenantId);
+  return rows.length ? rows : (tenantId ? mock.questionnairesForVendor(tenantId) : HERO_TENANTS.flatMap((t) => mock.questionnairesForVendor(t)));
 }
 
 export async function getQuestionnaire(id: string): Promise<Questionnaire | undefined> {
@@ -605,69 +655,65 @@ export async function getQuestionnaireResponses(questionnaireId: string): Promis
   return rows.length ? rows : mock.questionnaireResponsesFor(questionnaireId);
 }
 
-export async function getFourthParties(tenantId: string): Promise<FourthParty[]> {
-  if (!isPgMode()) return mock.fourthPartiesForTenant(tenantId);
+export async function getFourthParties(tenantId?: string): Promise<FourthParty[]> {
+  if (!isPgMode()) return tenantId ? mock.fourthPartiesForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.fourthPartiesForTenant(t));
+  const where = tenantId ? 'WHERE fp.tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
   const rows = await safeQuery<FourthParty>(
     `SELECT fp.id::text AS id, fp.tenant_id AS "tenantId", fp.vendor_id::text AS "vendorId",
             v.name AS "vendorName", fp.name, fp.type, fp.region, fp.criticality::text AS criticality
      FROM vendor.fourth_parties fp JOIN vendor.vendors v ON v.id = fp.vendor_id
-     WHERE fp.tenant_id = $1`, [tenantId]
+     ${where}`, params
   );
-  return rows.length ? rows : mock.fourthPartiesForTenant(tenantId);
+  return rows.length ? rows : (tenantId ? mock.fourthPartiesForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.fourthPartiesForTenant(t)));
 }
 
-export async function getConcentrations(tenantId: string): Promise<Concentration[]> {
-  if (!isPgMode()) return mock.concentrationsForTenant(tenantId);
+export async function getConcentrations(tenantId?: string): Promise<Concentration[]> {
+  if (!isPgMode()) return tenantId ? mock.concentrationsForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.concentrationsForTenant(t));
+  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
   const rows = await safeQuery<Concentration>(
     `SELECT id::text AS id, tenant_id AS "tenantId", dimension, key,
             vendor_count AS "vendorCount", exposure_sgd AS "exposureSgd"
-     FROM vendor.concentrations WHERE tenant_id = $1`, [tenantId]
+     FROM vendor.concentrations ${where}`, params
   );
-  return rows.length ? rows : mock.concentrationsForTenant(tenantId);
+  return rows.length ? rows : (tenantId ? mock.concentrationsForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.concentrationsForTenant(t)));
 }
 
 // =====================================================================
 // Privacy / ESG / AI Gov
 // =====================================================================
 
-export async function getPrivacyActivities(tenantId: string): Promise<PrivacyActivity[]> {
-  if (!isPgMode()) return mock.privacyActivitiesForTenant(tenantId);
-  return mock.privacyActivitiesForTenant(tenantId);
+export async function getPrivacyActivities(tenantId?: string): Promise<PrivacyActivity[]> {
+  return mock.privacyActivitiesForTenant(tenantId ?? 't_maybank');
 }
 
-export async function getDPIAs(tenantId: string): Promise<DPIA[]> {
-  if (!isPgMode()) return mock.dpiasForTenant(tenantId);
-  return mock.dpiasForTenant(tenantId);
+export async function getDPIAs(tenantId?: string): Promise<DPIA[]> {
+  return mock.dpiasForTenant(tenantId ?? 't_maybank');
 }
 
-export async function getSubjectRequests(tenantId: string): Promise<SubjectRequest[]> {
-  if (!isPgMode()) return mock.subjectRequestsForTenant(tenantId);
-  return mock.subjectRequestsForTenant(tenantId);
+export async function getSubjectRequests(tenantId?: string): Promise<SubjectRequest[]> {
+  return mock.subjectRequestsForTenant(tenantId ?? 't_maybank');
 }
 
-export async function getBreaches(tenantId: string): Promise<Breach[]> {
-  if (!isPgMode()) return mock.breachesForTenant(tenantId);
-  return mock.breachesForTenant(tenantId);
+export async function getBreaches(tenantId?: string): Promise<Breach[]> {
+  return mock.breachesForTenant(tenantId ?? 't_maybank');
 }
 
-export async function getESGMetrics(tenantId: string): Promise<ESGMetric[]> {
-  if (!isPgMode()) return mock.esgMetricsForTenant(tenantId);
-  return mock.esgMetricsForTenant(tenantId);
+export async function getESGMetrics(tenantId?: string): Promise<ESGMetric[]> {
+  return mock.esgMetricsForTenant(tenantId ?? 't_maybank');
 }
 
-export async function getESGDisclosures(tenantId: string): Promise<ESGDisclosure[]> {
-  if (!isPgMode()) return mock.esgDisclosuresForTenant(tenantId);
-  return mock.esgDisclosuresForTenant(tenantId);
+export async function getESGDisclosures(tenantId?: string): Promise<ESGDisclosure[]> {
+  return mock.esgDisclosuresForTenant(tenantId ?? 't_maybank');
 }
 
-export async function getESGTargets(tenantId: string): Promise<ESGTarget[]> {
-  if (!isPgMode()) return mock.esgTargetsForTenant(tenantId);
-  return mock.esgTargetsForTenant(tenantId);
+export async function getESGTargets(tenantId?: string): Promise<ESGTarget[]> {
+  return mock.esgTargetsForTenant(tenantId ?? 't_maybank');
 }
 
-export async function getAIModels(tenantId: string): Promise<AIModel[]> {
-  if (!isPgMode()) return mock.aiModelsForTenant(tenantId);
-  return mock.aiModelsForTenant(tenantId);
+export async function getAIModels(tenantId?: string): Promise<AIModel[]> {
+  return mock.aiModelsForTenant(tenantId ?? 't_maybank');
 }
 
 export async function getAIModel(id: string): Promise<AIModel | undefined> {
@@ -682,44 +728,45 @@ export async function getModelRisks(modelId: string): Promise<ModelRisk[]> {
   return mock.modelRisksForModel(modelId);
 }
 
-export async function getPromptsAudit(tenantId: string, limit?: number): Promise<PromptAuditEntry[]> {
-  if (!isPgMode()) return mock.promptsAuditForTenant(tenantId, limit);
-  return mock.promptsAuditForTenant(tenantId, limit);
+export async function getPromptsAudit(tenantId?: string, limit?: number): Promise<PromptAuditEntry[]> {
+  return mock.promptsAuditForTenant(tenantId ?? 't_maybank', limit);
 }
 
 // =====================================================================
 // SOX (synthesised — never PG)
 // =====================================================================
 
-export async function getSOXItgcs(tenantId: string) {
-  return mock.soxItgcsForTenant(tenantId);
+export async function getSOXItgcs(tenantId?: string) {
+  return mock.soxItgcsForTenant(tenantId ?? 't_maybank');
 }
 
-export async function getSOXKcas(tenantId: string) {
-  return mock.soxKcasForTenant(tenantId);
+export async function getSOXKcas(tenantId?: string) {
+  return mock.soxKcasForTenant(tenantId ?? 't_maybank');
 }
 
-export async function getSOXWalkthroughs(tenantId: string) {
-  return mock.soxWalkthroughsForTenant(tenantId);
+export async function getSOXWalkthroughs(tenantId?: string) {
+  return mock.soxWalkthroughsForTenant(tenantId ?? 't_maybank');
 }
 
-export async function getSOXDeficiencies(tenantId: string) {
-  return mock.soxDeficienciesForTenant(tenantId);
+export async function getSOXDeficiencies(tenantId?: string) {
+  return mock.soxDeficienciesForTenant(tenantId ?? 't_maybank');
 }
 
 // =====================================================================
 // Incidents / Issues / BCM
 // =====================================================================
 
-export async function getIncidents(tenantId: string): Promise<Incident[]> {
-  if (!isPgMode()) return mock.incidentsForTenant(tenantId);
+export async function getIncidents(tenantId?: string): Promise<Incident[]> {
+  if (!isPgMode()) return tenantId ? mock.incidentsForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.incidentsForTenant(t));
+  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
   const rows = await safeQuery<Incident>(
     `SELECT id::text AS id, tenant_id AS "tenantId", code, severity::text AS severity,
             title, status::text AS status, opened_at AS "openedAt",
             contained_at AS "containedAt", resolved_at AS "resolvedAt"
-     FROM incident.incidents WHERE tenant_id = $1 ORDER BY opened_at DESC`, [tenantId]
+     FROM incident.incidents ${where} ORDER BY opened_at DESC`, params
   );
-  return rows.length ? rows : mock.incidentsForTenant(tenantId);
+  return rows.length ? rows : (tenantId ? mock.incidentsForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.incidentsForTenant(t)));
 }
 
 export async function getIncident(id: string): Promise<Incident | undefined> {
@@ -739,15 +786,17 @@ export async function getPostmortem(incidentId: string): Promise<Postmortem | nu
   return mock.postmortemForIncident(incidentId);
 }
 
-export async function getIssues(tenantId: string): Promise<Issue[]> {
-  if (!isPgMode()) return mock.issuesForTenant(tenantId);
+export async function getIssues(tenantId?: string): Promise<Issue[]> {
+  if (!isPgMode()) return tenantId ? mock.issuesForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.issuesForTenant(t));
+  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
   const rows = await safeQuery<Issue>(
     `SELECT id::text AS id, tenant_id AS "tenantId", source::text AS source,
             source_id AS "sourceId", title, severity::text AS severity, status::text AS status,
             owner_user_id AS "ownerUserId", due_at AS "dueAt"
-     FROM issue.issues WHERE tenant_id = $1 ORDER BY due_at`, [tenantId]
+     FROM issue.issues ${where} ORDER BY due_at`, params
   );
-  return rows.length ? rows : mock.issuesForTenant(tenantId);
+  return rows.length ? rows : (tenantId ? mock.issuesForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.issuesForTenant(t)));
 }
 
 export async function getIssue(id: string): Promise<Issue | undefined> {
@@ -767,9 +816,8 @@ export async function getIssueActions(issueId: string): Promise<IssueAction[]> {
   return mock.actionsForIssue(issueId);
 }
 
-export async function getBCMPlans(tenantId: string): Promise<BCMPlan[]> {
-  if (!isPgMode()) return mock.bcmPlansForTenant(tenantId);
-  return mock.bcmPlansForTenant(tenantId);
+export async function getBCMPlans(tenantId?: string): Promise<BCMPlan[]> {
+  return mock.bcmPlansForTenant(tenantId ?? 't_maybank');
 }
 
 export async function getBCMPlan(id: string): Promise<BCMPlan | undefined> {
@@ -793,9 +841,8 @@ export async function getBCMTests(planId: string): Promise<BCMTest[]> {
 // Workflows + Connectors + Audit Log
 // =====================================================================
 
-export async function getWorkflows(tenantId: string): Promise<Workflow[]> {
-  if (!isPgMode()) return mock.workflowsForTenant(tenantId);
-  return mock.workflowsForTenant(tenantId);
+export async function getWorkflows(tenantId?: string): Promise<Workflow[]> {
+  return mock.workflowsForTenant(tenantId ?? 't_maybank');
 }
 
 export async function getWorkflow(id: string): Promise<Workflow | undefined> {
@@ -805,19 +852,20 @@ export async function getWorkflow(id: string): Promise<Workflow | undefined> {
   return (await getWorkflows(tenantId)).find((w) => w.id === id);
 }
 
-export async function getWorkflowExecutions(tenantId: string, limit = 20): Promise<WorkflowExecution[]> {
-  if (!isPgMode()) return mock.workflowExecutionsForTenant(tenantId, limit);
-  return mock.workflowExecutionsForTenant(tenantId, limit);
+export async function getWorkflowExecutions(tenantId?: string, limit = 20): Promise<WorkflowExecution[]> {
+  return mock.workflowExecutionsForTenant(tenantId ?? 't_maybank', limit);
 }
 
-export async function getConnectors(tenantId: string): Promise<Connector[]> {
-  if (!isPgMode()) return mock.connectorsForTenant(tenantId);
+export async function getConnectors(tenantId?: string): Promise<Connector[]> {
+  if (!isPgMode()) return mock.connectorsForTenant(tenantId ?? 't_maybank');
+  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const params = tenantId ? [tenantId] : [];
   const rows = await safeQuery<Connector>(
     `SELECT id::text AS id, tenant_id AS "tenantId", kind, name, status::text AS status,
             last_sync_at AS "lastSyncAt"
-     FROM integration.connectors WHERE tenant_id = $1`, [tenantId]
+     FROM integration.connectors ${where}`, params
   );
-  return rows.length ? rows : mock.connectorsForTenant(tenantId);
+  return rows.length ? rows : mock.connectorsForTenant(tenantId ?? 't_maybank');
 }
 
 export async function getAuditLog(tenantId?: string, limit = 200): Promise<AuditLogEntry[]> {
@@ -896,28 +944,28 @@ export async function getAuditLog(tenantId?: string, limit = 200): Promise<Audit
 // Human Risk (KnowBe4) — synthesised; mock in both modes (like Privacy/ESG)
 // =====================================================================
 
-export async function getHumanRiskSummary(tenantId: string): Promise<HumanRiskSummary | null> {
-  return mock.humanRiskSummary(tenantId);
+export async function getHumanRiskSummary(tenantId?: string): Promise<HumanRiskSummary | null> {
+  return mock.humanRiskSummary(tenantId ?? 't_maybank');
 }
 
-export async function getHumanRiskUsers(tenantId: string): Promise<HumanRiskUser[]> {
-  return mock.humanRiskUsers(tenantId);
+export async function getHumanRiskUsers(tenantId?: string): Promise<HumanRiskUser[]> {
+  return mock.humanRiskUsers(tenantId ?? 't_maybank');
 }
 
 export async function getHumanRiskUser(id: string): Promise<HumanRiskUser | undefined> {
   return mock.humanRiskUser(id);
 }
 
-export async function getHumanRiskDepartments(tenantId: string): Promise<HumanRiskDepartment[]> {
-  return mock.humanRiskDepartments(tenantId);
+export async function getHumanRiskDepartments(tenantId?: string): Promise<HumanRiskDepartment[]> {
+  return mock.humanRiskDepartments(tenantId ?? 't_maybank');
 }
 
-export async function getPhishingCampaigns(tenantId: string): Promise<PhishingCampaign[]> {
-  return mock.phishingCampaigns(tenantId);
+export async function getPhishingCampaigns(tenantId?: string): Promise<PhishingCampaign[]> {
+  return mock.phishingCampaigns(tenantId ?? 't_maybank');
 }
 
-export async function getTrainingCampaigns(tenantId: string): Promise<TrainingCampaign[]> {
-  return mock.trainingCampaigns(tenantId);
+export async function getTrainingCampaigns(tenantId?: string): Promise<TrainingCampaign[]> {
+  return mock.trainingCampaigns(tenantId ?? 't_maybank');
 }
 
 // =====================================================================
@@ -981,11 +1029,11 @@ export async function getKpiSnapshot(tenantId?: string): Promise<KpiSnapshot> {
   };
 }
 
-export async function getBoardNarrative(tenantId: string): Promise<string> {
-  const tenant = await getCurrentTenant(tenantId);
+export async function getBoardNarrative(tenantId?: string): Promise<string> {
+  const tenant = tenantId ? await getCurrentTenant(tenantId) : undefined;
   const name = tenant?.name ?? 'Group';
   const kpi = await getKpiSnapshot(tenantId);
-  const hr = mock.humanRiskSummary(tenantId);
+  const hr = mock.humanRiskSummary(tenantId ?? 't_maybank');
   const today = new Date().toLocaleDateString('en-SG', { month: 'long', year: 'numeric' });
 
   const apiKey = env.ANTHROPIC_API_KEY;

@@ -98,7 +98,7 @@ function buildSankey(vendors: Vendor[], fourthParties: FourthParty[]) {
 
 export const load: PageServerLoad = async ({ locals }) => {
   const tenantId = locals.tenantId ?? ALL_TENANTS_ID;
-  const effective = tenantId === ALL_TENANTS_ID ? 't_maybank' : tenantId;
+  const effective = tenantId === ALL_TENANTS_ID ? undefined : tenantId;
   const [vendors, fourthParties, concentrations] = await Promise.all([
     getVendors(effective),
     getFourthParties(effective),

@@ -167,6 +167,7 @@ CREATE TABLE platform.sessions (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id         UUID NOT NULL REFERENCES platform.users(id) ON DELETE CASCADE,
     token_hash      TEXT NOT NULL,
+    token_prefix    VARCHAR(64),           -- first 32 hex chars of SHA-256(token)
     issued_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     expires_at      TIMESTAMPTZ NOT NULL,
     ip_address      INET,
@@ -175,6 +176,8 @@ CREATE TABLE platform.sessions (
 );
 CREATE INDEX ON platform.sessions (user_id);
 CREATE INDEX ON platform.sessions (expires_at);
+CREATE UNIQUE INDEX sessions_token_prefix_idx ON platform.sessions (token_prefix)
+  WHERE token_prefix IS NOT NULL;
 
 CREATE TABLE platform.api_tokens (
     id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

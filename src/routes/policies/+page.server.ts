@@ -10,7 +10,7 @@ import type { PolicyVersion } from '$lib/data/types';
 
 export const load: PageServerLoad = async ({ locals }) => {
   const tenantId = locals.tenantId ?? ALL_TENANTS_ID;
-  const effective = tenantId === ALL_TENANTS_ID ? 't_maybank' : tenantId;
+  const effective = tenantId === ALL_TENANTS_ID ? undefined : tenantId;
   const policies = await getPolicies(effective);
   const versionPairs = await Promise.all(policies.map((p) => getPolicyVersions(p.id).then((v) => ({ id: p.id, v }))));
   const currentByPolicy: Record<string, PolicyVersion | undefined> = {};

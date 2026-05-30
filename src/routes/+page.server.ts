@@ -29,9 +29,7 @@ export const load: PageServerLoad = async ({ locals }) => {
   const tenantId = locals.tenantId ?? ALL_TENANTS_ID;
   const isAll = tenantId === ALL_TENANTS_ID;
   const scoped = isAll ? undefined : tenantId;
-  // Board narrative & evidence stats need a concrete tenant; fall back to the
-  // hero tenant (Maybank) for MSSP rollup so the cards still tell a story.
-  const narrativeTenant = scoped ?? 't_maybank';
+  const narrativeTenant = scoped;
 
   const [
     tenants,

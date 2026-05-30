@@ -897,7 +897,7 @@ export async function getPolicyVersions(id: string): Promise<PolicyVersion[]> {
             effective_at AS "effectiveAt", drafted_by_agent_id AS "draftedByAgentId"
      FROM policy.versions WHERE document_id = $1 ORDER BY version_no`, [id]
   );
-  return rows.length ? rows : mock.policyVersions(id);
+  return rows;
 }
 
 export async function getPolicyAcks(versionId: string, limit = 20): Promise<PolicyAck[]> {

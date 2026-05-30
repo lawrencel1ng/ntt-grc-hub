@@ -8,7 +8,7 @@
   export let data;
 
   // ---------- KPIs ----------
-  $: sourcesCount = 40 + data.sources.filter((s) => s.enabled).length; // brand promise: "40+ sources"
+  $: sourcesCount = data.sources.filter((s) => s.enabled).length;
   $: changes30d = data.changes.filter((c) => (Date.now() - new Date(c.publishedAt).getTime()) / 86_400_000 <= 30).length;
   $: activeImpacts = data.activeImpacts as number;
   $: gapsOpened30d = data.gapsOpened30d as number;
@@ -76,7 +76,7 @@
   })();
 </script>
 
-<PageHeader title="Regulatory Horizon" subtitle="Powered by Regulatory Horizon agent — 40+ sources monitored, 24/7.">
+<PageHeader title="Regulatory Horizon" subtitle="Powered by Regulatory Horizon agent — {sourcesCount} source{sourcesCount === 1 ? '' : 's'} monitored, 24/7.">
   <svelte:fragment slot="actions">
     <AgentTypeBadge type="intelligent" />
   </svelte:fragment>

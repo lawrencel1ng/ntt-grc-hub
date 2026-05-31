@@ -331,7 +331,7 @@ CREATE TABLE risk.appetite_statements (
     approved_at     TIMESTAMPTZ,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE INDEX ON risk.appetite_statements (tenant_id);
+CREATE UNIQUE INDEX ON risk.appetite_statements (tenant_id, category);
 
 -- =====================================================================
 -- 4. control.*

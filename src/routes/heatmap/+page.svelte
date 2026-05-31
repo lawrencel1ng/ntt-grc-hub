@@ -7,10 +7,16 @@
   import { addToast } from '$lib/stores/toast';
   import { runFAIR } from '$lib/utils/fair';
   import { goto } from '$app/navigation';
-  import { Calculator, AlertTriangle, ChevronRight, Bot } from 'lucide-svelte';
+  import { Calculator, AlertTriangle, ChevronRight, Bot, Plus } from 'lucide-svelte';
+  import { enhance } from '$app/forms';
   import type { Risk, RiskSeverity, RiskLikelihood, HeatmapCell, FAIRScenario } from '$lib/data/types';
 
   export let data;
+  export let form: { appetiteSet?: boolean; category?: string; appetiteError?: string } | null = null;
+
+  let showAppetiteForm = false;
+  $: if (form?.appetiteSet) { addToast('success', `Appetite set for "${form.category}".`); showAppetiteForm = false; }
+  $: if (form?.appetiteError) addToast('error', form.appetiteError);
 
   // ---------- Score conversions ----------
   const SEV_RANK: Record<RiskSeverity, number> = { critical: 5, high: 4, medium: 3, low: 2, info: 1 };
@@ -150,7 +156,44 @@
     </div>
 
     <div class="card p-5">
-      <h2 class="section-title mb-3">Risk Appetite</h2>
+      <div class="mb-3 flex items-center justify-between">
+        <h2 class="section-title">Risk Appetite</h2>
+        <button class="btn-ghost py-0.5 text-xs" on:click={() => (showAppetiteForm = !showAppetiteForm)}>
+          <Plus class="h-3.5 w-3.5" />
+          Set
+        </button>
+      </div>
+      {#if showAppetiteForm}
+        <form method="POST" action="?/setAppetite" use:enhance class="mb-4 space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+          <label class="block">
+            <span class="mb-0.5 block text-[11px] font-medium text-slate-700">Category</span>
+            <input name="category" type="text" class="input py-1 text-xs" placeholder="Operational Risk" required maxlength="128" />
+          </label>
+          <label class="block">
+            <span class="mb-0.5 block text-[11px] font-medium text-slate-700">Statement</span>
+            <textarea name="statement" rows="2" class="input resize-none text-xs" placeholder="We accept low residual operational risk…" required maxlength="2048"></textarea>
+          </label>
+          <div class="grid grid-cols-2 gap-2">
+            <label class="block">
+              <span class="mb-0.5 block text-[11px] font-medium text-slate-700">Threshold (SGD)</span>
+              <input name="thresholdSgd" type="number" min="0" step="1000" class="input py-1 text-xs" placeholder="500000" required />
+            </label>
+            <label class="block">
+              <span class="mb-0.5 block text-[11px] font-medium text-slate-700">Severity cap</span>
+              <select name="severityCap" class="input py-1 text-xs" required>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="critical">Critical</option>
+              </select>
+            </label>
+          </div>
+          <div class="flex gap-2">
+            <button type="submit" class="btn-primary py-1 text-xs">Save</button>
+            <button type="button" class="btn-secondary py-1 text-xs" on:click={() => (showAppetiteForm = false)}>Cancel</button>
+          </div>
+        </form>
+      {/if}
       <div class="space-y-4">
         {#each data.appetite as a}
           {@const score = avgScoreForCategory(a.category)}

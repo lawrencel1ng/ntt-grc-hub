@@ -541,7 +541,7 @@ export async function getRequirementCoverage(frameworkId: string, tenantId?: str
      FROM control.mappings m
      ${tenantJoin}
      WHERE m.framework_id = $1 AND m.requirement_id IS NOT NULL
-     GROUP BY m.requirement_id`, params
+     GROUP BY m.requirement_id LIMIT 2000`, params
   );
 }
 
@@ -557,7 +557,7 @@ export async function getControlsByFramework(frameworkId: string, tenantId?: str
      FROM control.library cl
      JOIN control.mappings m ON m.control_id = cl.id AND m.framework_id = $1
      WHERE TRUE${tenantClause}
-     ORDER BY cl.code`, params
+     ORDER BY cl.code LIMIT 2000`, params
   );
 }
 
@@ -609,7 +609,7 @@ export async function getFrameworkScores(tenantId?: string): Promise<FrameworkSc
   const rows = await safeQuery<FrameworkScore>(
     `SELECT tenant_id AS "tenantId", framework_id AS "frameworkId", name, version, region,
             status::text AS status, score, next_due_at AS "nextDueAt"
-     FROM compliance.framework_score ${where}`, params
+     FROM compliance.framework_score ${where} ORDER BY name LIMIT 500`, params
   );
   return rows;
 }
@@ -671,7 +671,7 @@ export async function getControlMappings(controlId: string): Promise<ControlMapp
   return safeQuery<ControlMapping>(
     `SELECT id, control_id AS "controlId", framework_id AS "frameworkId",
             requirement_id AS "requirementId", coverage_pct AS "coveragePct", notes
-     FROM control.mappings WHERE control_id = $1 ORDER BY framework_id`,
+     FROM control.mappings WHERE control_id = $1 ORDER BY framework_id LIMIT 500`,
     [controlId]
   );
 }
@@ -681,7 +681,7 @@ export async function getControlTests(controlId: string): Promise<ControlTest[]>
   return safeQuery<ControlTest>(
     `SELECT id::text AS id, tenant_id AS "tenantId", control_id AS "controlId",
             name, kind::text AS kind, schedule_cron AS "scheduleCron", procedure_md AS "procedureMd"
-     FROM control.tests WHERE control_id = $1 ORDER BY name`,
+     FROM control.tests WHERE control_id = $1 ORDER BY name LIMIT 200`,
     [controlId]
   );
 }
@@ -691,7 +691,7 @@ export async function getControlExceptions(controlId: string): Promise<ControlEx
   return safeQuery<ControlException>(
     `SELECT id::text AS id, tenant_id AS "tenantId", control_id AS "controlId",
             justification, granted, expires_at AS "expiresAt", created_at AS "createdAt"
-     FROM control.exceptions WHERE control_id = $1 ORDER BY created_at DESC`,
+     FROM control.exceptions WHERE control_id = $1 ORDER BY created_at DESC LIMIT 200`,
     [controlId]
   );
 }
@@ -702,7 +702,7 @@ export async function getEvidenceControlCounts(tenantId?: string): Promise<Recor
   const params = tenantId ? [tenantId] : [];
   const rows = await safeQuery<{ evidenceItemId: number; cnt: number }>(
     `SELECT evidence_item_id AS "evidenceItemId", COUNT(DISTINCT control_id) AS cnt
-     FROM control.test_runs ${where} GROUP BY evidence_item_id`,
+     FROM control.test_runs ${where} GROUP BY evidence_item_id LIMIT 5000`,
     params
   );
   return Object.fromEntries(rows.map((r) => [r.evidenceItemId, Number(r.cnt)]));
@@ -717,7 +717,7 @@ export async function getControlMappingsByTenant(tenantId?: string): Promise<Con
   return safeQuery<ControlMapping>(
     `SELECT cm.id, cm.control_id AS "controlId", cm.framework_id AS "frameworkId",
             cm.requirement_id AS "requirementId", cm.coverage_pct AS "coveragePct", cm.notes
-     FROM control.mappings cm ${where} ORDER BY cm.framework_id`,
+     FROM control.mappings cm ${where} ORDER BY cm.framework_id LIMIT 5000`,
     params
   );
 }
@@ -851,7 +851,7 @@ export async function getAuditFindings(engagementId: string): Promise<AuditFindi
     `SELECT id::text AS id, tenant_id AS "tenantId", engagement_id::text AS "engagementId",
             severity::text AS severity, title, description, control_id AS "controlId",
             due_at AS "dueAt", status::text AS status
-     FROM audit.findings WHERE engagement_id = $1`, [engagementId]
+     FROM audit.findings WHERE engagement_id = $1 ORDER BY due_at ASC NULLS LAST LIMIT 2000`, [engagementId]
   );
   return rows;
 }
@@ -862,7 +862,7 @@ export async function getAuditWorkpapers(engagementId: string): Promise<AuditWor
     `SELECT id::text AS id, tenant_id AS "tenantId", engagement_id::text AS "engagementId",
             title, content_md AS "contentMd", created_by AS "createdBy",
             created_at AS "createdAt"
-     FROM audit.workpapers WHERE engagement_id = $1::uuid ORDER BY created_at`, [engagementId]
+     FROM audit.workpapers WHERE engagement_id = $1::uuid ORDER BY created_at LIMIT 500`, [engagementId]
   );
 }
 
@@ -917,7 +917,7 @@ export async function getRegSources(): Promise<RegSource[]> {
   const rows = await safeQuery<RegSource>(
     `SELECT id, regulator_code AS "regulatorCode", name, source_url AS "sourceUrl",
             jurisdiction, last_scanned_at AS "lastScannedAt", enabled
-     FROM regwatch.sources ORDER BY name`
+     FROM regwatch.sources ORDER BY name LIMIT 500`
   );
   return rows;
 }
@@ -939,7 +939,7 @@ export async function getImpactAssessments(changeId?: string, tenantId?: string)
      FROM regwatch.impact_assessments ia
      LEFT JOIN platform.tenants t ON t.id = ia.tenant_id
      LEFT JOIN compliance.frameworks f ON f.id::text = ia.framework_id::text
-     ${where} ORDER BY ia.assessed_at DESC`,
+     ${where} ORDER BY ia.assessed_at DESC LIMIT 2000`,
     params
   );
   return rows;
@@ -990,7 +990,7 @@ export async function getPolicyCurrentVersionByTenant(tenantId?: string): Promis
             v.effective_at AS "effectiveAt", v.drafted_by_agent_id AS "draftedByAgentId"
      FROM policy.versions v
      ${where}
-     ORDER BY v.document_id, (v.status = 'approved') DESC, v.version_no DESC`,
+     ORDER BY v.document_id, (v.status = 'approved') DESC, v.version_no DESC LIMIT 1000`,
     params
   );
   const map: Record<string, PolicyVersion | undefined> = {};
@@ -1006,7 +1006,7 @@ export async function getPolicyVersions(id: string): Promise<PolicyVersion[]> {
     `SELECT id::text AS id, tenant_id AS "tenantId", document_id::text AS "documentId",
             version_no AS "versionNo", content_md AS "contentMd", status::text AS status,
             effective_at AS "effectiveAt", drafted_by_agent_id AS "draftedByAgentId"
-     FROM policy.versions WHERE document_id = $1 ORDER BY version_no`, [id]
+     FROM policy.versions WHERE document_id = $1 ORDER BY version_no LIMIT 100`, [id]
   );
   return rows;
 }
@@ -1028,7 +1028,7 @@ export async function getPolicyExceptions(documentId: string): Promise<PolicyExc
             requester_user_id AS "requesterUserId", justification, granted,
             granted_by_user_id AS "grantedByUserId", expires_at AS "expiresAt",
             created_at AS "createdAt"
-     FROM policy.exceptions WHERE document_id = $1::uuid ORDER BY created_at DESC`, [documentId]
+     FROM policy.exceptions WHERE document_id = $1::uuid ORDER BY created_at DESC LIMIT 200`, [documentId]
   );
 }
 
@@ -1040,7 +1040,7 @@ export async function getPolicyFrameworkMappings(documentId: string): Promise<Fr
      FROM policy.document_frameworks df
      JOIN compliance.frameworks f ON f.id = df.framework_id
      WHERE df.document_id = $1::uuid
-     ORDER BY f.region, f.name`, [documentId]
+     ORDER BY f.region, f.name LIMIT 50`, [documentId]
   );
 }
 
@@ -1101,7 +1101,7 @@ export async function getVendorContractsByTenant(tenantId?: string): Promise<Ven
             contract_no AS "contractNo", value_sgd::float AS "valueSgd",
             starts_at AS "startsAt", ends_at AS "endsAt",
             renewal_window_days AS "renewalWindowDays"
-     FROM vendor.contracts ${where} ORDER BY ends_at ASC NULLS LAST`,
+     FROM vendor.contracts ${where} ORDER BY ends_at ASC NULLS LAST LIMIT 1000`,
     params
   );
 }
@@ -1113,7 +1113,7 @@ export async function getVendorContracts(vendorId: string): Promise<VendorContra
             contract_no AS "contractNo", value_sgd::float AS "valueSgd",
             starts_at AS "startsAt", ends_at AS "endsAt",
             renewal_window_days AS "renewalWindowDays"
-     FROM vendor.contracts WHERE vendor_id = $1::uuid ORDER BY starts_at DESC`,
+     FROM vendor.contracts WHERE vendor_id = $1::uuid ORDER BY starts_at DESC LIMIT 200`,
     [vendorId]
   );
   return rows;
@@ -1163,7 +1163,7 @@ export async function getQuestionnaireResponses(questionnaireId: string): Promis
   const rows = await safeQuery<QuestionnaireResponse>(
     `SELECT id, questionnaire_id::text AS "questionnaireId", question_code AS "questionCode",
             response, confidence, source_evidence_item_id AS "sourceEvidenceItemId"
-     FROM vendor.responses WHERE questionnaire_id = $1`, [questionnaireId]
+     FROM vendor.responses WHERE questionnaire_id = $1 ORDER BY question_code LIMIT 500`, [questionnaireId]
   );
   return rows;
 }
@@ -1291,7 +1291,7 @@ export async function getESGDisclosures(tenantId?: string): Promise<ESGDisclosur
   const rows = await safeQuery<ESGDisclosure>(
     `SELECT id::text AS id, tenant_id AS "tenantId", framework, period,
             status, published_at AS "publishedAt"
-     FROM esg.disclosures ${where} ORDER BY period DESC, framework`,
+     FROM esg.disclosures ${where} ORDER BY period DESC, framework LIMIT 500`,
     params
   );
   return rows;
@@ -1308,7 +1308,7 @@ export async function getESGTargets(tenantId?: string): Promise<ESGTarget[]> {
             u.email AS "ownerEmail"
      FROM esg.targets t
      LEFT JOIN platform.users u ON u.id = t.owner_user_id
-     ${where.replace('tenant_id', 't.tenant_id')} ORDER BY t.framework, t.metric`,
+     ${where.replace('tenant_id', 't.tenant_id')} ORDER BY t.framework, t.metric LIMIT 500`,
     params
   );
   return rows;
@@ -1361,7 +1361,7 @@ export async function getModelRisks(modelId: string): Promise<ModelRisk[]> {
   const rows = await safeQuery<ModelRisk>(
     `SELECT id::text AS id, tenant_id AS "tenantId", model_id::text AS "modelId",
             risk_type AS "riskType", severity::text AS severity, mitigation
-     FROM ai_gov.model_risk WHERE model_id = $1::uuid ORDER BY severity`,
+     FROM ai_gov.model_risk WHERE model_id = $1::uuid ORDER BY severity LIMIT 100`,
     [modelId]
   );
   return rows;
@@ -1532,7 +1532,7 @@ export async function getIncidentTimeline(incidentId: string): Promise<TimelineE
   const rows = await safeQuery<TimelineEvent>(
     `SELECT id, tenant_id AS "tenantId", incident_id::text AS "incidentId",
             ts, actor, event, source
-     FROM incident.timeline_events WHERE incident_id = $1::uuid ORDER BY ts`,
+     FROM incident.timeline_events WHERE incident_id = $1::uuid ORDER BY ts LIMIT 500`,
     [incidentId]
   );
   return rows;
@@ -1581,7 +1581,7 @@ export async function getVendorIssues(vendorId: string): Promise<Issue[]> {
             i.due_at AS "dueAt", i.created_at AS "createdAt"
      FROM issue.issues i
      LEFT JOIN platform.users u ON u.id = i.owner_user_id
-     WHERE i.vendor_id = $1::uuid ORDER BY i.due_at`, [vendorId]
+     WHERE i.vendor_id = $1::uuid ORDER BY i.due_at LIMIT 500`, [vendorId]
   );
 }
 
@@ -1610,7 +1610,7 @@ export async function getIssueActions(issueId: string): Promise<IssueAction[]> {
   const rows = await safeQuery<IssueAction>(
     `SELECT id::text AS id, tenant_id AS "tenantId", issue_id::text AS "issueId",
             description, due_at AS "dueAt", status
-     FROM issue.actions WHERE issue_id = $1::uuid ORDER BY due_at`,
+     FROM issue.actions WHERE issue_id = $1::uuid ORDER BY due_at LIMIT 200`,
     [issueId]
   );
   return rows;
@@ -1663,7 +1663,7 @@ export async function getBCMEscalationContacts(planId: string): Promise<BCMEscal
     `SELECT id::text AS id, tenant_id AS "tenantId", plan_id::text AS "planId",
             role, name, email, phone, sort_order AS "sortOrder"
      FROM bcm.escalation_contacts
-     WHERE plan_id = $1::uuid ORDER BY sort_order, role`,
+     WHERE plan_id = $1::uuid ORDER BY sort_order, role LIMIT 50`,
     [planId]
   );
 }
@@ -1681,14 +1681,14 @@ export async function getBCMDepsAndTestsByTenant(tenantId?: string): Promise<{
       `SELECT id::text AS id, tenant_id AS "tenantId", plan_id::text AS "planId",
               dependency_kind AS "dependencyKind", name, criticality::text AS criticality,
               downtime_tolerance_hours AS "downtimeToleranceHours"
-       FROM bcm.bias ${where}`,
+       FROM bcm.bias ${where} ORDER BY name LIMIT 2000`,
       params
     ),
     safeQuery<BCMTest & { planId: string }>(
       `SELECT id::text AS id, tenant_id AS "tenantId", plan_id::text AS "planId",
               kind, conducted_at AS "conductedAt", result::text AS result,
               lessons_md AS "lessonsMd"
-       FROM bcm.tests ${where} ORDER BY conducted_at DESC`,
+       FROM bcm.tests ${where} ORDER BY conducted_at DESC LIMIT 1000`,
       params
     )
   ]);

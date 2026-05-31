@@ -14,13 +14,17 @@
 
   export let data;
   export let form: {
-    editSuccess?: boolean; editError?: string;
+    editSuccess?: boolean; editError?: string; ownerEmail?: string;
     depAdded?: boolean; depError?: string;
     testRecorded?: boolean; testId?: string; testError?: string;
     contactAdded?: boolean; contactError?: string;
   } | null = null;
 
-  $: if (form?.editSuccess) { addToast('success', 'BCM plan updated.'); showEditForm = false; }
+  $: if (form?.editSuccess) {
+    addToast('success', 'BCM plan updated.');
+    showEditForm = false;
+    if (form.ownerEmail) data = { ...data, plan: { ...data.plan, ownerEmail: form.ownerEmail } };
+  }
   $: if (form?.editError) addToast('error', form.editError);
   $: if (form?.depAdded) { addToast('success', 'Dependency added.'); showDepForm = false; }
   $: if (form?.depError) addToast('error', form.depError);
@@ -182,6 +186,10 @@
         <label class="block sm:col-span-2">
           <span class="mb-1 block text-xs font-medium text-slate-700">Recovery Strategy</span>
           <textarea name="recoveryStrategy" class="input h-24 resize-none" maxlength="4096">{data.plan.recoveryStrategy ?? ''}</textarea>
+        </label>
+        <label class="block sm:col-span-2">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Owner email</span>
+          <input name="ownerEmail" type="email" class="input" value={data.plan.ownerEmail ?? ''} placeholder="Leave blank to keep current owner" maxlength="256" />
         </label>
       </div>
       <div class="flex gap-2">

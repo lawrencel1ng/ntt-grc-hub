@@ -36,13 +36,26 @@ export const actions: Actions = {
     const versionId = String(data.get('versionId') ?? '').trim();
     const contentMd = String(data.get('contentMd') ?? '').trim();
     const status = String(data.get('status') ?? 'draft').trim();
+    const ownerEmail = String(data.get('ownerEmail') ?? '').trim().toLowerCase() || null;
 
     if (!versionId) return fail(400, { editError: 'Version ID required.' });
     if (contentMd.length > 200_000) return fail(400, { editError: 'Policy content must be 200 000 characters or fewer.' });
     const VALID_STATUSES = ['draft', 'in-review', 'approved', 'retired'];
     if (!VALID_STATUSES.includes(status)) return fail(400, { editError: 'Invalid status.' });
+    if (ownerEmail && ownerEmail.length > 256) return fail(400, { editError: 'Owner email must be 256 characters or fewer.' });
 
     const pool = getPool();
+
+    let ownerUserId: string | null = null;
+    if (ownerEmail) {
+      const userRow = await pool.query<{ id: string }>(
+        `SELECT id FROM platform.users WHERE email = $1 AND tenant_id = $2 AND status = 'active' LIMIT 1`,
+        [ownerEmail, locals.user.tenantId]
+      );
+      if (!userRow.rows.length) return fail(400, { editError: `No active user found with email "${ownerEmail}" in your tenant.` });
+      ownerUserId = userRow.rows[0].id;
+    }
+
     // Verify the version belongs to this tenant's policy
     const check = await pool.query(
       `SELECT v.id FROM policy.versions v
@@ -59,16 +72,24 @@ export const actions: Actions = {
       [contentMd, status, locals.user.id, versionId]
     );
 
+    if (ownerUserId) {
+      await pool.query(
+        `UPDATE policy.documents SET owner_user_id = $1::uuid WHERE id = $2::uuid AND tenant_id = $3`,
+        [ownerUserId, params.id, locals.user.tenantId]
+      );
+    }
+
     writeAuditLog({
       userId: locals.user.id,
       actorEmail: locals.user.email,
       tenantId: locals.user.tenantId,
       action: 'policy.updated',
       target: `policy:${params.id}`,
-      result: 'success'
+      result: 'success',
+      metadata: { ownerEmail }
     });
 
-    return { editSuccess: true };
+    return { editSuccess: true, ownerEmail: ownerEmail ?? undefined };
   },
 
   acknowledgePolicy: async ({ params, locals }) => {

@@ -96,13 +96,28 @@ export const actions: Actions = {
     if (description && description.length > 2048) return fail(400, { editError: 'Description must be 2048 characters or fewer.' });
     if (recoveryStrategy && recoveryStrategy.length > 4096) return fail(400, { editError: 'Recovery strategy must be 4096 characters or fewer.' });
 
+    const ownerEmail = String(fd.get('ownerEmail') ?? '').trim().toLowerCase() || null;
+    if (ownerEmail && ownerEmail.length > 256) return fail(400, { editError: 'Owner email must be 256 characters or fewer.' });
+
     const pool = getPool();
+
+    let ownerUserId: string | null = null;
+    if (ownerEmail) {
+      const userRow = await pool.query<{ id: string }>(
+        `SELECT id FROM platform.users WHERE email = $1 AND tenant_id = $2 AND status = 'active' LIMIT 1`,
+        [ownerEmail, locals.user.tenantId]
+      );
+      if (!userRow.rows.length) return fail(400, { editError: `No active user found with email "${ownerEmail}" in your tenant.` });
+      ownerUserId = userRow.rows[0].id;
+    }
+
     const { rowCount } = await pool.query(
       `UPDATE bcm.plans
        SET name = $1, business_service = $2, rto_minutes = $3, rpo_minutes = $4,
-           description = $5, recovery_strategy = $6
-       WHERE id = $7::uuid AND tenant_id = $8`,
-      [name, businessService, rtoRaw, rpoRaw, description, recoveryStrategy, params.id, locals.user.tenantId]
+           description = $5, recovery_strategy = $6,
+           owner_user_id = COALESCE($7::uuid, owner_user_id)
+       WHERE id = $8::uuid AND tenant_id = $9`,
+      [name, businessService, rtoRaw, rpoRaw, description, recoveryStrategy, ownerUserId, params.id, locals.user.tenantId]
     );
     if (!rowCount) return fail(404, { editError: 'BCM plan not found or access denied.' });
 
@@ -113,10 +128,10 @@ export const actions: Actions = {
       action: 'bcm.plan.updated',
       target: `bcm:${params.id}`,
       result: 'success',
-      metadata: { name, rtoMinutes: rtoRaw, rpoMinutes: rpoRaw }
+      metadata: { name, rtoMinutes: rtoRaw, rpoMinutes: rpoRaw, ownerEmail }
     });
 
-    return { editSuccess: true };
+    return { editSuccess: true, ownerEmail: ownerEmail ?? undefined };
   },
 
   recordTestResult: async ({ params, request, locals }) => {

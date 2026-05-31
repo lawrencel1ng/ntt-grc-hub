@@ -9,11 +9,15 @@
 
   export let data;
   export let form: {
-    editSuccess?: boolean; editError?: string;
+    editSuccess?: boolean; editError?: string; ownerEmail?: string;
     ackSuccess?: boolean; ackError?: string;
     exceptionRequested?: boolean; exceptionError?: string;
   } | null = null;
-  $: if (form?.editSuccess) { addToast('success', 'Policy saved.'); editing = false; }
+  $: if (form?.editSuccess) {
+    addToast('success', 'Policy saved.');
+    editing = false;
+    if (form.ownerEmail) data = { ...data, policy: { ...data.policy, ownerEmail: form.ownerEmail } };
+  }
   $: if (form?.editError) addToast('error', form.editError);
   $: if (form?.ackSuccess) addToast('success', 'Policy acknowledged.');
   $: if (form?.ackError) addToast('error', form.ackError);
@@ -129,14 +133,20 @@
       {#if editing}
         <form method="POST" action="?/updatePolicy" use:enhance class="space-y-4 p-5">
           <input type="hidden" name="versionId" value={current?.id ?? ''} />
-          <div>
-            <label for="policy-status" class="mb-1 block text-xs font-medium text-slate-700">Status</label>
-            <select id="policy-status" name="status" class="input w-40" bind:value={editStatus}>
-              <option value="draft">Draft</option>
-              <option value="in-review">In Review</option>
-              <option value="approved">Approved</option>
-              <option value="retired">Retired</option>
-            </select>
+          <div class="flex flex-wrap gap-4">
+            <div>
+              <label for="policy-status" class="mb-1 block text-xs font-medium text-slate-700">Status</label>
+              <select id="policy-status" name="status" class="input w-40" bind:value={editStatus}>
+                <option value="draft">Draft</option>
+                <option value="in-review">In Review</option>
+                <option value="approved">Approved</option>
+                <option value="retired">Retired</option>
+              </select>
+            </div>
+            <div class="flex-1 min-w-[220px]">
+              <label for="policy-owner" class="mb-1 block text-xs font-medium text-slate-700">Owner email</label>
+              <input id="policy-owner" name="ownerEmail" type="email" class="input" value={data.policy.ownerEmail ?? ''} placeholder="Leave blank to keep current owner" maxlength="256" />
+            </div>
           </div>
           <div>
             <label for="policy-content" class="mb-1 block text-xs font-medium text-slate-700">Content (Markdown)</label>

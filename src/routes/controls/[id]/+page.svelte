@@ -6,14 +6,20 @@
   import AgentTypeBadge from '$lib/components/AgentTypeBadge.svelte';
   import Sparkline from '$lib/components/Sparkline.svelte';
   import { addToast } from '$lib/stores/toast';
-  import { Bot, Play, ShieldCheck, Calendar, Activity, Layers, AlertCircle, FileLock2, Pencil, Plus } from 'lucide-svelte';
+  import { Bot, Play, ShieldCheck, Calendar, Activity, Layers, AlertCircle, FileLock2, Pencil, Plus, UserCircle2 } from 'lucide-svelte';
   import type { ControlTestResult, ControlMapping, ControlTest, ControlException } from '$lib/data/types';
   import { enhance } from '$app/forms';
 
   export let data;
-  export let form: { editSuccess?: boolean; editError?: string; excRequested?: boolean; excError?: string } | null = null;
+  export let form: { editSuccess?: boolean; editError?: string; ownerEmail?: string; excRequested?: boolean; excError?: string } | null = null;
 
-  $: if (form?.editSuccess) { addToast('success', 'Control updated.'); showEditForm = false; }
+  $: if (form?.editSuccess) {
+    addToast('success', 'Control updated.');
+    showEditForm = false;
+    if (form.ownerEmail) {
+      data = { ...data, control: { ...data.control, ownerEmail: form.ownerEmail } };
+    }
+  }
   $: if (form?.editError) addToast('error', form.editError);
   $: if (form?.excRequested) { addToast('success', 'Exception request submitted.'); showExcForm = false; }
   $: if (form?.excError) addToast('error', form.excError);
@@ -136,6 +142,10 @@
             <option value="false">No</option>
           </select>
         </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Owner email</span>
+          <input name="ownerEmail" type="email" class="input" value={data.control.ownerEmail ?? ''} placeholder="Leave blank to keep current owner" maxlength="256" />
+        </label>
       </div>
       <div class="flex gap-2">
         <button type="submit" class="btn-primary">Save changes</button>
@@ -158,6 +168,14 @@
           <span class="flex items-center gap-1"><Calendar class="h-3 w-3" /> {data.control.frequency}</span>
           <span class="flex items-center gap-1"><Layers class="h-3 w-3" /> {data.control.family.join(' / ')}</span>
           <span class="flex items-center gap-1"><Activity class="h-3 w-3" /> maturity: <span class="font-medium text-slate-700">{data.control.maturity}</span></span>
+          <span class="flex items-center gap-1">
+            <UserCircle2 class="h-3 w-3" />
+            {#if data.control.ownerEmail}
+              <span class="font-medium text-slate-700">{data.control.ownerEmail}</span>
+            {:else}
+              <span class="italic text-slate-400">no owner assigned</span>
+            {/if}
+          </span>
         </div>
       </div>
     </div>

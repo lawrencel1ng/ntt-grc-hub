@@ -47,6 +47,7 @@ export const actions: Actions = {
     const frequency = String(fd.get('frequency') ?? '').trim();
     const maturity = String(fd.get('maturity') ?? '').trim();
     const automated = fd.get('automated') === 'true';
+    const ownerEmail = String(fd.get('ownerEmail') ?? '').trim().toLowerCase() || null;
 
     if (!title) return fail(400, { editError: 'Title is required.' });
     if (title.length > 256) return fail(400, { editError: 'Title must be 256 characters or fewer.' });
@@ -54,14 +55,28 @@ export const actions: Actions = {
     if (!VALID_CONTROL_TYPES.includes(type as typeof VALID_CONTROL_TYPES[number])) return fail(400, { editError: 'Invalid control type.' });
     if (!VALID_MATURITIES.includes(maturity as typeof VALID_MATURITIES[number])) return fail(400, { editError: 'Invalid maturity level.' });
     if (frequency.length > 64) return fail(400, { editError: 'Frequency must be 64 characters or fewer.' });
+    if (ownerEmail && ownerEmail.length > 256) return fail(400, { editError: 'Owner email must be 256 characters or fewer.' });
 
     const pool = getPool();
+
+    // Resolve owner email → user id within the same tenant
+    let ownerUserId: string | null = null;
+    if (ownerEmail) {
+      const userRow = await pool.query<{ id: string }>(
+        `SELECT id FROM platform.users WHERE email = $1 AND tenant_id = $2 AND status = 'active' LIMIT 1`,
+        [ownerEmail, locals.user.tenantId]
+      );
+      if (!userRow.rows.length) return fail(400, { editError: `No active user found with email "${ownerEmail}" in your tenant.` });
+      ownerUserId = userRow.rows[0].id;
+    }
+
     const { rowCount } = await pool.query(
       `UPDATE control.library
        SET title = $1, description = $2, type = $3::control.type,
-           frequency = $4, maturity = $5::control.maturity, automated = $6
-       WHERE id = $7::uuid AND tenant_id = $8`,
-      [title, description, type, frequency, maturity, automated, params.id, locals.user.tenantId]
+           frequency = $4, maturity = $5::control.maturity, automated = $6,
+           owner_user_id = COALESCE($7::uuid, owner_user_id)
+       WHERE id = $8::uuid AND tenant_id = $9`,
+      [title, description, type, frequency, maturity, automated, ownerUserId, params.id, locals.user.tenantId]
     );
     if (!rowCount) return fail(404, { editError: 'Control not found or access denied.' });
 
@@ -72,10 +87,10 @@ export const actions: Actions = {
       action: 'control.updated',
       target: `control:${params.id}`,
       result: 'success',
-      metadata: { title, type, maturity }
+      metadata: { title, type, maturity, ownerEmail }
     });
 
-    return { editSuccess: true };
+    return { editSuccess: true, ownerEmail: ownerEmail ?? undefined };
   },
 
   requestException: async ({ params, request, locals }) => {

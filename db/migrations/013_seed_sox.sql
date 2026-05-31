@@ -66,7 +66,7 @@ SELECT
   'Walkthrough of ' || i.title || ' — evidence obtained from ' ||
     CASE i.control_type
       WHEN 'automated'    THEN 'system logs and configuration exports'
-      WHEN 'it-dependent' THEN 'system outputs and manual confirmation'
+      WHEN 'itdm'         THEN 'system outputs and manual confirmation'
       ELSE 'management review and sign-off documentation'
     END,
   i.tested_at,

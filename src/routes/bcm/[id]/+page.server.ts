@@ -27,7 +27,53 @@ export const load: PageServerLoad = async ({ params, locals }) => {
   return { plan, deps, tests, escalationContacts, linkedRisks };
 };
 
+const VALID_DEP_KINDS = ['people', 'tech', 'site', 'vendor'] as const;
+const VALID_CRITICALITIES = ['critical', 'high', 'medium', 'low'] as const;
+
 export const actions: Actions = {
+  addDependency: async ({ params, request, locals }) => {
+    if (!locals.user) return fail(401, { depError: 'Not authenticated' });
+    if (!isPgMode()) return fail(400, { depError: 'Requires Postgres mode' });
+
+    const fd = await request.formData();
+    const dependencyKind = String(fd.get('dependencyKind') ?? '').trim();
+    const name = String(fd.get('name') ?? '').trim();
+    const criticality = String(fd.get('criticality') ?? '').trim();
+    const downtimeToleranceHours = parseInt(String(fd.get('downtimeToleranceHours') ?? ''), 10);
+
+    if (!VALID_DEP_KINDS.includes(dependencyKind as typeof VALID_DEP_KINDS[number])) return fail(400, { depError: 'Invalid dependency kind.' });
+    if (!name || name.length > 256) return fail(400, { depError: 'Name is required (max 256 chars).' });
+    if (!VALID_CRITICALITIES.includes(criticality as typeof VALID_CRITICALITIES[number])) return fail(400, { depError: 'Invalid criticality.' });
+    if (isNaN(downtimeToleranceHours) || downtimeToleranceHours < 0 || downtimeToleranceHours > 8760) {
+      return fail(400, { depError: 'Downtime tolerance must be 0–8760 hours.' });
+    }
+
+    const pool = getPool();
+    const check = await pool.query<{ id: string }>(
+      `SELECT id FROM bcm.plans WHERE id = $1::uuid AND tenant_id = $2 LIMIT 1`,
+      [params.id, locals.user.tenantId]
+    );
+    if (!check.rows.length) return fail(404, { depError: 'BCM plan not found or access denied.' });
+
+    await pool.query(
+      `INSERT INTO bcm.bias (tenant_id, plan_id, dependency_kind, name, criticality, downtime_tolerance_hours)
+       VALUES ($1, $2::uuid, $3, $4, $5::vendor.criticality, $6)`,
+      [locals.user.tenantId, params.id, dependencyKind, name, criticality, downtimeToleranceHours]
+    );
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: 'bcm.dependency.added',
+      target: `bcm:${params.id}`,
+      result: 'success',
+      metadata: { dependencyKind, name, criticality, downtimeToleranceHours }
+    });
+
+    return { depAdded: true };
+  },
+
   updateBCMPlan: async ({ params, request, locals }) => {
     if (!locals.user) return fail(401, { editError: 'Not authenticated' });
     if (!isPgMode()) return fail(400, { editError: 'Requires Postgres mode' });

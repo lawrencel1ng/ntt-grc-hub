@@ -4,7 +4,7 @@
   import { addToast } from '$lib/stores/toast';
   import {
     LifeBuoy, Clock, Calendar, BookOpen, Network, History as HistoryIcon, AlertTriangle,
-    Users as UsersIcon, Server, MapPin, Building, Pencil
+    Users as UsersIcon, Server, MapPin, Building, Pencil, Plus
   } from 'lucide-svelte';
   import type {
     BCMPlan, BCMDependency, BCMTest, BCMTestKind, BCMTestResult, BCMDependencyKind,
@@ -13,12 +13,15 @@
   import { enhance } from '$app/forms';
 
   export let data;
-  export let form: { editSuccess?: boolean; editError?: string } | null = null;
+  export let form: { editSuccess?: boolean; editError?: string; depAdded?: boolean; depError?: string } | null = null;
 
   $: if (form?.editSuccess) { addToast('success', 'BCM plan updated.'); showEditForm = false; }
   $: if (form?.editError) addToast('error', form.editError);
+  $: if (form?.depAdded) { addToast('success', 'Dependency added.'); showDepForm = false; }
+  $: if (form?.depError) addToast('error', form.depError);
 
   let showEditForm = false;
+  let showDepForm = false;
 
   // ---------- Tabs ----------
   type Tab = 'overview' | 'bia' | 'tests' | 'risks';
@@ -281,6 +284,49 @@
 
     <!-- BIA Dependencies -->
     {:else if tab === 'bia'}
+      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+        <span class="text-xs text-slate-500">{data.deps.length} dependenc{data.deps.length !== 1 ? 'ies' : 'y'} mapped</span>
+        <button class="btn-ghost text-xs" on:click={() => (showDepForm = !showDepForm)}>
+          <Plus class="h-3.5 w-3.5" />
+          Add dependency
+        </button>
+      </div>
+      {#if showDepForm}
+        <div class="border-b border-slate-100 bg-slate-50 px-5 py-4">
+          <form method="POST" action="?/addDependency" use:enhance class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Kind</span>
+              <select name="dependencyKind" class="input" required>
+                <option value="people">People</option>
+                <option value="tech">Technology</option>
+                <option value="site">Site</option>
+                <option value="vendor">Vendor</option>
+              </select>
+            </label>
+            <label class="block sm:col-span-1">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Name</span>
+              <input name="name" type="text" class="input" placeholder="Core banking system" required maxlength="256" />
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Criticality</span>
+              <select name="criticality" class="input" required>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Downtime tolerance (hours)</span>
+              <input name="downtimeToleranceHours" type="number" min="0" max="8760" class="input" placeholder="4" required />
+            </label>
+            <div class="flex gap-2 sm:col-span-2 lg:col-span-4">
+              <button type="submit" class="btn-primary">Add</button>
+              <button type="button" class="btn-secondary" on:click={() => (showDepForm = false)}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      {/if}
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-100 text-sm">
           <thead class="thead">

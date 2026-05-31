@@ -13,14 +13,18 @@
     addToast('success', `Action marked ${form.status}.`);
   }
   $: if (form?.actionError) addToast('error', form.actionError);
-  $: if (form?.editSuccess) { addToast('success', 'Issue updated.'); showEditForm = false; }
+  $: if (form?.editSuccess) {
+    addToast('success', 'Issue updated.');
+    showEditForm = false;
+    if (form.ownerEmail) data = { ...data, issue: { ...data.issue, ownerEmail: form.ownerEmail } };
+  }
   $: if (form?.editError) addToast('error', form.editError);
 
   export let data;
   export let form: {
     statusUpdated?: boolean; newStatus?: string; statusError?: string;
     actionAdded?: boolean; actionUpdated?: boolean; actionId?: string; status?: string; actionError?: string;
-    editSuccess?: boolean; editError?: string;
+    editSuccess?: boolean; editError?: string; ownerEmail?: string;
   } | null = null;
 
   let showEditForm = false;
@@ -152,6 +156,10 @@
         <label class="block">
           <span class="mb-1 block text-xs font-medium text-slate-700">Due Date</span>
           <input name="dueAt" type="date" class="input" value={data.issue.dueAt ? data.issue.dueAt.slice(0, 10) : ''} />
+        </label>
+        <label class="block sm:col-span-2">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Owner email</span>
+          <input name="ownerEmail" type="email" class="input" value={data.issue.ownerEmail ?? ''} placeholder="Leave blank to keep current owner" maxlength="256" />
         </label>
       </div>
       <div class="flex gap-2">

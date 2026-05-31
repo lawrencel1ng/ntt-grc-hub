@@ -499,11 +499,13 @@ export async function getComplianceGaps(frameworkId: string, tenantId?: string):
             g.requirement_id AS "requirementId",
             r.code AS "requirementCode", r.title AS "requirementTitle",
             g.severity::text AS severity, g.remediation_plan AS "remediationPlan",
-            g.target_date AS "targetDate", g.owner_user_id AS "ownerUserId",
+            g.target_date AS "targetDate", g.owner_user_id::text AS "ownerUserId",
+            u.email AS "ownerEmail",
             g.created_at AS "createdAt"
      FROM compliance.gaps g
      JOIN compliance.assessments a ON a.id = g.assessment_id
      JOIN compliance.requirements r ON r.id = g.requirement_id
+     LEFT JOIN platform.users u ON u.id = g.owner_user_id
      WHERE a.framework_id = $1${tenantClause}
      ORDER BY g.created_at DESC LIMIT 2000`, params
   );

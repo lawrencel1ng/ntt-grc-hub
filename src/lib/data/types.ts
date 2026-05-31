@@ -1034,6 +1034,7 @@ export interface ComplianceGap {
   remediationPlan?: string;
   targetDate?: string;
   ownerUserId?: string;
+  ownerEmail?: string;
   createdAt: string;
 }
 

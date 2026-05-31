@@ -75,7 +75,7 @@
     if (cur === null) return null;
     const baseYear = parseInt(t.baselinePeriod, 10) || 2024;
     const targetYear = parseInt(t.targetPeriod, 10) || 2030;
-    const elapsedFrac = (2026 - baseYear) / Math.max(1, targetYear - baseYear);
+    const elapsedFrac = (new Date().getFullYear() - baseYear) / Math.max(1, targetYear - baseYear);
     const valueFrac = (t.baselineValue - cur) / Math.max(1, (t.baselineValue - t.targetValue));
     return valueFrac >= elapsedFrac * 0.85;
   }

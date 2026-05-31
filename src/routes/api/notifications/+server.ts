@@ -21,6 +21,8 @@ export const GET: RequestHandler = async ({ locals }) => {
   const pool = getPool();
   const tenantId = locals.user.tenantId;
 
+  const isAll = tenantId === '__all__';
+
   const [regRows, ctRows, qRows] = await Promise.all([
     pool.query<{ id: string; title: string; severity: string; published_at: string }>(
       `SELECT id::text, title, severity::text, published_at::text
@@ -34,23 +36,23 @@ export const GET: RequestHandler = async ({ locals }) => {
       `SELECT tr.control_id, cl.code, MAX(tr.ran_at)::text AS ran_at, COUNT(*)::int AS n
        FROM control.test_runs tr
        JOIN control.library cl ON cl.id = tr.control_id
-       WHERE tr.tenant_id = $1
+       WHERE ($1 OR tr.tenant_id = $2)
          AND tr.result IN ('fail','partial')
          AND tr.ran_at >= now() - interval '7 days'
        GROUP BY tr.control_id, cl.code
        ORDER BY ran_at DESC LIMIT 3`,
-      [tenantId]
+      [isAll, tenantId]
     ).catch(() => ({ rows: [] as never[] })),
 
     pool.query<{ vendor_id: string; vendor_name: string; template: string; completed_at: string }>(
       `SELECT q.vendor_id::text, v.name AS vendor_name, q.template, q.completed_at::text
        FROM vendor.questionnaires q
        JOIN vendor.vendors v ON v.id = q.vendor_id
-       WHERE q.tenant_id = $1
+       WHERE ($1 OR q.tenant_id = $2)
          AND q.status = 'complete'
          AND q.completed_at >= now() - interval '14 days'
        ORDER BY q.completed_at DESC LIMIT 3`,
-      [tenantId]
+      [isAll, tenantId]
     ).catch(() => ({ rows: [] as never[] }))
   ]);
 

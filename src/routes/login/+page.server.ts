@@ -2,46 +2,60 @@
 import type { Actions, PageServerLoad } from './$types';
 import { redirect, fail } from '@sveltejs/kit';
 import { verifyCredentials, createSession, SESSION_COOKIE, SESSION_TTL_DAYS, writeAuditLog } from '$lib/server/auth';
-import { isPgMode } from '$lib/server/pg';
+import { isPgMode, getPool } from '$lib/server/pg';
 import { DEMO_USER_COOKIE, findDemoLogin } from '$lib/data/demo-logins';
 import { getNavBadgeCounts } from '$lib/server/data';
 
 const TENANT_COOKIE = 'grc_tenant';
 const DEMO_COOKIE_MAX_AGE = 8 * 60 * 60; // 8h
 
-// ── In-memory rate limiter ─────────────────────────────────────────────────
-// Keyed by IP. 5 failures within a 15-minute window triggers a 15-minute
-// lockout. The Map is module-level so it persists across requests in the
-// same server process. In a multi-instance deployment, use Redis instead.
 const MAX_ATTEMPTS = 5;
-const WINDOW_MS = 15 * 60 * 1000;
-interface RateEntry { count: number; windowStart: number; lockedUntil: number }
-const loginAttempts = new Map<string, RateEntry>();
+const WINDOW_MINUTES = 15;
 
-function checkRateLimit(ip: string): { blocked: boolean; retryAfterSecs: number } {
-  const now = Date.now();
-  const entry = loginAttempts.get(ip) ?? { count: 0, windowStart: now, lockedUntil: 0 };
-  if (entry.lockedUntil > now) {
-    return { blocked: true, retryAfterSecs: Math.ceil((entry.lockedUntil - now) / 1000) };
+// DB-backed rate limiter — survives restarts and works across multiple instances.
+// Falls back gracefully if the table doesn't exist yet.
+async function checkLoginRateLimit(ip: string): Promise<{ blocked: boolean; retryAfterSecs: number }> {
+  if (!isPgMode()) return { blocked: false, retryAfterSecs: 0 };
+  try {
+    const pool = getPool();
+    const { rows } = await pool.query<{ cnt: number; oldest: string }>(
+      `SELECT COUNT(*)::int AS cnt, MIN(attempted_at)::text AS oldest
+       FROM platform.login_attempts
+       WHERE ip_address = $1::inet
+         AND attempted_at > now() - interval '${WINDOW_MINUTES} minutes'`,
+      [ip]
+    );
+    const cnt = rows[0]?.cnt ?? 0;
+    if (cnt >= MAX_ATTEMPTS) {
+      const oldestMs = rows[0]?.oldest ? new Date(rows[0].oldest).getTime() : Date.now();
+      const retryAfterSecs = Math.max(0, Math.ceil((oldestMs + WINDOW_MINUTES * 60_000 - Date.now()) / 1000));
+      return { blocked: true, retryAfterSecs };
+    }
+    return { blocked: false, retryAfterSecs: 0 };
+  } catch {
+    return { blocked: false, retryAfterSecs: 0 };
   }
-  if (now - entry.windowStart > WINDOW_MS) {
-    entry.count = 0;
-    entry.windowStart = now;
-  }
-  return { blocked: false, retryAfterSecs: 0 };
 }
 
-function recordFailure(ip: string): void {
-  const now = Date.now();
-  const entry = loginAttempts.get(ip) ?? { count: 0, windowStart: now, lockedUntil: 0 };
-  if (now - entry.windowStart > WINDOW_MS) { entry.count = 0; entry.windowStart = now; }
-  entry.count += 1;
-  if (entry.count >= MAX_ATTEMPTS) entry.lockedUntil = now + WINDOW_MS;
-  loginAttempts.set(ip, entry);
+async function recordLoginFailure(ip: string, email: string): Promise<void> {
+  if (!isPgMode()) return;
+  try {
+    const pool = getPool();
+    await pool.query(
+      `INSERT INTO platform.login_attempts (ip_address, email) VALUES ($1::inet, $2)`,
+      [ip, email]
+    );
+    // Best-effort cleanup of old rows (fire and forget)
+    pool.query(`SELECT platform.purge_old_login_attempts()`).catch(() => {});
+  } catch { /* ignore */ }
 }
 
-function clearFailures(ip: string): void {
-  loginAttempts.delete(ip);
+async function clearLoginFailures(ip: string): Promise<void> {
+  if (!isPgMode()) return;
+  try {
+    const pool = getPool();
+    await pool.query(`DELETE FROM platform.login_attempts WHERE ip_address = $1::inet`, [ip]);
+  } catch { /* ignore */ }
 }
 
 function sanitiseNext(next: string | null | undefined): string {
@@ -69,7 +83,7 @@ export const actions: Actions = {
 
     const ip = getClientAddress();
     const ua = request.headers.get('user-agent') ?? '';
-    const { blocked, retryAfterSecs } = checkRateLimit(ip);
+    const { blocked, retryAfterSecs } = await checkLoginRateLimit(ip);
     if (blocked) {
       if (isPgMode()) writeAuditLog({ actorEmail: email, action: 'login.rate_limited', ip, ua, result: 'denied' });
       return fail(429, {
@@ -83,7 +97,7 @@ export const actions: Actions = {
     if (!isPgMode()) {
       const demo = findDemoLogin(email);
       if (demo && password === demo.password) {
-        clearFailures(ip);
+        await clearLoginFailures(ip);
         cookies.set(DEMO_USER_COOKIE, email.toLowerCase(), {
           path: '/', httpOnly: true, sameSite: 'lax',
           maxAge: DEMO_COOKIE_MAX_AGE,
@@ -101,11 +115,11 @@ export const actions: Actions = {
     // ── Postgres mode (real bcrypt) ─────────────────────────────────────
     const user = await verifyCredentials(email, password);
     if (!user) {
-      recordFailure(ip);
+      await recordLoginFailure(ip, email);
       if (isPgMode()) writeAuditLog({ actorEmail: email, action: 'login.failed', ip, ua, result: 'failure' });
       return fail(401, { error: 'Invalid email or password.', email });
     }
-    clearFailures(ip);
+    await clearLoginFailures(ip);
     writeAuditLog({ userId: user.id, actorEmail: user.email, tenantId: user.tenantId, action: 'login.success', ip, ua, result: 'success' });
 
     const token = await createSession(user.id, ip, ua);

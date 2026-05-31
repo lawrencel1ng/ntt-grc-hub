@@ -234,6 +234,19 @@ CREATE INDEX ON platform.audit_log (tenant_id, ts DESC);
 CREATE INDEX ON platform.audit_log (actor_email);
 CREATE INDEX ON platform.audit_log (action);
 
+CREATE TABLE platform.login_attempts (
+    id           BIGSERIAL PRIMARY KEY,
+    ip_address   INET NOT NULL,
+    email        TEXT,
+    attempted_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON platform.login_attempts (ip_address, attempted_at DESC);
+
+CREATE OR REPLACE FUNCTION platform.purge_old_login_attempts() RETURNS void
+    LANGUAGE sql AS $$
+    DELETE FROM platform.login_attempts WHERE attempted_at < now() - interval '1 hour';
+$$;
+
 -- =====================================================================
 -- 3. risk.*
 -- =====================================================================

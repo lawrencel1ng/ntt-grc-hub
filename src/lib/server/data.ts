@@ -437,15 +437,20 @@ export async function getRiskHistory(riskId: string): Promise<RiskHistoryEntry[]
 
 export async function getAppetiteStatements(tenantId?: string): Promise<AppetiteStatement[]> {
   if (!isPgMode()) return mock.appetiteStatementsForTenant(tenantId ?? 't_maybank');
-  const where = tenantId ? 'WHERE tenant_id = $1' : '';
-  const params = tenantId ? [tenantId] : [];
-  const rows = await safeQuery<AppetiteStatement>(
-    `SELECT id::text AS id, tenant_id AS "tenantId", category, statement,
+  if (tenantId) {
+    return safeQuery<AppetiteStatement>(
+      `SELECT id::text AS id, tenant_id AS "tenantId", category, statement,
+              threshold_sgd AS "thresholdSgd", severity_cap::text AS "severityCap"
+       FROM risk.appetite_statements WHERE tenant_id = $1 ORDER BY category LIMIT 200`,
+      [tenantId]
+    );
+  }
+  // All-tenant: deduplicate by category — pick one representative statement per category.
+  return safeQuery<AppetiteStatement>(
+    `SELECT DISTINCT ON (category) id::text AS id, tenant_id AS "tenantId", category, statement,
             threshold_sgd AS "thresholdSgd", severity_cap::text AS "severityCap"
-     FROM risk.appetite_statements ${where} ORDER BY category LIMIT 200`,
-    params
+     FROM risk.appetite_statements ORDER BY category, threshold_sgd DESC LIMIT 200`
   );
-  return rows;
 }
 
 // =====================================================================
@@ -592,14 +597,25 @@ function mockFrameworkScores(tenantId?: string): FrameworkScore[] {
 
 export async function getFrameworkScores(tenantId?: string): Promise<FrameworkScore[]> {
   if (!isPgMode()) return mockFrameworkScores(tenantId);
-  const where = tenantId ? 'WHERE tenant_id = $1' : '';
-  const params = tenantId ? [tenantId] : [];
-  const rows = await safeQuery<FrameworkScore>(
-    `SELECT tenant_id AS "tenantId", framework_id AS "frameworkId", name, version, region,
-            status::text AS status, score, next_due_at AS "nextDueAt"
-     FROM compliance.framework_score ${where} ORDER BY name LIMIT 500`, params
+  if (tenantId) {
+    return safeQuery<FrameworkScore>(
+      `SELECT tenant_id AS "tenantId", framework_id AS "frameworkId", name, version, region,
+              status::text AS status, score, next_due_at AS "nextDueAt"
+       FROM compliance.framework_score WHERE tenant_id = $1 ORDER BY name LIMIT 500`,
+      [tenantId]
+    );
+  }
+  // All-tenant: one row per framework with average score across tenants.
+  return safeQuery<FrameworkScore>(
+    `SELECT '__all__' AS "tenantId", framework_id AS "frameworkId",
+            MAX(name) AS name, MAX(version) AS version, MAX(region) AS region,
+            'in-progress'::text AS status,
+            ROUND(AVG(score)::numeric, 1)::float AS score,
+            MAX(next_due_at) AS "nextDueAt"
+     FROM compliance.framework_score
+     GROUP BY framework_id
+     ORDER BY name LIMIT 500`
   );
-  return rows;
 }
 
 // =====================================================================
@@ -1190,16 +1206,25 @@ export async function getFourthParties(tenantId?: string, vendorId?: string): Pr
 
 export async function getConcentrations(tenantId?: string): Promise<Concentration[]> {
   if (!isPgMode()) return tenantId ? mock.concentrationsForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.concentrationsForTenant(t));
-  const where = tenantId ? 'WHERE tenant_id = $1' : '';
-  const params = tenantId ? [tenantId] : [];
-  const rows = await safeQuery<Concentration>(
-    `SELECT id::text AS id, tenant_id AS "tenantId", dimension, key,
-            vendor_count AS "vendorCount", exposure_sgd AS "exposureSgd"
-     FROM vendor.concentrations ${where}
-     ORDER BY exposure_sgd DESC
-     LIMIT 1000`, params
+  if (tenantId) {
+    return safeQuery<Concentration>(
+      `SELECT id::text AS id, tenant_id AS "tenantId", dimension, key,
+              vendor_count AS "vendorCount", exposure_sgd AS "exposureSgd"
+       FROM vendor.concentrations WHERE tenant_id = $1
+       ORDER BY exposure_sgd DESC LIMIT 1000`,
+      [tenantId]
+    );
+  }
+  // All-tenant: roll up concentrations by (dimension, key) across all tenants.
+  return safeQuery<Concentration>(
+    `SELECT md5(dimension || '|' || key) AS id, '__all__' AS "tenantId",
+            dimension, key,
+            SUM(vendor_count)::int AS "vendorCount",
+            SUM(exposure_sgd) AS "exposureSgd"
+     FROM vendor.concentrations
+     GROUP BY dimension, key
+     ORDER BY SUM(exposure_sgd) DESC LIMIT 1000`
   );
-  return rows;
 }
 
 // =====================================================================
@@ -2181,20 +2206,35 @@ export async function getHumanRiskUser(id: string): Promise<HumanRiskUser | unde
 
 export async function getHumanRiskDepartments(tenantId?: string): Promise<HumanRiskDepartment[]> {
   if (!isPgMode()) return mock.humanRiskDepartments(tenantId ?? 't_maybank');
-  const where = tenantId ? 'WHERE tenant_id = $1' : '';
-  const params = tenantId ? [tenantId] : [];
-  const rows = await safeQuery<HumanRiskDepartment>(
-    `SELECT tenant_id AS "tenantId", department,
-            headcount,
-            avg_risk_score AS "avgRiskScore",
-            risk_level AS "riskLevel",
-            phish_prone_pct AS "phishPronePct",
-            training_completion_pct AS "trainingCompletionPct",
-            high_risk_users AS "highRiskUsers"
-       FROM human_risk.departments ${where} ORDER BY avg_risk_score DESC`,
-    params
+  if (tenantId) {
+    return safeQuery<HumanRiskDepartment>(
+      `SELECT tenant_id AS "tenantId", department, headcount,
+              avg_risk_score AS "avgRiskScore", risk_level AS "riskLevel",
+              phish_prone_pct AS "phishPronePct",
+              training_completion_pct AS "trainingCompletionPct",
+              high_risk_users AS "highRiskUsers"
+       FROM human_risk.departments WHERE tenant_id = $1 ORDER BY avg_risk_score DESC`,
+      [tenantId]
+    );
+  }
+  // All-tenant: aggregate departments across tenants with headcount-weighted averages.
+  return safeQuery<HumanRiskDepartment>(
+    `SELECT '__all__' AS "tenantId", department,
+            SUM(headcount)::int AS headcount,
+            ROUND((SUM(avg_risk_score * headcount) / NULLIF(SUM(headcount), 0))::numeric, 1)::float AS "avgRiskScore",
+            CASE
+              WHEN SUM(avg_risk_score * headcount) / NULLIF(SUM(headcount), 0) >= 75 THEN 'critical'
+              WHEN SUM(avg_risk_score * headcount) / NULLIF(SUM(headcount), 0) >= 50 THEN 'high'
+              WHEN SUM(avg_risk_score * headcount) / NULLIF(SUM(headcount), 0) >= 25 THEN 'medium'
+              ELSE 'low'
+            END AS "riskLevel",
+            ROUND((SUM(phish_prone_pct * headcount) / NULLIF(SUM(headcount), 0))::numeric, 1)::float AS "phishPronePct",
+            ROUND((SUM(training_completion_pct * headcount) / NULLIF(SUM(headcount), 0))::numeric, 1)::float AS "trainingCompletionPct",
+            SUM(high_risk_users)::int AS "highRiskUsers"
+     FROM human_risk.departments
+     GROUP BY department
+     ORDER BY SUM(avg_risk_score * headcount) / NULLIF(SUM(headcount), 0) DESC`
   );
-  return rows;
 }
 
 export async function getPhishingCampaigns(tenantId?: string): Promise<PhishingCampaign[]> {

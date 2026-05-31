@@ -154,7 +154,7 @@
           </label>
           <label class="form-label">
             Framework (optional)
-            <input name="frameworkId" type="text" placeholder="e.g. MAS TRM" class="input mt-1 w-full" />
+            <input name="frameworkId" type="text" placeholder="e.g. MAS TRM" class="input mt-1 w-full" maxlength="128" />
           </label>
           <label class="form-label">
             Gaps Opened

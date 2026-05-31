@@ -46,7 +46,7 @@ export const POST: RequestHandler = async ({ params, locals }) => {
     hallucination:   isHighRisk ? 'critical' : 'high',
     drift:           isHighRisk ? 'high' : 'medium',
     explainability:  isHighRisk ? 'high' : 'medium',
-    privacy:         model.kind === 'generative' ? 'high' : severity
+    privacy:         model.kind === 'llm' ? 'high' : severity
   };
 
   // Upsert risk entries with per-type mitigations

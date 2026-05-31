@@ -19,8 +19,6 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
   const action = body.action;
   if (action !== 'sync' && action !== 'reconnect') throw error(400, 'action must be sync or reconnect');
 
-  const now = new Date().toISOString();
-
   const pool = getPool();
 
   // Verify the connector belongs to this user's tenant (non-admin users are tenant-scoped).
@@ -30,11 +28,14 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
   );
   if (!check.rows.length) throw error(404, 'Connector not found');
 
+  let updatedRow: { last_sync_at: string; status: string };
   if (action === 'sync') {
-    await pool.query(
-      `UPDATE integration.connectors SET last_sync_at = now() WHERE id = $1`,
+    const { rows } = await pool.query<{ last_sync_at: string; status: string }>(
+      `UPDATE integration.connectors SET last_sync_at = now()
+       WHERE id = $1 RETURNING last_sync_at::text, status::text`,
       [params.id]
     );
+    updatedRow = rows[0];
     // Record a sync job entry
     await pool.query(
       `INSERT INTO integration.sync_jobs (tenant_id, connector_id, started_at, ended_at, status, records_ingested)
@@ -43,12 +44,14 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
     );
     writeAuditLog({ userId: locals.user.id, actorEmail: locals.user.email, tenantId: locals.user.tenantId, action: 'connector.synced', target: `connector:${params.id}`, result: 'success' });
   } else {
-    await pool.query(
-      `UPDATE integration.connectors SET status = 'connected', last_sync_at = now() WHERE id = $1`,
+    const { rows } = await pool.query<{ last_sync_at: string; status: string }>(
+      `UPDATE integration.connectors SET status = 'connected', last_sync_at = now()
+       WHERE id = $1 RETURNING last_sync_at::text, status::text`,
       [params.id]
     );
+    updatedRow = rows[0];
     writeAuditLog({ userId: locals.user.id, actorEmail: locals.user.email, tenantId: locals.user.tenantId, action: 'connector.reconnected', target: `connector:${params.id}`, result: 'success' });
   }
 
-  return json({ ok: true, lastSyncAt: now, status: 'connected' });
+  return json({ ok: true, lastSyncAt: updatedRow.last_sync_at, status: updatedRow.status });
 };

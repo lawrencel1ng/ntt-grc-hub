@@ -64,11 +64,11 @@
     <form method="POST" action="?/createWorkflow" use:enhance class="flex flex-wrap items-end gap-3">
       <label class="block flex-1 min-w-[200px]">
         <span class="mb-1 block text-xs font-medium text-slate-700">Name</span>
-        <input name="name" type="text" class="input" placeholder="Evidence collection — MAS TRM" required />
+        <input name="name" type="text" class="input" placeholder="Evidence collection — MAS TRM" required maxlength="256" />
       </label>
       <label class="block flex-1 min-w-[240px]">
         <span class="mb-1 block text-xs font-medium text-slate-700">Description (optional)</span>
-        <input name="description" type="text" class="input" placeholder="Describe what this workflow does…" />
+        <input name="description" type="text" class="input" placeholder="Describe what this workflow does…" maxlength="2048" />
       </label>
       <div class="flex gap-2">
         <button type="submit" class="btn-primary">Create</button>

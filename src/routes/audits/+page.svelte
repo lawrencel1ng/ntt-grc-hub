@@ -67,7 +67,7 @@
     <form method="POST" action="?/createEngagement" use:enhance class="flex flex-wrap items-end gap-3">
       <label class="block flex-1 min-w-[200px]">
         <span class="mb-1 block text-xs font-medium text-slate-700">Engagement name</span>
-        <input name="name" type="text" class="input" placeholder="MAS TRM Annual Review 2026" required />
+        <input name="name" type="text" class="input" placeholder="MAS TRM Annual Review 2026" required maxlength="256" />
       </label>
       <label class="block">
         <span class="mb-1 block text-xs font-medium text-slate-700">Type</span>
@@ -80,7 +80,7 @@
       </label>
       <label class="block flex-1 min-w-[160px]">
         <span class="mb-1 block text-xs font-medium text-slate-700">Lead auditor</span>
-        <input name="leadAuditor" type="text" class="input" placeholder="Auditor name or firm" required />
+        <input name="leadAuditor" type="text" class="input" placeholder="Auditor name or firm" required maxlength="256" />
       </label>
       <label class="block">
         <span class="mb-1 block text-xs font-medium text-slate-700">Opening date</span>
@@ -88,7 +88,7 @@
       </label>
       <label class="block flex-1 min-w-[200px]">
         <span class="mb-1 block text-xs font-medium text-slate-700">Scope (optional)</span>
-        <input name="scope" type="text" class="input" placeholder="Scope of engagement…" />
+        <input name="scope" type="text" class="input" placeholder="Scope of engagement…" maxlength="2048" />
       </label>
       <div class="flex gap-2">
         <button type="submit" class="btn-primary">Create</button>

@@ -197,11 +197,11 @@
     <form method="POST" action="?/createVendor" use:enhance class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <div class="flex flex-col gap-1">
         <label for="vendor-name" class="text-xs font-medium text-slate-600">Name <span class="text-rose-500">*</span></label>
-        <input id="vendor-name" name="name" type="text" required class="input" placeholder="Acme Corp" />
+        <input id="vendor-name" name="name" type="text" required maxlength="256" class="input" placeholder="Acme Corp" />
       </div>
       <div class="flex flex-col gap-1">
         <label for="vendor-category" class="text-xs font-medium text-slate-600">Category</label>
-        <input id="vendor-category" name="category" type="text" class="input" placeholder="e.g. Cloud, SaaS, Professional Services" />
+        <input id="vendor-category" name="category" type="text" maxlength="128" class="input" placeholder="e.g. Cloud, SaaS, Professional Services" />
       </div>
       <div class="flex flex-col gap-1">
         <label for="vendor-tier" class="text-xs font-medium text-slate-600">Tier</label>
@@ -223,11 +223,11 @@
       </div>
       <div class="flex flex-col gap-1">
         <label for="vendor-hq" class="text-xs font-medium text-slate-600">HQ Country</label>
-        <input id="vendor-hq" name="hqCountry" type="text" class="input" placeholder="SG" />
+        <input id="vendor-hq" name="hqCountry" type="text" maxlength="128" class="input" placeholder="SG" />
       </div>
       <div class="flex flex-col gap-1">
         <label for="vendor-email" class="text-xs font-medium text-slate-600">Primary Contact Email</label>
-        <input id="vendor-email" name="primaryContactEmail" type="email" class="input" placeholder="contact@vendor.com" />
+        <input id="vendor-email" name="primaryContactEmail" type="email" maxlength="254" class="input" placeholder="contact@vendor.com" />
       </div>
       <div class="col-span-full flex items-center gap-3 pt-2">
         <button type="submit" class="btn-primary">Add Vendor</button>

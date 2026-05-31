@@ -7,6 +7,7 @@
 
 import { env } from '$env/dynamic/private';
 import { isPgMode, getPool } from './pg';
+import { callLlm, getTenantProvider } from './llm';
 import * as mock from '$lib/data/mock';
 import type {
   Tenant, Agent, AgentRun, AgentDecision, AgentFleetSummary, CostLedgerEntry, AgentTool,
@@ -2250,44 +2251,30 @@ export async function getBoardNarrative(tenantId?: string): Promise<string> {
   const hr = await getHumanRiskSummary(tenantId);
   const today = new Date().toLocaleDateString('en-SG', { month: 'long', year: 'numeric' });
 
-  const apiKey = env.ANTHROPIC_API_KEY;
-  if (apiKey) {
-    try {
-      const { default: Anthropic } = await import('@anthropic-ai/sdk');
-      const client = new Anthropic({ apiKey });
-      const metrics = [
-        `Organisation: ${name}`,
-        `Report date: ${today}`,
-        `Open critical risks: ${kpi.openCriticalRisks}`,
-        `Average compliance score: ${kpi.avgComplianceScore}/100`,
-        `Open audit findings: ${kpi.openFindings}`,
-        `Vendor risk index: ${kpi.vendorRiskIndex}/100 (higher = more risk)`,
-        `Agent FTE saved (30d): ${kpi.agentFteSaved30d} hours`,
-        `Evidence items collected (30d): ${kpi.evidenceItems30d}`,
-        hr ? [
-          `Human risk score: ${hr.orgRiskScore}/100 (${hr.riskLevel})`,
-          `Phish-prone %: ${hr.phishPronePct}% (industry: ${hr.industryPhishPronePct}%)`,
-          `Training completion: ${hr.trainingCompletionPct}%`,
-          `Human-risk ALE: S$${(hr.quant.aleSgd / 1e6).toFixed(2)}M`
-        ].join('\n') : ''
-      ].filter(Boolean).join('\n');
+  const provider = await getTenantProvider(tenantId);
+  const metrics = [
+    `Organisation: ${name}`,
+    `Report date: ${today}`,
+    `Open critical risks: ${kpi.openCriticalRisks}`,
+    `Average compliance score: ${kpi.avgComplianceScore}/100`,
+    `Open audit findings: ${kpi.openFindings}`,
+    `Vendor risk index: ${kpi.vendorRiskIndex}/100 (higher = more risk)`,
+    `Agent FTE saved (30d): ${kpi.agentFteSaved30d} hours`,
+    `Evidence items collected (30d): ${kpi.evidenceItems30d}`,
+    hr ? [
+      `Human risk score: ${hr.orgRiskScore}/100 (${hr.riskLevel})`,
+      `Phish-prone %: ${hr.phishPronePct}% (industry: ${hr.industryPhishPronePct}%)`,
+      `Training completion: ${hr.trainingCompletionPct}%`,
+      `Human-risk ALE: S$${(hr.quant.aleSgd / 1e6).toFixed(2)}M`
+    ].join('\n') : ''
+  ].filter(Boolean).join('\n');
 
-      const message = await client.messages.create({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 600,
-        messages: [{
-          role: 'user',
-          content: `You are a senior GRC analyst at NTT preparing a concise board risk pack narrative. Write 4–5 short paragraphs in a formal, data-driven tone suitable for a board risk committee. Use markdown bold for the title. Reference the exact metrics below. Focus on: (1) overall risk posture, (2) compliance, (3) third-party/vendor risk, (4) agentic AI operations ROI, and (5) human risk if data is provided. Do not invent numbers not listed below.\n\nMetrics:\n${metrics}`
-        }]
-      });
-      const text = message.content[0].type === 'text' ? message.content[0].text : '';
-      if (text.trim()) return text.trim();
-    } catch (e) {
-      console.warn('[board] LLM narrative failed, falling back to template:', (e as Error).message);
-    }
-  }
+  const system = 'You are a senior GRC analyst at NTT preparing a concise board risk pack narrative. Write in a formal, data-driven tone suitable for a board risk committee. Use markdown bold for the title. Do not invent numbers not listed in the user message.';
+  const user = `Write 4–5 short paragraphs. Focus on: (1) overall risk posture, (2) compliance, (3) third-party/vendor risk, (4) agentic AI operations ROI, and (5) human risk if data is provided.\n\nMetrics:\n${metrics}`;
+  const text = await callLlm(system, user, provider, { maxTokens: 600 });
+  if (text) return text;
 
-  // Template fallback when ANTHROPIC_API_KEY is not configured.
+  // Template fallback when no LLM key is configured.
   const hr2 = hr ? `\n\nHuman risk — the people layer — is quantified via the KnowBe4 Virtual Risk Officer integration, scoring all ${hr.headcount.toLocaleString()} staff with an organisation Human Risk Score of ${hr.orgRiskScore}/100 (${hr.riskLevel}). The phish-prone percentage stands at ${hr.phishPronePct}% vs. an industry benchmark of ${hr.industryPhishPronePct}%, with ${hr.trainingCompletionPct}% training completion. Translated through FAIR, the annualised loss expectancy is S$${(hr.quant.aleSgd / 1e6).toFixed(2)}M.` : '';
   return [
     `**${name} — Risk Pack, ${today}**`,

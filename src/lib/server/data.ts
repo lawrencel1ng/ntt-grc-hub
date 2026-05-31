@@ -1456,7 +1456,7 @@ export async function getSOXWalkthroughs(tenantId?: string) {
               WHEN w.completed_at IS NOT NULL THEN 'complete'
               ELSE 'in-progress'
             END AS status,
-            COALESCE(i.title, '') AS "conductedBy",
+            'Internal Audit' AS "conductedBy",
             COALESCE(w.completed_at, w.created_at) AS "conductedAt"
      FROM sox.walkthroughs w
      LEFT JOIN sox.itgcs i ON i.id = w.itgc_id
@@ -1887,7 +1887,7 @@ export async function getAuditLog(tenantId?: string, limit = 200): Promise<Audit
   if (tenantId) params.push(tenantId);
   return safeQuery<AuditLogEntry>(
     `SELECT id, ts, tenant_id AS "tenantId", actor_email AS "actorEmail",
-            action, target, result, prev_hash AS "prevHash", row_hash AS "rowHash",
+            action, target, result, prev_hash AS "prevHash", COALESCE(row_hash, '') AS "rowHash",
             ip_address AS "ipAddress", user_agent AS "userAgent"
      FROM platform.audit_log ${where} ORDER BY ts DESC LIMIT $1`, params
   );

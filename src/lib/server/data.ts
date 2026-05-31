@@ -1076,16 +1076,30 @@ export async function getPolicyAckCount(tenantId?: string): Promise<number> {
 export async function getVendors(tenantId?: string): Promise<Vendor[]> {
   if (!isPgMode()) return tenantId ? mock.vendorsForTenant(tenantId) : HERO_TENANTS.flatMap((t) => mock.vendorsForTenant(t));
   const sql = tenantId
-    ? `SELECT id::text AS id, tenant_id AS "tenantId", name, category,
-              tier::text AS tier, criticality::text AS criticality,
-              hq_country AS "hqCountry", primary_contact_email AS "primaryContactEmail",
-              status::text AS status, employee_count AS "employeeCount"
-       FROM vendor.vendors WHERE tenant_id = $1 ORDER BY name LIMIT 1000`
-    : `SELECT id::text AS id, tenant_id AS "tenantId", name, category,
-              tier::text AS tier, criticality::text AS criticality,
-              hq_country AS "hqCountry", primary_contact_email AS "primaryContactEmail",
-              status::text AS status, employee_count AS "employeeCount"
-       FROM vendor.vendors ORDER BY tenant_id, name LIMIT 5000`;
+    ? `SELECT v.id::text AS id, v.tenant_id AS "tenantId", v.name, v.category,
+              v.tier::text AS tier, v.criticality::text AS criticality,
+              v.hq_country AS "hqCountry", v.primary_contact_email AS "primaryContactEmail",
+              v.status::text AS status, v.employee_count AS "employeeCount",
+              COALESCE(c.total_value, 0)::float AS "contractValueSgd"
+       FROM vendor.vendors v
+       LEFT JOIN (
+         SELECT vendor_id, SUM(value_sgd) AS total_value
+         FROM vendor.contracts WHERE tenant_id = $1
+         GROUP BY vendor_id
+       ) c ON c.vendor_id = v.id
+       WHERE v.tenant_id = $1 ORDER BY v.name LIMIT 1000`
+    : `SELECT v.id::text AS id, v.tenant_id AS "tenantId", v.name, v.category,
+              v.tier::text AS tier, v.criticality::text AS criticality,
+              v.hq_country AS "hqCountry", v.primary_contact_email AS "primaryContactEmail",
+              v.status::text AS status, v.employee_count AS "employeeCount",
+              COALESCE(c.total_value, 0)::float AS "contractValueSgd"
+       FROM vendor.vendors v
+       LEFT JOIN (
+         SELECT vendor_id, SUM(value_sgd) AS total_value
+         FROM vendor.contracts
+         GROUP BY vendor_id
+       ) c ON c.vendor_id = v.id
+       ORDER BY v.tenant_id, v.name LIMIT 5000`;
   const rows = await safeQuery<Vendor>(sql, tenantId ? [tenantId] : []);
   return rows;
 }

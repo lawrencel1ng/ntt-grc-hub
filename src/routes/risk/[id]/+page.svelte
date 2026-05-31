@@ -13,7 +13,7 @@
   export let data;
   export let form: {
     statusUpdated?: boolean; newStatus?: string; statusError?: string;
-    editSuccess?: boolean; editError?: string; ownerEmail?: string;
+    editSuccess?: boolean; editError?: string; ownerEmail?: string; nextReviewAt?: string;
     treatmentCreated?: boolean; treatmentError?: string;
   } | null = null;
 
@@ -22,9 +22,10 @@
   $: if (form?.editSuccess) {
     addToast('success', 'Risk updated.');
     showEditForm = false;
-    if (form.ownerEmail) {
-      data = { ...data, risk: { ...data.risk, ownerEmail: form.ownerEmail } };
-    }
+    const patch: Record<string, unknown> = {};
+    if (form.ownerEmail) patch.ownerEmail = form.ownerEmail;
+    if (form.nextReviewAt !== undefined) patch.nextReviewAt = form.nextReviewAt;
+    if (Object.keys(patch).length) data = { ...data, risk: { ...data.risk, ...patch } };
   }
   $: if (form?.editError) addToast('error', form.editError);
   $: if (form?.treatmentCreated) { addToast('success', 'Treatment plan added.'); showTreatmentForm = false; }
@@ -256,9 +257,13 @@
             <option value="rare">Rare</option>
           </select>
         </label>
-        <label class="block sm:col-span-2">
+        <label class="block">
           <span class="mb-1 block text-xs font-medium text-slate-700">Owner email</span>
           <input name="ownerEmail" type="email" class="input" value={data.risk.ownerEmail ?? ''} placeholder="Leave blank to keep current owner" maxlength="256" />
+        </label>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Next review date</span>
+          <input name="nextReviewAt" type="date" class="input" value={data.risk.nextReviewAt ? data.risk.nextReviewAt.slice(0, 10) : ''} />
         </label>
       </div>
       <div class="flex gap-2">

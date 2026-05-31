@@ -181,7 +181,7 @@
         <div class="flex flex-wrap items-end gap-3">
           <label class="block flex-1 min-w-[160px]">
             <span class="mb-1 block text-xs font-medium text-slate-700">Token name</span>
-            <input name="tokenName" type="text" class="input" placeholder="e.g. CI pipeline" required />
+            <input name="tokenName" type="text" maxlength="128" class="input" placeholder="e.g. CI pipeline" required />
           </label>
           <label class="block">
             <span class="mb-1 block text-xs font-medium text-slate-700">Scope</span>

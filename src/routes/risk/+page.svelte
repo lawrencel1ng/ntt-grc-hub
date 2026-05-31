@@ -199,7 +199,7 @@
       <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div>
           <label for="cr-title" class="block text-xs font-semibold text-slate-600 mb-1">Title <span class="text-rose-500">*</span></label>
-          <input id="cr-title" name="title" type="text" required class="input w-full" placeholder="e.g. SQL injection on customer portal" />
+          <input id="cr-title" name="title" type="text" required maxlength="256" class="input w-full" placeholder="e.g. SQL injection on customer portal" />
         </div>
         <div>
           <label for="cr-category" class="block text-xs font-semibold text-slate-600 mb-1">Category <span class="text-rose-500">*</span></label>

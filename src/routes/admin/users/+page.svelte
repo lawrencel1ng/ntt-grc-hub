@@ -102,11 +102,11 @@
     <form method="POST" action="?/inviteUser" use:enhance class="flex flex-wrap items-end gap-3">
       <label class="block flex-1 min-w-[160px]">
         <span class="mb-1 block text-xs font-medium text-slate-700">Email</span>
-        <input name="email" type="email" class="input" placeholder="user@company.com" required />
+        <input name="email" type="email" maxlength="254" class="input" placeholder="user@company.com" required />
       </label>
       <label class="block flex-1 min-w-[140px]">
         <span class="mb-1 block text-xs font-medium text-slate-700">Full name</span>
-        <input name="name" type="text" class="input" placeholder="Given name" required />
+        <input name="name" type="text" maxlength="128" class="input" placeholder="Given name" required />
       </label>
       <label class="block">
         <span class="mb-1 block text-xs font-medium text-slate-700">Role</span>

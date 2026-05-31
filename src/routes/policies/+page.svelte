@@ -98,11 +98,11 @@
     <form method="POST" action="?/createPolicy" use:enhance class="flex flex-wrap items-end gap-3">
       <label class="block">
         <span class="mb-1 block text-xs font-medium text-slate-700">Code</span>
-        <input name="code" type="text" class="input w-28" placeholder="POL-001" required />
+        <input name="code" type="text" maxlength="32" class="input w-28" placeholder="POL-001" required />
       </label>
       <label class="block flex-1 min-w-[200px]">
         <span class="mb-1 block text-xs font-medium text-slate-700">Title</span>
-        <input name="title" type="text" class="input" placeholder="Information Security Policy" required />
+        <input name="title" type="text" maxlength="256" class="input" placeholder="Information Security Policy" required />
       </label>
       <label class="block">
         <span class="mb-1 block text-xs font-medium text-slate-700">Jurisdiction</span>

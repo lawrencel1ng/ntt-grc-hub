@@ -57,7 +57,7 @@ export const actions: Actions = {
       `UPDATE issue.issues
        SET title = $1, description = $2, severity = $3::risk.severity, due_at = $4,
            owner_user_id = COALESCE($5::uuid, owner_user_id)
-       WHERE id = $6 AND tenant_id = $7`,
+       WHERE id = $6::uuid AND tenant_id = $7`,
       [title, description, severity, dueAt, ownerUserId, params.id, locals.user.tenantId]
     );
     if (!rowCount) return fail(404, { editError: 'Issue not found or access denied.' });
@@ -88,7 +88,7 @@ export const actions: Actions = {
 
     const pool = getPool();
     const check = await pool.query<{ tenant_id: string }>(
-      `SELECT tenant_id FROM issue.issues WHERE id = $1 LIMIT 1`, [params.id]
+      `SELECT tenant_id FROM issue.issues WHERE id = $1::uuid LIMIT 1`, [params.id]
     );
     if (!check.rows.length) return fail(404, { actionError: 'Issue not found' });
     if (check.rows[0].tenant_id !== locals.user.tenantId) return fail(403, { actionError: 'Access denied' });
@@ -158,7 +158,7 @@ export const actions: Actions = {
     const pool = getPool();
     const { rowCount } = await pool.query(
       `UPDATE issue.issues SET status = $1::issue.status
-       WHERE id = $2 AND tenant_id = $3`,
+       WHERE id = $2::uuid AND tenant_id = $3`,
       [newStatus, params.id, locals.user.tenantId]
     );
     if (!rowCount) return fail(404, { statusError: 'Issue not found or access denied' });

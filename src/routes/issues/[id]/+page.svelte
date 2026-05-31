@@ -109,8 +109,8 @@
 </script>
 
 <PageHeader
-  title={data.issue.id.split('_').pop() ?? data.issue.id}
-  breadcrumbs={[{ label: 'Issues', href: '/issues' }, { label: data.issue.id }]}
+  title={data.issue.title}
+  breadcrumbs={[{ label: 'Issues', href: '/issues' }, { label: data.issue.title }]}
 >
   <svelte:fragment slot="actions">
     <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset {sevCls(data.issue.severity)}">{data.issue.severity}</span>

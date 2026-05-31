@@ -357,7 +357,7 @@
             {#each pageRows as i (i.id)}
               <tr class="tr">
                 <td class="td font-mono text-xs">
-                  <a href="/issues/{i.id}" class="text-grc-primary hover:underline">{i.id.split('_').pop()}</a>
+                  <a href="/issues/{i.id}" class="text-grc-primary hover:underline">{i.id.slice(0, 8)}</a>
                 </td>
                 <td class="td">
                   <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {sourceCls(i.source)}">{i.source}</span>

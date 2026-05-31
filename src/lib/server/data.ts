@@ -333,8 +333,12 @@ export async function getHeatmapCells(tenantId?: string): Promise<HeatmapCell[]>
   if (!isPgMode()) return mock.heatmapCells(tenantId);
   const where = tenantId ? 'WHERE tenant_id = $1' : '';
   const params = tenantId ? [tenantId] : [];
+  // Aggregate across tenants when no filter is applied — the view groups by
+  // tenant_id so without SUM we'd get multiple rows per (sev, lik) cell.
   const rows = await safeQuery<HeatmapCell>(
-    `SELECT sev::text AS sev, lik::text AS lik, n::int AS n FROM risk.heatmap_cells ${where}`,
+    `SELECT sev::text AS sev, lik::text AS lik, SUM(n)::int AS n
+     FROM risk.heatmap_cells ${where}
+     GROUP BY sev, lik`,
     params
   );
   return rows;

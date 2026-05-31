@@ -53,7 +53,8 @@
       case 'denied':  return 'bg-rose-50 text-rose-700 ring-rose-200';
     }
   }
-  function shortHash(h: string): string {
+  function shortHash(h: string | null | undefined): string {
+    if (!h) return '—';
     return h.slice(0, 8) + '…' + h.slice(-4);
   }
   function shortUa(ua?: string): string {

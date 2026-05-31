@@ -330,7 +330,7 @@ export async function getRisk(id: string): Promise<Risk | undefined> {
 }
 
 const SEV_RANK: Record<string, number> = { critical: 5, high: 4, medium: 3, low: 2, informational: 1 };
-const LIK_RANK: Record<string, number> = { almost_certain: 5, likely: 4, possible: 3, unlikely: 2, rare: 1 };
+const LIK_RANK: Record<string, number> = { 'almost-certain': 5, likely: 4, possible: 3, unlikely: 2, rare: 1 };
 
 export async function getTopRisks(n: number, tenantId?: string): Promise<Risk[]> {
   if (!isPgMode()) return mock.topRisks(tenantId, n);

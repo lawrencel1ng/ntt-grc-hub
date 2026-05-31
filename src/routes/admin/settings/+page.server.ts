@@ -88,6 +88,16 @@ export const actions: Actions = {
       [name, language, timezone, locals.user.id]
     );
 
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: 'user.profile.updated',
+      target: `user:${locals.user.id}`,
+      result: 'success',
+      metadata: { name, language, timezone }
+    });
+
     return { profileSuccess: true };
   },
 

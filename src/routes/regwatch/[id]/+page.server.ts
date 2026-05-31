@@ -59,7 +59,6 @@ export const actions: Actions = {
       `INSERT INTO regwatch.impact_assessments
          (tenant_id, change_id, framework_id, impact, gaps_opened, notes)
        VALUES ($1, $2::uuid, $3, $4::regwatch.impact, $5, $6)
-       ON CONFLICT DO NOTHING
        RETURNING id::text`,
       [locals.user.tenantId, params.id, frameworkId, impact, gapsOpened, notes]
     );

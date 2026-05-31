@@ -20,22 +20,37 @@ const TEF_PA: Record<string, [number, number]> = {
   low:      [0.1, 1],
 };
 
-function logUniform(min: number, max: number): number {
-  return Math.exp(Math.log(min) + Math.random() * (Math.log(max) - Math.log(min)));
+// Deterministic seeded RNG (mulberry32) — same portfolio on the same day → same results.
+function seedRng(seed: string): () => number {
+  let h = 1779033703;
+  for (let i = 0; i < seed.length; i++) h = Math.imul(31, h) + seed.charCodeAt(i) | 0;
+  let s = h >>> 0;
+  return () => {
+    s = s + 0x6D2B79F5 | 0;
+    let t = Math.imul(s ^ s >>> 15, 1 | s);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function logUniform(min: number, max: number, rand: () => number): number {
+  return Math.exp(Math.log(min) + rand() * (Math.log(max) - Math.log(min)));
 }
 
 function portfolioMonteCarlo(
-  risks: Array<{ severity: string; likelihood: string }>,
+  risks: Array<{ id: string; severity: string; likelihood: string }>,
+  rngSeed: string,
   n = 5_000
 ): { p10: number; p50: number; p90: number; mean: number } {
-  const portfolio = new Float64Array(n); // zero-initialised
+  const rand = seedRng(rngSeed);
+  const portfolio = new Float64Array(n);
   for (const r of risks) {
     const lmRange = LM_SGD[r.severity] ?? LM_SGD.medium;
     const tefRange = TEF_PA[r.likelihood] ?? TEF_PA.medium;
     for (let i = 0; i < n; i++) {
-      const tef = logUniform(tefRange[0], tefRange[1]);
-      const vratio = 0.3 + Math.random() * 0.4;
-      const lm = logUniform(lmRange[0], lmRange[1]);
+      const tef = logUniform(tefRange[0], tefRange[1], rand);
+      const vratio = 0.3 + rand() * 0.4;
+      const lm = logUniform(lmRange[0], lmRange[1], rand);
       portfolio[i] += tef * vratio * lm;
     }
   }
@@ -73,8 +88,11 @@ export const POST: RequestHandler = async ({ locals }) => {
   }
 
   const calcStart = Date.now();
+  // Seed includes sorted risk IDs so the same portfolio on the same day reproduces identically.
+  const rngSeed = `quant:${locals.user.tenantId}:${new Date().toISOString().slice(0, 10)}:${risks.map(r => r.id).join(',')}`;
   const ale = portfolioMonteCarlo(
-    risks.map(r => ({ severity: r.inherent_severity, likelihood: r.inherent_likelihood }))
+    risks.map(r => ({ id: r.id, severity: r.inherent_severity, likelihood: r.inherent_likelihood })),
+    rngSeed
   );
   const latencyMs = Date.now() - calcStart;
 

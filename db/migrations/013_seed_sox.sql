@@ -14,7 +14,7 @@ INSERT INTO sox.itgcs (id, tenant_id, control_ref, title, description, objective
 -- Maybank Change controls
 (uuid_generate_v4(), 't_maybank', 'MAYX-ITGC-008', 'Production change requires CAB approval',   'All production changes approved by Change Advisory Board.',               'Ensure changes are risk-assessed before deployment.',                   'manual',       'monthly',     'effective',   now() - interval '18 days'),
 (uuid_generate_v4(), 't_maybank', 'MAYX-ITGC-009', 'Code reviewed before merge to main',        'Minimum two-reviewer rule enforced via branch protection.',               'Catch defects and unauthorised changes before production.',             'automated',    'continuous',  'effective',   now() - interval '2 days'),
-(uuid_generate_v4(), 't_maybank', 'MAYX-ITGC-010', 'DB schema changes peer-reviewed',           'Database migration scripts reviewed by DBA before execution.',            'Prevent uncontrolled schema drift in production databases.',            'manual',       'monthly',     'deficient',   now() - interval '90 days'),
+(uuid_generate_v4(), 't_maybank', 'MAYX-ITGC-010', 'DB schema changes peer-reviewed',           'Database migration scripts reviewed by DBA before execution.',            'Prevent uncontrolled schema drift in production databases.',            'manual',       'monthly',     'deficiency',  now() - interval '90 days'),
 (uuid_generate_v4(), 't_maybank', 'MAYX-ITGC-011', 'CI/CD pipeline tamper-protected',           'Pipeline configuration stored in SCM; changes require approval.',        'Prevent malicious code injection through build tooling.',               'automated',    'continuous',  'effective',   now() - interval '7 days'),
 (uuid_generate_v4(), 't_maybank', 'MAYX-ITGC-012', 'Emergency change post-review',              'All emergency changes reviewed within 48 hours by risk owner.',           'Ensure emergency changes meet security standards post-deployment.',     'manual',       'monthly',     'effective',   now() - interval '25 days'),
 -- Maybank Operations controls
@@ -85,7 +85,7 @@ SELECT
   'Enforce branch protection rule requiring DBA review before schema migration merges. Track compliance in monthly CAB report.',
   'Review process relies on informal communication; no automated gate in CI/CD pipeline enforced DBA approval before schema migrations could proceed.'
 FROM sox.itgcs i
-WHERE i.status = 'deficient'
+WHERE i.status = 'deficiency'
   AND i.tenant_id IN ('t_maybank', 't_grab')
 ON CONFLICT DO NOTHING;
 

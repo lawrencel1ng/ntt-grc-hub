@@ -145,7 +145,7 @@ export interface AuditLogEntry {
   ipAddress?: string;
   userAgent?: string;
   prevHash?: string;
-  rowHash: string;
+  rowHash: string | null;
 }
 
 // -------------------- Risk --------------------

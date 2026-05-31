@@ -784,10 +784,21 @@ export async function getEvidenceStats(tenantId?: string): Promise<{ total: numb
       tenantId ? [tenantId] : []
     )
   ]);
+  // Verify chain integrity: check that recent items have matching seals
+  const chainRows = await safeQuery<{ ok: boolean }>(
+    tenantId
+      ? `SELECT (COUNT(i.id) FILTER (WHERE s.item_id IS NULL) = 0) AS ok
+           FROM (SELECT id FROM evidence.items WHERE tenant_id = $1 ORDER BY captured_at DESC LIMIT 50) i
+           LEFT JOIN evidence.seals s ON s.item_id = i.id`
+      : `SELECT (COUNT(i.id) FILTER (WHERE s.item_id IS NULL) = 0) AS ok
+           FROM (SELECT id FROM evidence.items ORDER BY captured_at DESC LIMIT 50) i
+           LEFT JOIN evidence.seals s ON s.item_id = i.id`,
+    tenantId ? [tenantId] : []
+  );
   return {
     total: totalRows[0] ? Number(totalRows[0].n) : 0,
     last24h: recentRows[0] ? Number(recentRows[0].n) : 0,
-    chainOk: true
+    chainOk: chainRows[0]?.ok ?? true
   };
 }
 
@@ -1636,8 +1647,11 @@ export async function getBCMPlans(tenantId?: string): Promise<BCMPlan[]> {
   return rows;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function getBCMPlan(id: string): Promise<BCMPlan | undefined> {
   if (isPgMode()) {
+    if (!UUID_RE.test(id)) return undefined;
     const rows = await safeQuery<BCMPlan>(
       `SELECT p.id::text AS id, p.tenant_id AS "tenantId", p.name,
               p.business_service AS "businessService",

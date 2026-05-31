@@ -5,6 +5,7 @@ import type { AgentRunStatus } from '$lib/data/types';
 
 export interface AgentBusEvent {
   ts: string;
+  tenantId: string;
   agentId: string;
   agentName: string;
   status: AgentRunStatus;
@@ -57,6 +58,7 @@ class AgentBus extends EventEmitter {
     const outputs = AGENT_OUTPUT_SUMMARIES[agent.id] ?? ['Done'];
     const event: AgentBusEvent = {
       ts: new Date().toISOString(),
+      tenantId: '',
       agentId: agent.id,
       agentName: agent.name,
       status: STATUS_POOL[this.cursor++ % STATUS_POOL.length],
@@ -72,11 +74,11 @@ class AgentBus extends EventEmitter {
     try {
       const pool = getPool();
       const { rows } = await pool.query<{
-        agentId: string; agentName: string; status: string;
+        tenantId: string | null; agentId: string; agentName: string; status: string;
         inputSummary: string | null; outputSummary: string | null;
         latencyMs: number | null; costCents: number | null; startedAt: string;
       }>(
-        `SELECT r.agent_id AS "agentId", a.name AS "agentName",
+        `SELECT r.tenant_id AS "tenantId", r.agent_id AS "agentId", a.name AS "agentName",
                 r.status::text AS status, r.input_summary AS "inputSummary",
                 r.output_summary AS "outputSummary", r.latency_ms AS "latencyMs",
                 r.cost_cents AS "costCents", r.started_at AS "startedAt"
@@ -88,6 +90,7 @@ class AgentBus extends EventEmitter {
       for (const row of rows) {
         this.dispatch({
           ts: row.startedAt,
+          tenantId: row.tenantId ?? '',
           agentId: row.agentId,
           agentName: row.agentName,
           status: row.status as AgentRunStatus,

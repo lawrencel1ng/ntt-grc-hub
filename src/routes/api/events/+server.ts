@@ -23,7 +23,10 @@ export const GET: RequestHandler = async ({ locals }) => {
         }
       };
 
-      const onRun = (e: AgentBusEvent) => send('agent-run', e);
+      const tid = locals.user!.tenantId;
+      const onRun = (e: AgentBusEvent) => {
+        if (tid === '__all__' || !e.tenantId || e.tenantId === tid) send('agent-run', e);
+      };
       agentBus.on('agent-run', onRun);
       send('hello', { connectedAt: new Date().toISOString() });
 

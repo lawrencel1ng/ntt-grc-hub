@@ -96,6 +96,7 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
 
   agentBus.dispatch({
     ts: new Date().toISOString(),
+    tenantId: run.tenant_id,
     agentId: run.agent_id,
     agentName: run.name,
     status,

@@ -13,15 +13,22 @@
   import { enhance } from '$app/forms';
 
   export let data;
-  export let form: { editSuccess?: boolean; editError?: string; depAdded?: boolean; depError?: string } | null = null;
+  export let form: {
+    editSuccess?: boolean; editError?: string;
+    depAdded?: boolean; depError?: string;
+    testRecorded?: boolean; testId?: string; testError?: string;
+  } | null = null;
 
   $: if (form?.editSuccess) { addToast('success', 'BCM plan updated.'); showEditForm = false; }
   $: if (form?.editError) addToast('error', form.editError);
   $: if (form?.depAdded) { addToast('success', 'Dependency added.'); showDepForm = false; }
   $: if (form?.depError) addToast('error', form.depError);
+  $: if (form?.testRecorded) { addToast('success', 'Test result recorded.'); recordingTestId = null; }
+  $: if (form?.testError) addToast('error', form.testError);
 
   let showEditForm = false;
   let showDepForm = false;
+  let recordingTestId: string | null = null;
 
   // ---------- Tabs ----------
   type Tab = 'overview' | 'bia' | 'tests' | 'risks';
@@ -369,6 +376,7 @@
               <th class="px-4 py-2 text-left">Conducted</th>
               <th class="px-4 py-2 text-left">Result</th>
               <th class="px-4 py-2 text-left">Lessons (snippet)</th>
+              <th class="w-28 px-4 py-2"></th>
             </tr>
           </thead>
           <tbody>
@@ -382,9 +390,38 @@
                   <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {testResultCls(t.result)}">{t.result}</span>
                 </td>
                 <td class="td max-w-md text-xs text-slate-600">{t.lessonsMd.replace(/^#+\s+/gm, '').slice(0, 140)}{t.lessonsMd.length > 140 ? '…' : ''}</td>
+                <td class="td text-right">
+                  <button type="button" class="btn-ghost py-0.5 text-xs"
+                    on:click={() => (recordingTestId = recordingTestId === t.id ? null : t.id)}>
+                    {recordingTestId === t.id ? 'Cancel' : 'Record result'}
+                  </button>
+                </td>
               </tr>
+              {#if recordingTestId === t.id}
+                <tr>
+                  <td colspan="5" class="bg-slate-50 px-4 py-3">
+                    <form method="POST" action="?/recordTestResult" use:enhance class="flex flex-wrap items-end gap-3">
+                      <input type="hidden" name="testId" value={t.id} />
+                      <label class="block">
+                        <span class="mb-1 block text-xs font-medium text-slate-700">Result</span>
+                        <select name="result" class="input py-1 text-xs" value={t.result}>
+                          <option value="pass">Pass</option>
+                          <option value="partial">Partial</option>
+                          <option value="fail">Fail</option>
+                        </select>
+                      </label>
+                      <label class="block flex-1">
+                        <span class="mb-1 block text-xs font-medium text-slate-700">Lessons learned (markdown, optional)</span>
+                        <textarea name="lessonsMd" class="input h-16 w-full resize-none text-xs" maxlength="4096"
+                          placeholder="## Gaps identified&#10;…">{t.lessonsMd}</textarea>
+                      </label>
+                      <button type="submit" class="btn-primary py-1.5 text-xs">Save</button>
+                    </form>
+                  </td>
+                </tr>
+              {/if}
             {:else}
-              <tr><td colspan="4" class="px-4 py-8 text-center text-sm text-slate-500">No tests recorded.</td></tr>
+              <tr><td colspan="5" class="px-4 py-8 text-center text-sm text-slate-500">No tests recorded.</td></tr>
             {/each}
           </tbody>
         </table>

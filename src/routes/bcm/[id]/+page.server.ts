@@ -29,6 +29,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 const VALID_DEP_KINDS = ['people', 'tech', 'site', 'vendor'] as const;
 const VALID_CRITICALITIES = ['critical', 'high', 'medium', 'low'] as const;
+const VALID_TEST_RESULTS = ['pass', 'partial', 'fail'] as const;
 
 export const actions: Actions = {
   addDependency: async ({ params, request, locals }) => {
@@ -115,5 +116,53 @@ export const actions: Actions = {
     });
 
     return { editSuccess: true };
+  },
+
+  recordTestResult: async ({ params, request, locals }) => {
+    if (!locals.user) return fail(401, { testError: 'Not authenticated' });
+    if (!isPgMode()) return fail(400, { testError: 'Requires Postgres mode' });
+
+    const fd = await request.formData();
+    const testId = String(fd.get('testId') ?? '').trim();
+    const result = String(fd.get('result') ?? '').trim();
+    const lessonsMd = String(fd.get('lessonsMd') ?? '').trim() || null;
+
+    if (!testId) return fail(400, { testError: 'Test ID is required.' });
+    if (!VALID_TEST_RESULTS.includes(result as typeof VALID_TEST_RESULTS[number])) {
+      return fail(400, { testError: 'Result must be pass, partial, or fail.' });
+    }
+    if (lessonsMd && lessonsMd.length > 4096) {
+      return fail(400, { testError: 'Lessons must be 4096 characters or fewer.' });
+    }
+
+    const pool = getPool();
+
+    const { rowCount } = await pool.query(
+      `UPDATE bcm.tests
+       SET result = $1::bcm.test_result, lessons_md = COALESCE($2, lessons_md)
+       WHERE id = $3::uuid
+         AND plan_id = $4::uuid
+         AND tenant_id = $5`,
+      [result, lessonsMd, testId, params.id, locals.user.tenantId]
+    );
+    if (!rowCount) return fail(404, { testError: 'Test not found or access denied.' });
+
+    await pool.query(
+      `UPDATE bcm.plans SET last_tested_at = now()
+       WHERE id = $1::uuid AND tenant_id = $2`,
+      [params.id, locals.user.tenantId]
+    );
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: 'bcm.test.result.recorded',
+      target: `bcm:${params.id}`,
+      result: 'success',
+      metadata: { testId, result }
+    });
+
+    return { testRecorded: true, testId, result };
   }
 };

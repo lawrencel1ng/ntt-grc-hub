@@ -117,7 +117,7 @@ export const GET: RequestHandler = async ({ url, locals }) => {
       id: i.id,
       title: i.title,
       subtitle: i.severity,
-      href: `/issues`
+      href: `/issues/${i.id}`
     }))
   ];
 

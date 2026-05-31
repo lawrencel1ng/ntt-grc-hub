@@ -114,5 +114,51 @@ export const actions: Actions = {
     });
 
     return { statusUpdated: true, newStatus };
+  },
+
+  addContract: async ({ params, request, locals }) => {
+    if (!locals.user) return fail(401, { contractError: 'Not authenticated' });
+    if (!isPgMode()) return fail(400, { contractError: 'Requires Postgres mode' });
+
+    const fd = await request.formData();
+    const contractNo = String(fd.get('contractNo') ?? '').trim();
+    const valueSgd = Number(String(fd.get('valueSgd') ?? '0').trim()) || 0;
+    const startsAt = String(fd.get('startsAt') ?? '').trim();
+    const endsAt = String(fd.get('endsAt') ?? '').trim() || null;
+    const renewalWindowDays = Number(String(fd.get('renewalWindowDays') ?? '90').trim()) || 90;
+
+    if (!contractNo) return fail(400, { contractError: 'Contract number is required.' });
+    if (contractNo.length > 128) return fail(400, { contractError: 'Contract number must be 128 characters or fewer.' });
+    if (!startsAt) return fail(400, { contractError: 'Start date is required.' });
+    if (valueSgd < 0) return fail(400, { contractError: 'Value must be non-negative.' });
+    if (renewalWindowDays < 0 || renewalWindowDays > 3650) {
+      return fail(400, { contractError: 'Renewal window must be between 0 and 3650 days.' });
+    }
+
+    const pool = getPool();
+    const check = await pool.query<{ id: string }>(
+      `SELECT id FROM vendor.vendors WHERE id = $1::uuid AND tenant_id = $2 LIMIT 1`,
+      [params.id, locals.user.tenantId]
+    );
+    if (!check.rows.length) return fail(404, { contractError: 'Vendor not found.' });
+
+    const { rows } = await pool.query<{ id: string }>(
+      `INSERT INTO vendor.contracts (tenant_id, vendor_id, contract_no, value_sgd, starts_at, ends_at, renewal_window_days)
+       VALUES ($1, $2::uuid, $3, $4, $5, $6, $7)
+       RETURNING id::text`,
+      [locals.user.tenantId, params.id, contractNo, valueSgd, startsAt, endsAt, renewalWindowDays]
+    );
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: 'vendor.contract.added',
+      target: `vendor:${params.id}`,
+      result: 'success',
+      metadata: { contractId: rows[0].id, contractNo, valueSgd }
+    });
+
+    return { contractAdded: true };
   }
 };

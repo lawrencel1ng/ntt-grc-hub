@@ -4,19 +4,23 @@
   import AgentTypeBadge from '$lib/components/AgentTypeBadge.svelte';
   import { enhance } from '$app/forms';
   import { addToast } from '$lib/stores/toast';
-  import { FileText, History, UserCheck, AlertCircle, Library, Edit, ScrollText } from 'lucide-svelte';
+  import { FileText, History, UserCheck, AlertCircle, Library, Edit, ScrollText, Plus } from 'lucide-svelte';
   import type { PolicyVersion, PolicyVersionStatus } from '$lib/data/types';
 
   export let data;
   export let form: {
     editSuccess?: boolean; editError?: string;
     ackSuccess?: boolean; ackError?: string;
+    exceptionRequested?: boolean; exceptionError?: string;
   } | null = null;
   $: if (form?.editSuccess) { addToast('success', 'Policy saved.'); editing = false; }
   $: if (form?.editError) addToast('error', form.editError);
   $: if (form?.ackSuccess) addToast('success', 'Policy acknowledged.');
   $: if (form?.ackError) addToast('error', form.ackError);
+  $: if (form?.exceptionRequested) { addToast('success', 'Exception request submitted.'); showExceptionForm = false; }
+  $: if (form?.exceptionError) addToast('error', form.exceptionError);
   let editing = false;
+  let showExceptionForm = false;
   let editContent = '';
   let editStatus = 'draft';
 
@@ -243,6 +247,31 @@
 
     <!-- Exceptions -->
     {:else if tab === 'exceptions'}
+      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+        <span class="text-xs text-slate-500">{exceptions.length} exception{exceptions.length !== 1 ? 's' : ''}</span>
+        <button class="btn-ghost text-xs" on:click={() => (showExceptionForm = !showExceptionForm)}>
+          <Plus class="h-3.5 w-3.5" />
+          Request exception
+        </button>
+      </div>
+      {#if showExceptionForm}
+        <div class="border-b border-slate-100 bg-slate-50 px-5 py-4">
+          <form method="POST" action="?/requestException" use:enhance class="space-y-3">
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Justification</span>
+              <textarea name="justification" rows="3" class="input resize-none" placeholder="Describe why an exception is needed…" required maxlength="2048"></textarea>
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Expiry date (optional)</span>
+              <input name="expiresAt" type="date" class="input w-48" />
+            </label>
+            <div class="flex gap-2">
+              <button type="submit" class="btn-primary">Submit request</button>
+              <button type="button" class="btn-secondary" on:click={() => (showExceptionForm = false)}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      {/if}
       <div class="p-5">
         {#if exceptions.length === 0}
           <div class="text-sm text-slate-500">No exception requests on file.</div>

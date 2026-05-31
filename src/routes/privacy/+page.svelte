@@ -19,6 +19,7 @@
     srUpdated?: boolean; requestId?: string; srError?: string;
     srCreated?: boolean; srCreateError?: string;
     breachCreated?: boolean; code?: string; breachError?: string;
+    dpiaCreated?: boolean; dpiaCreateError?: string;
   } | null = null;
 
   $: if (form?.dpiaUpdated && form.dpiaId && form.newStatus) {
@@ -46,9 +47,12 @@
   $: if (form?.srCreateError) addToast('error', form.srCreateError);
   $: if (form?.breachCreated) { addToast('success', `Breach ${form.code} reported.`); showBreachForm = false; }
   $: if (form?.breachError) addToast('error', form.breachError);
+  $: if (form?.dpiaCreated) { addToast('success', 'DPIA drafted.'); showDpiaForm = false; }
+  $: if (form?.dpiaCreateError) addToast('error', form.dpiaCreateError);
 
   let showSrForm = false;
   let showBreachForm = false;
+  let showDpiaForm = false;
 
   // ---------- KPIs ----------
   $: activitiesCount = data.activities.length;
@@ -255,6 +259,41 @@
 
     <!-- DPIAs -->
     {:else if tab === 'dpias'}
+      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+        <span class="text-xs text-slate-500">{data.dpias.length} DPIA{data.dpias.length !== 1 ? 's' : ''}</span>
+        <button class="btn-ghost text-xs" on:click={() => (showDpiaForm = !showDpiaForm)}>
+          <Plus class="h-3.5 w-3.5" />
+          New DPIA
+        </button>
+      </div>
+      {#if showDpiaForm}
+        <div class="border-b border-slate-100 bg-slate-50 px-5 py-4">
+          <form method="POST" action="?/createDpia" use:enhance class="space-y-3">
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Processing activity</span>
+              <select name="activityId" class="input" required>
+                <option value="">Select activity…</option>
+                {#each data.activities as act}
+                  <option value={act.id}>{act.name}</option>
+                {/each}
+              </select>
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Residual risk severity</span>
+              <select name="residualRiskSeverity" class="input" required>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="critical">Critical</option>
+              </select>
+            </label>
+            <div class="flex gap-2">
+              <button type="submit" class="btn-primary">Create DPIA draft</button>
+              <button type="button" class="btn-secondary" on:click={() => (showDpiaForm = false)}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      {/if}
       <div class="grid grid-cols-1 gap-4 p-5 md:grid-cols-2 lg:grid-cols-3">
         {#each dpiasSorted as d (d.id)}
           <div class="rounded-lg bg-white ring-1 ring-inset ring-slate-200/70 p-4">

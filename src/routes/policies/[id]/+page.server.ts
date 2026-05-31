@@ -107,5 +107,41 @@ export const actions: Actions = {
     });
 
     return { ackSuccess: true };
+  },
+
+  requestException: async ({ params, request, locals }) => {
+    if (!locals.user) return fail(401, { exceptionError: 'Not authenticated.' });
+    if (!isPgMode()) return fail(400, { exceptionError: 'Requires Postgres mode.' });
+
+    const data = await request.formData();
+    const justification = String(data.get('justification') ?? '').trim();
+    const expiresAt = String(data.get('expiresAt') ?? '').trim() || null;
+
+    if (!justification) return fail(400, { exceptionError: 'Justification is required.' });
+    if (justification.length > 2048) return fail(400, { exceptionError: 'Justification must be 2048 characters or fewer.' });
+
+    const pool = getPool();
+    const check = await pool.query<{ id: string }>(
+      `SELECT id FROM policy.documents WHERE id = $1::uuid AND tenant_id = $2 LIMIT 1`,
+      [params.id, locals.user.tenantId]
+    );
+    if (!check.rows.length) return fail(404, { exceptionError: 'Policy not found.' });
+
+    await pool.query(
+      `INSERT INTO policy.exceptions (tenant_id, document_id, requester_user_id, justification, expires_at)
+       VALUES ($1, $2::uuid, $3::uuid, $4, $5)`,
+      [locals.user.tenantId, params.id, locals.user.id, justification, expiresAt]
+    );
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: 'policy.exception.requested',
+      target: `policy:${params.id}`,
+      result: 'success'
+    });
+
+    return { exceptionRequested: true };
   }
 };

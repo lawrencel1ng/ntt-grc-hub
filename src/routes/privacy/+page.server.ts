@@ -192,5 +192,45 @@ export const actions: Actions = {
     });
 
     return { breachCreated: true, code };
+  },
+
+  createDpia: async ({ request, locals }) => {
+    if (!locals.user) return fail(401, { dpiaCreateError: 'Not authenticated' });
+    if (!isPgMode()) return fail(400, { dpiaCreateError: 'Requires Postgres mode' });
+
+    const data = await request.formData();
+    const activityId = String(data.get('activityId') ?? '').trim();
+    const residualRiskSeverity = String(data.get('residualRiskSeverity') ?? '').trim();
+
+    if (!activityId) return fail(400, { dpiaCreateError: 'Processing activity is required.' });
+    if (!VALID_SEVS.includes(residualRiskSeverity as typeof VALID_SEVS[number])) {
+      return fail(400, { dpiaCreateError: 'Invalid residual risk severity.' });
+    }
+
+    const pool = getPool();
+    const check = await pool.query<{ id: string }>(
+      `SELECT id FROM privacy.processing_activities WHERE id = $1::uuid AND tenant_id = $2 LIMIT 1`,
+      [activityId, locals.user.tenantId]
+    );
+    if (!check.rows.length) return fail(404, { dpiaCreateError: 'Processing activity not found.' });
+
+    const { rows } = await pool.query<{ id: string }>(
+      `INSERT INTO privacy.dpias (tenant_id, activity_id, status, residual_risk_severity, conducted_by, conducted_at)
+       VALUES ($1, $2::uuid, 'draft', $3::risk.severity, $4::uuid, now())
+       RETURNING id::text`,
+      [locals.user.tenantId, activityId, residualRiskSeverity, locals.user.id]
+    );
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: 'privacy.dpia.created',
+      target: `dpia:${rows[0].id}`,
+      result: 'success',
+      metadata: { activityId, residualRiskSeverity }
+    });
+
+    return { dpiaCreated: true };
   }
 };

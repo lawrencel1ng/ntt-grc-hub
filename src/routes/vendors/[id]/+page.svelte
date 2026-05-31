@@ -8,7 +8,7 @@
   import { addToast } from '$lib/stores/toast';
   import {
     Send, BookOpen, FileText, FileQuestion,
-    GitFork, AlertTriangle, ShieldCheck, Mail, Tag as TagIcon, Layers, DollarSign, Pencil
+    GitFork, AlertTriangle, ShieldCheck, Mail, Tag as TagIcon, Layers, DollarSign, Pencil, Plus
   } from 'lucide-svelte';
   import type { Vendor, VendorContract, VendorTier, VendorCriticality, VendorStatus, Questionnaire } from '$lib/data/types';
   import { enhance } from '$app/forms';
@@ -17,6 +17,7 @@
   export let form: {
     statusUpdated?: boolean; newStatus?: string; statusError?: string;
     editSuccess?: boolean; editError?: string;
+    contractAdded?: boolean; contractError?: string;
   } | null = null;
 
   $: if (form?.statusUpdated && form.newStatus) {
@@ -26,8 +27,11 @@
   $: if (form?.statusError) addToast('error', form.statusError);
   $: if (form?.editSuccess) { addToast('success', 'Vendor updated.'); showEditForm = false; }
   $: if (form?.editError) addToast('error', form.editError);
+  $: if (form?.contractAdded) { addToast('success', 'Contract added.'); showContractForm = false; }
+  $: if (form?.contractError) addToast('error', form.contractError);
 
   let showEditForm = false;
+  let showContractForm = false;
 
   // ---------- Computed ----------
   function residualScore(v: Vendor): number {
@@ -334,6 +338,45 @@
 
     <!-- Contracts -->
     {:else if tab === 'contracts'}
+      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+        <span class="text-xs text-slate-500">{contracts.length} contract{contracts.length !== 1 ? 's' : ''}</span>
+        <button class="btn-ghost text-xs" on:click={() => (showContractForm = !showContractForm)}>
+          <Plus class="h-3.5 w-3.5" />
+          Add contract
+        </button>
+      </div>
+      {#if showContractForm}
+        <div class="border-b border-slate-100 bg-slate-50 px-5 py-4">
+          <form method="POST" action="?/addContract" use:enhance class="space-y-3">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label class="block">
+                <span class="mb-1 block text-xs font-medium text-slate-700">Contract No.</span>
+                <input name="contractNo" type="text" class="input" placeholder="CTR-2026-001" required maxlength="128" />
+              </label>
+              <label class="block">
+                <span class="mb-1 block text-xs font-medium text-slate-700">Value (S$)</span>
+                <input name="valueSgd" type="number" min="0" step="1000" class="input" placeholder="0" />
+              </label>
+              <label class="block">
+                <span class="mb-1 block text-xs font-medium text-slate-700">Start date</span>
+                <input name="startsAt" type="date" class="input" required />
+              </label>
+              <label class="block">
+                <span class="mb-1 block text-xs font-medium text-slate-700">End date (optional)</span>
+                <input name="endsAt" type="date" class="input" />
+              </label>
+              <label class="block">
+                <span class="mb-1 block text-xs font-medium text-slate-700">Renewal window (days)</span>
+                <input name="renewalWindowDays" type="number" min="0" max="365" class="input" value="90" />
+              </label>
+            </div>
+            <div class="flex gap-2">
+              <button type="submit" class="btn-primary">Add contract</button>
+              <button type="button" class="btn-secondary" on:click={() => (showContractForm = false)}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      {/if}
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-100 text-sm">
           <thead class="thead">
@@ -366,6 +409,7 @@
             {/each}
           </tbody>
         </table>
+      </div>
       </div>
 
     <!-- Questionnaires -->

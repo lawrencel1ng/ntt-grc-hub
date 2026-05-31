@@ -237,6 +237,49 @@ export const POST: RequestHandler = async ({ locals }) => {
       ]);
     }
 
+    // Compute FAIR ALE and upsert human_risk.quant so the human risk dashboard
+    // shows quantified loss exposure for real tenants after every sync.
+    //
+    // Formula: ARO = PPP/100 × 8 (8 phishing campaigns/year industry average)
+    //          LM  = max(headcount × 75, 100_000)  (SGD 75 / employee floor SGD 100k)
+    //          ALE = ARO × LM
+    if (latest && kb4Users.length > 0) {
+      const headcountForAle = kb4Users.length;
+      const ppp = latest.phish_prone_percentage ?? 0;
+      const pppYearAgo = yearAgo?.phish_prone_percentage ?? ppp;
+      const aro = +(ppp / 100 * 8).toFixed(4);
+      const aroYearAgo = +(pppYearAgo / 100 * 8).toFixed(4);
+      const lm = Math.max(headcountForAle * 75, 100_000);
+      const lmStdev = Math.round(lm * 0.35);
+      const aleSgd = Math.round(aro * lm);
+      const aleSgd12mAgo = Math.round(aroYearAgo * lm);
+      // Training reduces phishing susceptibility; use observed completion rate as proxy
+      const totalAssigned2 = kb4Users.reduce((s, u) => s + (u.training_assignments ?? 0), 0);
+      const totalCompleted2 = kb4Users.reduce((s, u) => s + (u.training_completions_count ?? 0), 0);
+      const completionRate = totalAssigned2 ? totalCompleted2 / totalAssigned2 : 0;
+      const aleReducedSgd = Math.round(aleSgd * (1 - completionRate * 0.25));
+      await pool.query(`
+        INSERT INTO human_risk.quant
+          (tenant_id, aro, per_incident_mean_sgd, per_incident_stdev_sgd,
+           ale_sgd, ale_sgd_12m_ago, ale_reduced_sgd, risk_id, scenario_id)
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+        ON CONFLICT (tenant_id) DO UPDATE SET
+          aro                    = EXCLUDED.aro,
+          per_incident_mean_sgd  = EXCLUDED.per_incident_mean_sgd,
+          per_incident_stdev_sgd = EXCLUDED.per_incident_stdev_sgd,
+          ale_sgd                = EXCLUDED.ale_sgd,
+          ale_sgd_12m_ago        = EXCLUDED.ale_sgd_12m_ago,
+          ale_reduced_sgd        = EXCLUDED.ale_reduced_sgd,
+          computed_at            = now()
+      `, [
+        tenantId,
+        aro, lm, lmStdev,
+        aleSgd, aleSgd12mAgo, aleReducedSgd,
+        `risk_${tenantId}_humanrisk`,
+        `scn_${tenantId}_humanrisk`
+      ]);
+    }
+
     // Record sync job
     await pool.query(
       `INSERT INTO human_risk.sync_jobs (tenant_id, status) VALUES ($1, 'ok')`,

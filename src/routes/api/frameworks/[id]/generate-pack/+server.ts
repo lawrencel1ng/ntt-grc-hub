@@ -5,6 +5,7 @@ import { writeAuditLog } from '$lib/server/auth';
 import { getComplianceGaps, getFrameworkScores } from '$lib/server/data';
 import { callLlm, getTenantProvider } from '$lib/server/llm';
 import { checkRateLimit } from '$lib/server/rateLimit';
+import { agentBus } from '$lib/server/sse';
 
 export const POST: RequestHandler = async ({ params, locals }) => {
   if (!locals.user) throw error(401, 'Not authenticated');
@@ -62,8 +63,9 @@ export const POST: RequestHandler = async ({ params, locals }) => {
   ].filter(Boolean).join('\n');
 
   // Store as an agent run so it appears in the activity stream
-  const { rows: agentRows } = await pool.query<{ id: string }>(
-    `SELECT id FROM agent.agents
+  const t0 = Date.now();
+  const { rows: agentRows } = await pool.query<{ id: string; name: string; cost_per_run_cents: number }>(
+    `SELECT id, name, cost_per_run_cents FROM agent.agents
      WHERE (name ILIKE '%compliance%' OR name ILIKE '%audit%' OR name ILIKE '%framework%')
        AND tenant_id = $1
      ORDER BY created_at DESC LIMIT 1`,
@@ -72,18 +74,32 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 
   let runId: string | null = null;
   if (agentRows.length > 0) {
+    const ag = agentRows[0];
+    const latencyMs = Date.now() - t0;
     const { rows: run } = await pool.query<{ id: string }>(
-      `INSERT INTO agent.runs (tenant_id, agent_id, trigger, status, input_summary, output_summary, latency_ms)
-       VALUES ($1, $2, 'manual', 'complete', $3, $4, 0)
+      `INSERT INTO agent.runs (tenant_id, agent_id, trigger, status, input_summary, output_summary, latency_ms, cost_cents, ended_at)
+       VALUES ($1, $2, 'manual', 'success', $3, $4, $5, $6, now())
        RETURNING id::text`,
       [
         locals.user.tenantId,
-        agentRows[0].id,
+        ag.id,
         `Generate compliance pack: ${framework.name}`,
-        summary.slice(0, 500)
+        summary.slice(0, 500),
+        latencyMs,
+        ag.cost_per_run_cents
       ]
     );
     runId = run[0].id;
+    agentBus.dispatch({
+      ts: new Date().toISOString(),
+      agentId: ag.id,
+      agentName: ag.name,
+      status: 'success',
+      inputSummary: `Generate compliance pack: ${framework.name}`,
+      outputSummary: summary.slice(0, 200),
+      latencyMs,
+      costCents: ag.cost_per_run_cents,
+    });
   }
 
   writeAuditLog({

@@ -6,7 +6,7 @@
   import { addToast } from '$lib/stores/toast';
   import {
     Lock, FileText, Mail, Globe, AlertTriangle,
-    ScrollText, ClipboardCheck, Users as UsersIcon, ShieldAlert
+    ScrollText, ClipboardCheck, Users as UsersIcon, ShieldAlert, Plus
   } from 'lucide-svelte';
   import type {
     PrivacyActivity, DPIA, SubjectRequest, Breach,

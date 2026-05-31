@@ -179,7 +179,7 @@ export function soxWalkthroughsForTenant(tenantId: string): SOXWalkthrough[] {
       id: `wkt_${tenantId}_${g}`,
       tenantId,
       process: KCA_PROCESSES[g % KCA_PROCESSES.length],
-      year: 2026,
+      year: new Date().getFullYear(),
       status: WALKTHROUGH_STATUSES[g % WALKTHROUGH_STATUSES.length],
       conductedBy: ['Internal Audit', 'KPMG', 'EY', 'Deloitte'][g % 4],
       conductedAt: new Date(Date.now() - g * 20 * 86_400_000).toISOString()

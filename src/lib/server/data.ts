@@ -851,7 +851,7 @@ export async function getAuditFindings(engagementId: string): Promise<AuditFindi
     `SELECT id::text AS id, tenant_id AS "tenantId", engagement_id::text AS "engagementId",
             severity::text AS severity, title, description, control_id AS "controlId",
             due_at AS "dueAt", status::text AS status
-     FROM audit.findings WHERE engagement_id = $1 ORDER BY due_at ASC NULLS LAST LIMIT 2000`, [engagementId]
+     FROM audit.findings WHERE engagement_id = $1::uuid ORDER BY due_at ASC NULLS LAST LIMIT 2000`, [engagementId]
   );
   return rows;
 }

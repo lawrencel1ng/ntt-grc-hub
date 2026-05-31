@@ -222,7 +222,7 @@
             </tr>
           </thead>
           <tbody>
-            {#each data.departments as d (d.department)}
+            {#each data.departments as d (`${d.tenantId}:${d.department}`)}
               <tr class="tr">
                 <td class="td font-medium">{d.department}</td>
                 <td class="td num text-right text-slate-500">{d.headcount.toLocaleString()}</td>

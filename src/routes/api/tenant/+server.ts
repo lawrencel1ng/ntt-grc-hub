@@ -1,5 +1,6 @@
 import type { RequestHandler } from './$types';
 import { json, error } from '@sveltejs/kit';
+import { checkRateLimit } from '$lib/server/rateLimit';
 
 const TENANT_COOKIE = 'grc_tenant';
 const ALL_TENANTS_ID = '__all__';
@@ -15,6 +16,7 @@ const ALL_TENANTS_ID = '__all__';
  */
 export const POST: RequestHandler = async ({ request, cookies, locals }) => {
   if (!locals.user) throw error(401, 'Not authenticated');
+  if (!checkRateLimit('tenant.switch', locals.user.id, 60, 60_000)) throw error(429, 'Too many tenant switches — slow down.');
 
   let tenantId = '';
   try {

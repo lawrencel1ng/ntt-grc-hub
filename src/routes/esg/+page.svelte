@@ -15,12 +15,14 @@
   export let data;
   export let form: {
     disclosureUpdated?: boolean; disclosureId?: string; newStatus?: string; disclosureError?: string;
+    disclosureCreated?: boolean; createDisclosureError?: string;
     metricLogged?: boolean; metricError?: string;
     targetAdded?: boolean; targetError?: string;
   } | null = null;
 
   let showMetricForm = false;
   let showTargetForm = false;
+  let showDisclosureForm = false;
 
   $: if (form?.disclosureUpdated && form.disclosureId && form.newStatus) {
     data = {
@@ -32,6 +34,8 @@
     addToast('success', `Disclosure status updated to "${form.newStatus}".`);
   }
   $: if (form?.disclosureError) addToast('error', form.disclosureError);
+  $: if (form?.disclosureCreated) { addToast('success', 'Disclosure package created.'); showDisclosureForm = false; }
+  $: if (form?.createDisclosureError) addToast('error', form.createDisclosureError);
   $: if (form?.metricLogged) { addToast('success', 'Metric recorded.'); showMetricForm = false; }
   $: if (form?.metricError) addToast('error', form.metricError);
   $: if (form?.targetAdded) { addToast('success', 'Target added.'); showTargetForm = false; }
@@ -366,6 +370,38 @@
 
     <!-- Disclosures -->
     {:else if tab === 'disclosures'}
+      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+        <span class="text-xs text-slate-500">{data.disclosures.length} disclosure package{data.disclosures.length !== 1 ? 's' : ''}</span>
+        <button class="btn-ghost text-xs" on:click={() => (showDisclosureForm = !showDisclosureForm)}>
+          <Plus class="h-3.5 w-3.5" />
+          New disclosure
+        </button>
+      </div>
+
+      {#if showDisclosureForm}
+        <form method="POST" action="?/createDisclosure" use:enhance class="border-b border-slate-100 bg-slate-50 p-5">
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div>
+              <label class="block text-[11px] text-slate-500 mb-0.5" for="disc-framework">Framework</label>
+              <select id="disc-framework" name="framework" class="input">
+                <option value="CSRD">CSRD</option>
+                <option value="ISSB">ISSB</option>
+                <option value="GHG">GHG Protocol</option>
+                <option value="TCFD">TCFD</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-500 mb-0.5" for="disc-period">Period</label>
+              <input id="disc-period" name="period" type="text" class="input" placeholder="FY2025" required maxlength="32" />
+            </div>
+            <div class="flex items-end gap-2">
+              <button type="submit" class="btn-primary text-xs py-1 px-3">Create</button>
+              <button type="button" class="btn-secondary text-xs py-1 px-3" on:click={() => (showDisclosureForm = false)}>Cancel</button>
+            </div>
+          </div>
+        </form>
+      {/if}
+
       <div class="grid grid-cols-1 gap-4 p-5 md:grid-cols-2 lg:grid-cols-2">
         {#each data.disclosures as d (d.id)}
           <div class="rounded-lg bg-white ring-1 ring-inset ring-slate-200/70 p-4">

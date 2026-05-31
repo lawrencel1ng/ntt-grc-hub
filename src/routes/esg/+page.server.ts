@@ -149,5 +149,50 @@ export const actions: Actions = {
     });
 
     return { disclosureUpdated: true, disclosureId, newStatus };
+  },
+
+  createDisclosure: async ({ request, locals }) => {
+    if (!locals.user) return fail(401, { createDisclosureError: 'Not authenticated' });
+    if (!isPgMode()) return fail(400, { createDisclosureError: 'Requires Postgres mode' });
+
+    const data = await request.formData();
+    const framework = String(data.get('framework') ?? '').trim();
+    const period = String(data.get('period') ?? '').trim();
+
+    if (!VALID_ESG_FRAMEWORKS.includes(framework as typeof VALID_ESG_FRAMEWORKS[number])) {
+      return fail(400, { createDisclosureError: 'Framework must be CSRD, ISSB, GHG, or TCFD.' });
+    }
+    if (!period || period.length > 32) {
+      return fail(400, { createDisclosureError: 'Period is required (max 32 chars, e.g. FY2025).' });
+    }
+
+    const pool = getPool();
+
+    const existing = await pool.query(
+      `SELECT id FROM esg.disclosures WHERE tenant_id = $1 AND framework = $2 AND period = $3 LIMIT 1`,
+      [locals.user.tenantId, framework, period]
+    );
+    if (existing.rows.length) {
+      return fail(409, { createDisclosureError: `A ${framework} disclosure for ${period} already exists.` });
+    }
+
+    const { rows } = await pool.query<{ id: string }>(
+      `INSERT INTO esg.disclosures (tenant_id, framework, period, status, content)
+       VALUES ($1, $2, $3, 'draft', '{}'::jsonb)
+       RETURNING id::text`,
+      [locals.user.tenantId, framework, period]
+    );
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: 'esg.disclosure.created',
+      target: `disclosure:${rows[0].id}`,
+      result: 'success',
+      metadata: { framework, period }
+    });
+
+    return { disclosureCreated: true, disclosureId: rows[0].id };
   }
 };

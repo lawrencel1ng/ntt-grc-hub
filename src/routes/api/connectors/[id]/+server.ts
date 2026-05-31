@@ -9,10 +9,10 @@ import { checkRateLimit } from '$lib/server/rateLimit';
  * Body: { action: 'sync' | 'reconnect' }
  *
  * Returns the updated connector row fields (last_sync_at, status).
- * In mock mode returns a synthetic response so the UI still works.
  */
 export const PATCH: RequestHandler = async ({ params, request, locals }) => {
   if (!locals.user) throw error(401, 'Not authenticated');
+  if (!isPgMode()) throw error(400, 'Requires Postgres mode');
   if (!(await checkRateLimit('connector.action', locals.user.id, 30, 5 * 60_000))) throw error(429, 'Too many connector actions — try again in a few minutes.');
 
   const body = await request.json().catch(() => ({})) as { action?: string };
@@ -20,11 +20,6 @@ export const PATCH: RequestHandler = async ({ params, request, locals }) => {
   if (action !== 'sync' && action !== 'reconnect') throw error(400, 'action must be sync or reconnect');
 
   const now = new Date().toISOString();
-
-  if (!isPgMode()) {
-    // Mock mode — return synthetic response so the connector page still works.
-    return json({ ok: true, lastSyncAt: now, status: 'connected' });
-  }
 
   const pool = getPool();
 

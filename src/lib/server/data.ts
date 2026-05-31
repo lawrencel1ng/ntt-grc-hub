@@ -830,7 +830,9 @@ export async function getAuditFindingsByTenant(tenantId?: string): Promise<Recor
     `SELECT id::text AS id, tenant_id AS "tenantId", engagement_id::text AS "engagementId",
             severity::text AS severity, title, description, control_id AS "controlId",
             due_at AS "dueAt", status::text AS status
-     FROM audit.findings ${where}`,
+     FROM audit.findings ${where}
+     ORDER BY due_at ASC NULLS LAST
+     LIMIT 5000`,
     params
   );
   const map: Record<string, AuditFinding[]> = {};
@@ -1178,7 +1180,9 @@ export async function getFourthParties(tenantId?: string, vendorId?: string): Pr
     `SELECT fp.id::text AS id, fp.tenant_id AS "tenantId", fp.vendor_id::text AS "vendorId",
             v.name AS "vendorName", fp.name, fp.type, fp.region, fp.criticality::text AS criticality
      FROM vendor.fourth_parties fp JOIN vendor.vendors v ON v.id = fp.vendor_id
-     ${where}`, params
+     ${where}
+     ORDER BY fp.name
+     LIMIT 2000`, params
   );
   return rows;
 }
@@ -1190,7 +1194,9 @@ export async function getConcentrations(tenantId?: string): Promise<Concentratio
   const rows = await safeQuery<Concentration>(
     `SELECT id::text AS id, tenant_id AS "tenantId", dimension, key,
             vendor_count AS "vendorCount", exposure_sgd AS "exposureSgd"
-     FROM vendor.concentrations ${where}`, params
+     FROM vendor.concentrations ${where}
+     ORDER BY exposure_sgd DESC
+     LIMIT 1000`, params
   );
   return rows;
 }

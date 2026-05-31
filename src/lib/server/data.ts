@@ -1409,7 +1409,7 @@ export async function getSOXItgcs(tenantId?: string) {
               ELSE 'pass'
             END AS result,
             COALESCE(frequency, 'quarterly') AS frequency
-     FROM sox.itgcs ${where} ORDER BY control_ref`,
+     FROM sox.itgcs ${where} ORDER BY control_ref LIMIT 2000`,
     params
   );
   return rows;
@@ -1440,7 +1440,7 @@ export async function getSOXKcas(tenantId?: string) {
      FROM sox.kcas k
      LEFT JOIN sox.itgcs i ON i.id = k.itgc_id
      ${where ? where.replace('tenant_id', 'k.tenant_id') : ''}
-     ORDER BY k.attribute`,
+     ORDER BY k.attribute LIMIT 2000`,
     params
   );
   return rows;
@@ -1463,7 +1463,7 @@ export async function getSOXWalkthroughs(tenantId?: string) {
      FROM sox.walkthroughs w
      LEFT JOIN sox.itgcs i ON i.id = w.itgc_id
      ${where ? where.replace('tenant_id', 'w.tenant_id') : ''}
-     ORDER BY COALESCE(w.completed_at, w.created_at) DESC`,
+     ORDER BY COALESCE(w.completed_at, w.created_at) DESC LIMIT 2000`,
     params
   );
   return rows;
@@ -1485,7 +1485,7 @@ export async function getSOXDeficiencies(tenantId?: string) {
             COALESCE(remediation_plan, '') AS remediation,
             COALESCE(remediated_at::date::text, (created_at + interval '90 days')::date::text) AS "targetDate",
             (remediated_at IS NOT NULL) AS "onTrack"
-     FROM sox.deficiencies ${where} ORDER BY created_at DESC`,
+     FROM sox.deficiencies ${where} ORDER BY created_at DESC LIMIT 2000`,
     params
   );
   return rows;

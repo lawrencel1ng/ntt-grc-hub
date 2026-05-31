@@ -1006,7 +1006,7 @@ export async function getPolicyVersions(id: string): Promise<PolicyVersion[]> {
     `SELECT id::text AS id, tenant_id AS "tenantId", document_id::text AS "documentId",
             version_no AS "versionNo", content_md AS "contentMd", status::text AS status,
             effective_at AS "effectiveAt", drafted_by_agent_id AS "draftedByAgentId"
-     FROM policy.versions WHERE document_id = $1 ORDER BY version_no LIMIT 100`, [id]
+     FROM policy.versions WHERE document_id = $1::uuid ORDER BY version_no LIMIT 100`, [id]
   );
   return rows;
 }
@@ -1163,7 +1163,7 @@ export async function getQuestionnaireResponses(questionnaireId: string): Promis
   const rows = await safeQuery<QuestionnaireResponse>(
     `SELECT id, questionnaire_id::text AS "questionnaireId", question_code AS "questionCode",
             response, confidence, source_evidence_item_id AS "sourceEvidenceItemId"
-     FROM vendor.responses WHERE questionnaire_id = $1 ORDER BY question_code LIMIT 500`, [questionnaireId]
+     FROM vendor.responses WHERE questionnaire_id = $1::uuid ORDER BY question_code LIMIT 500`, [questionnaireId]
   );
   return rows;
 }

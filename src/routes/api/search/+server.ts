@@ -14,7 +14,7 @@ export interface SearchResult {
 
 export const GET: RequestHandler = async ({ url, locals }) => {
   if (!locals.user) throw error(401, 'Not authenticated');
-  if (!checkRateLimit('search', locals.user.id, 60, 60_000)) throw error(429, 'Too many searches — slow down.');
+  if (!(await checkRateLimit('search', locals.user.id, 60, 60_000))) throw error(429, 'Too many searches — slow down.');
 
   const q = url.searchParams.get('q')?.trim() ?? '';
   if (q.length < 2) return json({ results: [] });

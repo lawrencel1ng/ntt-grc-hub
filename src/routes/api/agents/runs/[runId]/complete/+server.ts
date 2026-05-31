@@ -25,7 +25,7 @@ const VALID_STATUSES: AgentRunStatus[] = ['success', 'failed', 'halted'];
 export const POST: RequestHandler = async ({ params, request, locals }) => {
   if (!locals.user) throw error(401, 'Not authenticated');
   if (!isPgMode()) throw error(400, 'Requires Postgres mode');
-  if (!checkRateLimit('agent.run.complete', locals.user.id, 60, 5 * 60_000)) throw error(429, 'Too many completion callbacks — try again shortly.');
+  if (!(await checkRateLimit('agent.run.complete', locals.user.id, 60, 5 * 60_000))) throw error(429, 'Too many completion callbacks — try again shortly.');
 
   const body = await request.json().catch(() => null);
   if (!body || typeof body !== 'object') throw error(400, 'Invalid JSON body');

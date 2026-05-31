@@ -47,6 +47,7 @@ async function recordLoginFailure(ip: string, email: string): Promise<void> {
     );
     // Best-effort cleanup of old rows (fire and forget)
     pool.query(`SELECT platform.purge_old_login_attempts()`).catch(() => {});
+    pool.query(`SELECT platform.purge_old_rate_limit_hits()`).catch(() => {});
   } catch { /* ignore */ }
 }
 

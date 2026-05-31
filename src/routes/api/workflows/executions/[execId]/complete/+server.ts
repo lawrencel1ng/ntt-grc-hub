@@ -16,7 +16,7 @@ type TerminalStatus = (typeof TERMINAL_STATUSES)[number];
 export const POST: RequestHandler = async ({ params, request, locals }) => {
   if (!locals.user) throw error(401, 'Not authenticated');
   if (!isPgMode()) throw error(400, 'Requires Postgres mode');
-  if (!checkRateLimit('workflow.complete', locals.user.id, 60, 5 * 60_000)) throw error(429, 'Too many completion callbacks — try again shortly.');
+  if (!(await checkRateLimit('workflow.complete', locals.user.id, 60, 5 * 60_000))) throw error(429, 'Too many completion callbacks — try again shortly.');
 
   const execId = Number(params.execId);
   if (!Number.isInteger(execId) || execId <= 0) throw error(400, 'Invalid execution ID');

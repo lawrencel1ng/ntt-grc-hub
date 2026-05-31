@@ -16,7 +16,7 @@ const ALL_TENANTS_ID = '__all__';
  */
 export const POST: RequestHandler = async ({ request, cookies, locals }) => {
   if (!locals.user) throw error(401, 'Not authenticated');
-  if (!checkRateLimit('tenant.switch', locals.user.id, 60, 60_000)) throw error(429, 'Too many tenant switches — slow down.');
+  if (!(await checkRateLimit('tenant.switch', locals.user.id, 60, 60_000))) throw error(429, 'Too many tenant switches — slow down.');
 
   let tenantId = '';
   try {

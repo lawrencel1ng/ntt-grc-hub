@@ -13,7 +13,7 @@ import { checkRateLimit } from '$lib/server/rateLimit';
  */
 export const PATCH: RequestHandler = async ({ params, request, locals }) => {
   if (!locals.user) throw error(401, 'Not authenticated');
-  if (!checkRateLimit('connector.action', locals.user.id, 30, 5 * 60_000)) throw error(429, 'Too many connector actions — try again in a few minutes.');
+  if (!(await checkRateLimit('connector.action', locals.user.id, 30, 5 * 60_000))) throw error(429, 'Too many connector actions — try again in a few minutes.');
 
   const body = await request.json().catch(() => ({})) as { action?: string };
   const action = body.action;

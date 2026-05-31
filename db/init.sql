@@ -247,6 +247,19 @@ CREATE OR REPLACE FUNCTION platform.purge_old_login_attempts() RETURNS void
     DELETE FROM platform.login_attempts WHERE attempted_at < now() - interval '1 hour';
 $$;
 
+CREATE TABLE platform.rate_limit_hits (
+    id          BIGSERIAL PRIMARY KEY,
+    bucket_id   TEXT NOT NULL,
+    user_id     UUID NOT NULL,
+    hit_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX ON platform.rate_limit_hits (bucket_id, user_id, hit_at DESC);
+
+CREATE OR REPLACE FUNCTION platform.purge_old_rate_limit_hits() RETURNS void
+    LANGUAGE sql AS $$
+    DELETE FROM platform.rate_limit_hits WHERE hit_at < now() - interval '1 hour';
+$$;
+
 -- =====================================================================
 -- 3. risk.*
 -- =====================================================================

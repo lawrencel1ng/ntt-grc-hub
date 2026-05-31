@@ -7,7 +7,7 @@ import { checkRateLimit } from '$lib/server/rateLimit';
 export const POST: RequestHandler = async ({ params, locals }) => {
   if (!locals.user) throw error(401, 'Not authenticated');
   if (!isPgMode()) throw error(400, 'Requires Postgres mode');
-  if (!checkRateLimit('control.test', locals.user.id, 10, 5 * 60_000)) {
+  if (!(await checkRateLimit('control.test', locals.user.id, 10, 5 * 60_000))) {
     throw error(429, 'Too many test runs — try again in a few minutes.');
   }
 

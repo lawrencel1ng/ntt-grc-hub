@@ -47,22 +47,6 @@ async function safeQuery<T>(sql: string, params: unknown[] = []): Promise<T[]> {
   }
 }
 
-/**
- * Resolve the owning tenant of a row by its primary key. In pg mode the
- * detail-page id is a DB UUID, not the mock `kind_tenant_n` string, so the
- * tenant can't be parsed out of the id. A 1-column lookup lets the by-id
- * getters reuse the existing tenant-scoped list query (which already maps
- * every column). `table` is always a hard-coded literal — never user input.
- * Returns undefined when the row isn't found so callers fall back to their
- * mock-prefix decoding.
- */
-async function tenantOfRow(table: string, id: string): Promise<string | undefined> {
-  const rows = await safeQuery<{ tenantId: string }>(
-    `SELECT tenant_id AS "tenantId" FROM ${table} WHERE id = $1`,
-    [id]
-  );
-  return rows[0]?.tenantId;
-}
 
 // =====================================================================
 // Tenants

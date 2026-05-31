@@ -1,0 +1,58 @@
+-- Migration 098: Replace generic contactN@vendor.example.com emails with
+-- realistic vendor-specific compliance/security contact addresses.
+-- Only updates rows that still carry the synthetic placeholder pattern.
+
+UPDATE vendor.vendors
+SET primary_contact_email = CASE name
+  WHEN '1Password'         THEN 'security@1password.com'
+  WHEN 'Adyen'             THEN 'compliance@adyen.com'
+  WHEN 'Atlassian'         THEN 'security@atlassian.com'
+  WHEN 'Auth0'             THEN 'compliance@auth0.com'
+  WHEN 'AWS'               THEN 'aws-security@amazon.com'
+  WHEN 'BitSight'          THEN 'support@bitsight.com'
+  WHEN 'Bitwarden'         THEN 'security@bitwarden.com'
+  WHEN 'Cisco'             THEN 'psirt@cisco.com'
+  WHEN 'Confluent'         THEN 'compliance@confluent.io'
+  WHEN 'CrowdStrike'       THEN 'compliance@crowdstrike.com'
+  WHEN 'Databricks'        THEN 'security@databricks.com'
+  WHEN 'Datadog'           THEN 'compliance@datadoghq.com'
+  WHEN 'Drata'             THEN 'compliance@drata.com'
+  WHEN 'GitHub'            THEN 'security@github.com'
+  WHEN 'GitLab'            THEN 'security@gitlab.com'
+  WHEN 'Google Cloud'      THEN 'gcp-compliance@google.com'
+  WHEN 'IBM'               THEN 'ibm-security@ibm.com'
+  WHEN 'Jira Service Mgmt' THEN 'atlassian-compliance@atlassian.com'
+  WHEN 'Looker'            THEN 'looker-security@google.com'
+  WHEN 'Microsoft'         THEN 'mssecurity@microsoft.com'
+  WHEN 'Microsoft Teams'   THEN 'teams-compliance@microsoft.com'
+  WHEN 'Mongo Atlas'       THEN 'security@mongodb.com'
+  WHEN 'New Relic'         THEN 'compliance@newrelic.com'
+  WHEN 'Notion'            THEN 'security@notion.so'
+  WHEN 'Okta'              THEN 'compliance@okta.com'
+  WHEN 'OneLogin'          THEN 'security@onelogin.com'
+  WHEN 'Onetrust'          THEN 'compliance@onetrust.com'
+  WHEN 'Oracle'            THEN 'oracle-security@oracle.com'
+  WHEN 'PagerDuty'         THEN 'security@pagerduty.com'
+  WHEN 'Palo Alto'         THEN 'psirt@paloaltonetworks.com'
+  WHEN 'PingIdentity'      THEN 'security@pingidentity.com'
+  WHEN 'Power BI'          THEN 'powerbi-security@microsoft.com'
+  WHEN 'Salesforce'        THEN 'trust@salesforce.com'
+  WHEN 'SAP'               THEN 'security@sap.com'
+  WHEN 'SecurityScorecard' THEN 'support@securityscorecard.com'
+  WHEN 'SentinelOne'       THEN 'compliance@sentinelone.com'
+  WHEN 'ServiceNow'        THEN 'security@servicenow.com'
+  WHEN 'Slack'             THEN 'security@slack.com'
+  WHEN 'Snowflake'         THEN 'security@snowflake.com'
+  WHEN 'Splunk'            THEN 'security@splunk.com'
+  WHEN 'Stripe'            THEN 'compliance@stripe.com'
+  WHEN 'Tableau'           THEN 'tableau-security@salesforce.com'
+  WHEN 'TrustArc'          THEN 'compliance@trustarc.com'
+  WHEN 'Twilio'            THEN 'security@twilio.com'
+  WHEN 'Vanta'             THEN 'security@vanta.com'
+  WHEN 'Workday'           THEN 'security@workday.com'
+  WHEN 'Zoom'              THEN 'security@zoom.us'
+  ELSE primary_contact_email
+END
+WHERE primary_contact_email LIKE 'contact%@vendor.example.com';
+
+\echo ' >> vendor contact emails updated to vendor-specific addresses'

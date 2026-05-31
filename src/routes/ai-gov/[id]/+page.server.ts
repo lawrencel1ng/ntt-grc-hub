@@ -81,6 +81,7 @@ export const actions: Actions = {
     const riskTier = String(fd.get('riskTier') ?? '').trim();
     const jurisdiction = String(fd.get('jurisdiction') ?? '').trim();
     const trainingDataSummary = String(fd.get('trainingDataSummary') ?? '').trim() || null;
+    const ownerEmail = String(fd.get('ownerEmail') ?? '').trim().toLowerCase() || null;
 
     if (!name) return fail(400, { editError: 'Name is required.' });
     if (name.length > 256) return fail(400, { editError: 'Name must be 256 characters or fewer.' });
@@ -88,14 +89,27 @@ export const actions: Actions = {
     if (!VALID_RISK_TIERS.includes(riskTier as typeof VALID_RISK_TIERS[number])) return fail(400, { editError: 'Invalid risk tier.' });
     if (jurisdiction.length > 128) return fail(400, { editError: 'Jurisdiction must be 128 characters or fewer.' });
     if (trainingDataSummary && trainingDataSummary.length > 4096) return fail(400, { editError: 'Training data summary must be 4096 characters or fewer.' });
+    if (ownerEmail && ownerEmail.length > 256) return fail(400, { editError: 'Owner email must be 256 characters or fewer.' });
 
     const pool = getPool();
+
+    let ownerUserId: string | null = null;
+    if (ownerEmail) {
+      const userRow = await pool.query<{ id: string }>(
+        `SELECT id FROM platform.users WHERE email = $1 AND tenant_id = $2 AND status = 'active' LIMIT 1`,
+        [ownerEmail, locals.user.tenantId]
+      );
+      if (!userRow.rows.length) return fail(400, { editError: `No active user found with email "${ownerEmail}" in your tenant.` });
+      ownerUserId = userRow.rows[0].id;
+    }
+
     const { rowCount } = await pool.query(
       `UPDATE ai_gov.models
        SET name = $1, kind = $2, risk_tier = $3::ai_gov.risk_tier,
-           jurisdiction = $4, training_data_summary = $5
-       WHERE id = $6::uuid AND tenant_id = $7`,
-      [name, kind, riskTier, jurisdiction, trainingDataSummary, params.id, locals.user.tenantId]
+           jurisdiction = $4, training_data_summary = $5,
+           owner_user_id = COALESCE($6::uuid, owner_user_id)
+       WHERE id = $7::uuid AND tenant_id = $8`,
+      [name, kind, riskTier, jurisdiction, trainingDataSummary, ownerUserId, params.id, locals.user.tenantId]
     );
     if (!rowCount) return fail(404, { editError: 'AI model not found or access denied.' });
 
@@ -106,9 +120,9 @@ export const actions: Actions = {
       action: 'ai_gov.model.updated',
       target: `ai_model:${params.id}`,
       result: 'success',
-      metadata: { name, kind, riskTier }
+      metadata: { name, kind, riskTier, ownerEmail }
     });
 
-    return { editSuccess: true };
+    return { editSuccess: true, ownerEmail: ownerEmail ?? undefined };
   }
 };

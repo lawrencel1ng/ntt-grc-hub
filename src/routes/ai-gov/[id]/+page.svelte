@@ -15,9 +15,13 @@
   import { enhance } from '$app/forms';
 
   export let data;
-  export let form: { editSuccess?: boolean; editError?: string; riskLogged?: boolean; riskError?: string } | null = null;
+  export let form: { editSuccess?: boolean; editError?: string; ownerEmail?: string; riskLogged?: boolean; riskError?: string } | null = null;
 
-  $: if (form?.editSuccess) { addToast('success', 'AI model updated.'); showEditForm = false; }
+  $: if (form?.editSuccess) {
+    addToast('success', 'AI model updated.');
+    showEditForm = false;
+    if (form.ownerEmail) data = { ...data, model: { ...data.model, ownerEmail: form.ownerEmail } };
+  }
   $: if (form?.editError) addToast('error', form.editError);
   $: if (form?.riskLogged) { addToast('success', 'Model risk recorded.'); showRiskForm = false; }
   $: if (form?.riskError) addToast('error', form.riskError);
@@ -217,6 +221,10 @@
         <label class="block sm:col-span-2">
           <span class="mb-1 block text-xs font-medium text-slate-700">Training Data Summary</span>
           <textarea name="trainingDataSummary" class="input h-20 resize-none" maxlength="4096">{data.model.trainingDataSummary ?? ''}</textarea>
+        </label>
+        <label class="block sm:col-span-2">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Owner email</span>
+          <input name="ownerEmail" type="email" class="input" value={data.model.ownerEmail ?? ''} placeholder="Leave blank to keep current owner" maxlength="256" />
         </label>
       </div>
       <div class="flex gap-2">

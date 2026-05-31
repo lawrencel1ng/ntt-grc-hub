@@ -150,6 +150,9 @@
   $: fleetCostMonthly = data.agents.reduce((s, a) => s + (a.costMonthlyEstimateCents ?? 0), 0) / 100;
   $: totalFteHours30d = data.fleet.reduce((s, x) => s + (x.fteHours30d ?? 0), 0);
   $: fteSaved = +(totalFteHours30d / 160).toFixed(1);
+  $: fleetUptimePct = data.fleet.length
+    ? +(data.fleet.filter((a) => a.status === 'running' || a.status === 'idle').length / data.fleet.length * 100).toFixed(1)
+    : 99.2;
   // S$120 fully-loaded cost per FTE-hour; 30d → annual via *12/30
   $: annualSavings = Math.round((totalFteHours30d * 120 * 12) / 30);
 
@@ -350,11 +353,15 @@
       <Sankey nodes={sankeyData.nodes} links={sankeyData.links} height={420} />
     </div>
     <p class="mt-4 text-sm text-slate-600 leading-relaxed">
-      <span class="font-semibold text-slate-800">Concentration on AWS ap-southeast-1</span>
-      remains the single largest watch item, with {data.concentrations[0]?.vendorCount ?? 22} vendors and roughly
-      <span class="num">S${((data.concentrations[0]?.exposureSgd ?? 11_500_000) / 1_000_000).toFixed(1)}M</span>
-      of total exposure. A vendor exit-plan workstream is recommended for the next quarter to
-      lift the concentration risk below 40%.
+      {#if data.concentrations.length}
+        <span class="font-semibold text-slate-800">Concentration on {data.concentrations[0].key}</span>
+        remains the single largest watch item, with {data.concentrations[0].vendorCount} vendors and roughly
+        <span class="num">S${(data.concentrations[0].exposureSgd / 1_000_000).toFixed(1)}M</span>
+        of total exposure. A vendor exit-plan workstream is recommended for the next quarter to
+        lift the concentration risk below 40%.
+      {:else}
+        No concentration data recorded for this period.
+      {/if}
     </p>
   </section>
 
@@ -451,8 +458,8 @@
       </div>
       <div class="rounded-lg bg-white p-4 ring-1 ring-inset ring-slate-200/70">
         <div class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Fleet Uptime</div>
-        <div class="mt-1 num text-[22px] font-semibold tracking-tight text-violet-700">99.2<span class="ml-0.5 font-sans text-sm font-medium text-slate-400">%</span></div>
-        <div class="mt-1 text-[11px] text-slate-500">30-day SLA</div>
+        <div class="mt-1 num text-[22px] font-semibold tracking-tight text-violet-700">{fleetUptimePct}<span class="ml-0.5 font-sans text-sm font-medium text-slate-400">%</span></div>
+        <div class="mt-1 text-[11px] text-slate-500">agents healthy</div>
       </div>
     </div>
 

@@ -165,7 +165,7 @@ export const AGENT_INPUT_SUMMARIES: Record<string, string[]> = {
   ag_fair:      ['Run FAIR scenario: ransomware','Quantify outsourcing risk','Simulate AWS region outage',     'Reprice loan AI risk',           'Quantify breach exposure'],
   ag_incident:  ['Build timeline INC-0042',    'Draft postmortem INC-0031','Pull logs for INC-0039',            'Correlate alerts INC-0044',      'Summarise INC-0033 chat thread'],
   ag_mapper:    ['Map new control to 14 frameworks','Map CT-0892 → SOC 2','Map CT-1100 → MAS TRM',              'Map CT-0712 → NIST CSF',         'Embed-similarity new admin control'],
-  ag_board:     ['Aggregate KPIs for May 2026','Draft 1-page Board summary','Build CRO board appendix',         'Generate ESG board callout',     'Compose Agent ROI section']
+  ag_board:     [`Aggregate KPIs for ${new Date().toLocaleString('en-SG', { month: 'long', year: 'numeric' })}`,'Draft 1-page Board summary','Build CRO board appendix',         'Generate ESG board callout',     'Compose Agent ROI section']
 };
 
 export const AGENT_OUTPUT_SUMMARIES: Record<string, string[]> = {

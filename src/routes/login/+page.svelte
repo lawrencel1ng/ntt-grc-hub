@@ -100,7 +100,7 @@
       </div>
     </div>
 
-    <div class="relative text-xs text-white/40">© 2026 NTT Singapore. Confidential.</div>
+    <div class="relative text-xs text-white/40">© {new Date().getFullYear()} NTT Singapore. Confidential.</div>
   </div>
 
   <!-- Right: login -->

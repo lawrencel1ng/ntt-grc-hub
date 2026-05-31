@@ -90,7 +90,7 @@ const PHISH_TEMPLATES = [
 ];
 
 const TRAINING_TITLES: { name: string; type: TrainingCampaign['contentType']; ref: string }[] = [
-  { name: '2026 Security Awareness Refresher', type: 'video', ref: 'ISO 27001 A.6.3' },
+  { name: `${new Date().getFullYear()} Security Awareness Refresher`, type: 'video', ref: 'ISO 27001 A.6.3' },
   { name: 'Phishing & Social Engineering', type: 'interactive', ref: 'NIST CSF PR.AT-1' },
   { name: 'Data Protection & PDPA Essentials', type: 'assessment', ref: 'PDPA s.11' },
   { name: 'Acceptable Use Policy Acknowledgement', type: 'policy-ack', ref: 'MAS TRM 4.1' },
@@ -186,7 +186,7 @@ const SAMPLE_SIZE = 64;
 
 function monthLabels(): string[] {
   const out: string[] = [];
-  const now = new Date('2026-05-01T00:00:00+08:00');
+  const now = new Date();
   for (let i = 11; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     out.push(d.toLocaleString('en-SG', { month: 'short' }));

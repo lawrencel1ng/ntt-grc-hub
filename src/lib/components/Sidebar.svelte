@@ -75,7 +75,7 @@
       <div class="flex items-center justify-between">
         <span>v1.0.0</span>
       </div>
-      <div class="mt-1 text-white/30">© 2026 NTT Singapore.</div>
+      <div class="mt-1 text-white/30">© {new Date().getFullYear()} NTT Singapore.</div>
     {:else}
       <span class="block text-center">v1</span>
     {/if}

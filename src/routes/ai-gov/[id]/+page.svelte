@@ -153,10 +153,10 @@
         headers: { 'Content-Type': 'application/json' }
       });
       if (res.ok) {
-        addToast('success', `Risk assessment queued for ${data.model.name}. Risk Quantifier agent will report in ~30s.`);
+        addToast('success', `Risk assessment complete for ${data.model.name} — bias, hallucination, drift, explainability and privacy risks recorded.`);
       } else {
         const msg = await res.text().catch(() => '');
-        addToast('error', msg || 'Failed to queue risk assessment.');
+        addToast('error', msg || 'Failed to run risk assessment.');
       }
     } catch {
       addToast('error', 'Network error — check your connection and try again.');

@@ -37,7 +37,7 @@ export const POST: RequestHandler = async ({ params, locals }) => {
     userId: locals.user.id,
     actorEmail: locals.user.email,
     tenantId: locals.user.tenantId,
-    action: 'ai_gov.risk_assessment.queued',
+    action: 'ai_gov.risk_assessment.completed',
     target: `model:${params.id}`,
     result: 'success',
     metadata: { modelName: rows[0].name, riskTier: rows[0].risk_tier }

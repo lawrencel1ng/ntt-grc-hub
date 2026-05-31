@@ -44,7 +44,7 @@
 
   function useDemo(d: (typeof DEMO_LOGINS)[number]) {
     email = d.email;
-    password = d.password;
+    password = data.pgMode ? 'Demo1234!' : d.password;
   }
 </script>
 
@@ -119,7 +119,7 @@
       {#if ssoUnavailable}
         <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
           <strong>{PROVIDER_LABEL[ssoUnavailable] ?? ssoUnavailable}</strong> SSO isn't configured
-          in this environment. Sign in with your work email below{#if !data.pgMode}, or pick a demo account{/if}.
+          in this environment. Sign in with your work email below, or pick a demo account.
         </div>
       {/if}
 
@@ -231,11 +231,12 @@
         </button>
       </div>
 
-      {#if !data.pgMode}
       <div class="mt-8 rounded-lg border border-slate-200 bg-slate-50 p-3">
         <div class="mb-2 flex items-center justify-between">
           <div class="text-xs font-semibold uppercase tracking-wider text-slate-500">Demo accounts</div>
-          <span class="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-medium text-violet-700 ring-1 ring-inset ring-violet-200">Click to fill</span>
+          <span class="rounded-full bg-violet-50 px-2 py-0.5 text-[10px] font-medium text-violet-700 ring-1 ring-inset ring-violet-200">
+            {data.pgMode ? 'pw: Demo1234!' : 'Click to fill'}
+          </span>
         </div>
         <div class="space-y-1">
           {#each DEMO_LOGINS as d}
@@ -253,8 +254,6 @@
           {/each}
         </div>
       </div>
-      {/if}
-
       <div class="mt-6 text-center text-[11px] text-slate-400">
         By signing in you agree to NTT Singapore's
         <a href="/" class="underline">acceptable use policy</a>. All sessions are logged and

@@ -153,7 +153,7 @@ export async function getAgent(id: string): Promise<Agent | undefined> {
     `SELECT id, name, slug, description, type::text AS type, status, owner_team AS "ownerTeam",
             cost_per_run_cents AS "costPerRunCents", cost_monthly_estimate_cents AS "costMonthlyEstimateCents",
             fte_equivalent AS "fteEquivalent"
-     FROM agent.agents WHERE id = $1::uuid LIMIT 1`, [id]
+     FROM agent.agents WHERE id = $1 LIMIT 1`, [id]
   );
   return rows[0];
 }

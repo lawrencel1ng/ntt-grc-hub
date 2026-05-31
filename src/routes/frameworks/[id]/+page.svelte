@@ -7,10 +7,16 @@
   import ProgressBar from '$lib/components/ProgressBar.svelte';
   import { addToast } from '$lib/stores/toast';
   import { downloadCsv } from '$lib/utils/csv';
-  import { FileBarChart, ShieldCheck, FileLock2, AlertTriangle, Stamp, Download, X, Loader2 } from 'lucide-svelte';
+  import { FileBarChart, ShieldCheck, FileLock2, AlertTriangle, Stamp, Download, X, Loader2, Plus } from 'lucide-svelte';
+  import { enhance } from '$app/forms';
   import type { Requirement, Control, EvidenceItem, RequirementCoverage, ComplianceGap, ComplianceAttestation } from '$lib/data/types';
 
   export let data;
+  export let form: { attested?: boolean; attestError?: string } | null = null;
+
+  let showAttestForm = false;
+  $: if (form?.attested) { addToast('success', 'Attestation signed and recorded.'); showAttestForm = false; }
+  $: if (form?.attestError) addToast('error', form.attestError);
 
   type Tab = 'requirements' | 'controls' | 'evidence' | 'gaps' | 'attestations';
   let tab: Tab = 'requirements';
@@ -349,6 +355,32 @@
 
     <!-- Attestations -->
     {:else if tab === 'attestations'}
+      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+        <span class="text-xs text-slate-500">{attestations.length} attestation{attestations.length !== 1 ? 's' : ''}</span>
+        <button class="btn-ghost text-xs" on:click={() => (showAttestForm = !showAttestForm)}>
+          <Plus class="h-3.5 w-3.5" />
+          Sign attestation
+        </button>
+      </div>
+      {#if showAttestForm}
+        <div class="border-b border-slate-100 bg-slate-50 px-5 py-4">
+          <form method="POST" action="?/signAttestation" use:enhance class="space-y-3">
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Attestation statement</span>
+              <textarea name="attestationText" rows="3" class="input resize-none" required maxlength="4096"
+                placeholder="I attest that all {data.framework.name} controls have been reviewed and are operating effectively as of {new Date().toISOString().slice(0, 10)}."></textarea>
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Valid until (optional)</span>
+              <input name="validUntil" type="date" class="input w-48" />
+            </label>
+            <div class="flex gap-2">
+              <button type="submit" class="btn-primary">Sign & record</button>
+              <button type="button" class="btn-secondary" on:click={() => (showAttestForm = false)}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      {/if}
       <div class="overflow-x-auto">
         {#if attestations.length === 0}
           <div class="p-8 text-center text-sm text-slate-500">No attestations on record for this framework.</div>

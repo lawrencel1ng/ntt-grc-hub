@@ -467,7 +467,14 @@
                   {#if tp.costSgd}<span class="ml-2">· S${tp.costSgd.toLocaleString()}</span>{/if}
                 </div>
               </div>
-              <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset {tp.completedAt ? 'bg-violet-50 text-violet-700 ring-violet-200' : 'bg-amber-50 text-amber-700 ring-amber-200'}">{tp.completedAt ? 'completed' : 'in-progress'}</span>
+              {#if tp.completedAt}
+                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset bg-violet-50 text-violet-700 ring-violet-200">completed</span>
+              {:else}
+                <form method="POST" action="?/completeTreatment" use:enhance>
+                  <input type="hidden" name="treatmentId" value={tp.id} />
+                  <button type="submit" class="btn-secondary py-0.5 text-xs">Mark complete</button>
+                </form>
+              {/if}
             </div>
           </div>
         {:else}

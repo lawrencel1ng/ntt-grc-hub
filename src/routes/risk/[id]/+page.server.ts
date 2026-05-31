@@ -189,5 +189,34 @@ export const actions: Actions = {
     });
 
     return { treatmentCreated: true };
+  },
+
+  completeTreatment: async ({ params, request, locals }) => {
+    if (!locals.user) return fail(401, { treatmentError: 'Not authenticated' });
+    if (!isPgMode()) return fail(400, { treatmentError: 'Requires Postgres mode' });
+
+    const fd = await request.formData();
+    const treatmentId = String(fd.get('treatmentId') ?? '').trim();
+    if (!treatmentId) return fail(400, { treatmentError: 'treatmentId required' });
+
+    const pool = getPool();
+    const { rowCount } = await pool.query(
+      `UPDATE risk.treatments SET completed_at = now()
+       WHERE id = $1::uuid AND risk_id = $2::uuid AND tenant_id = $3 AND completed_at IS NULL`,
+      [treatmentId, params.id, locals.user.tenantId]
+    );
+    if (!rowCount) return fail(404, { treatmentError: 'Treatment not found or already completed.' });
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: 'risk.treatment.completed',
+      target: `risk:${params.id}`,
+      result: 'success',
+      metadata: { treatmentId }
+    });
+
+    return { treatmentCompleted: true };
   }
 };

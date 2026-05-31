@@ -14,6 +14,7 @@
     inviteSuccess?: boolean; invitedEmail?: string; inviteError?: string;
     deactivateSuccess?: boolean; deactivatedEmail?: string; deactivateError?: string;
     reactivateSuccess?: boolean; reactivatedEmail?: string; reactivateError?: string;
+    roleChanged?: boolean; targetEmail?: string; newRole?: string; roleError?: string;
   } | null = null;
 
   $: if (form?.inviteSuccess) { addToast('success', `Invitation sent to ${form.invitedEmail}.`); showInviteForm = false; }
@@ -22,6 +23,8 @@
   $: if (form?.deactivateError) addToast('error', form.deactivateError);
   $: if (form?.reactivateSuccess) addToast('success', `${form.reactivatedEmail} reactivated.`);
   $: if (form?.reactivateError) addToast('error', form.reactivateError);
+  $: if (form?.roleChanged) addToast('success', `${form.targetEmail} role changed to ${form.newRole}.`);
+  $: if (form?.roleError) addToast('error', form.roleError);
 
   let showInviteForm = false;
 
@@ -217,22 +220,35 @@
                 </span>
               </td>
               <td class="td">
-                {#if u.status !== 'disabled'}
-                  <form method="POST" action="?/deactivateUser" use:enhance
-                    on:submit={(e) => { if (!confirm(`Deactivate ${u.name}? This will immediately revoke all active sessions.`)) e.preventDefault(); }}>
+                <div class="flex items-center gap-1">
+                  <form method="POST" action="?/changeRole" use:enhance class="flex items-center gap-1">
                     <input type="hidden" name="userId" value={u.id} />
-                    <button type="submit" class="btn-ghost p-1 text-rose-600 hover:text-rose-800" title="Deactivate user">
-                      <UserMinus class="h-3.5 w-3.5" />
+                    <select name="role" class="input py-0.5 text-[11px]" value={u.role}>
+                      {#each ['admin','risk-owner','control-owner','auditor','agent-operator','viewer'] as r}
+                        <option value={r}>{r}</option>
+                      {/each}
+                    </select>
+                    <button type="submit" class="btn-ghost p-1 text-slate-500 hover:text-grc-primary" title="Change role">
+                      <Check class="h-3.5 w-3.5" />
                     </button>
                   </form>
-                {:else}
-                  <form method="POST" action="?/reactivateUser" use:enhance>
-                    <input type="hidden" name="userId" value={u.id} />
-                    <button type="submit" class="btn-ghost p-1 text-violet-600 hover:text-violet-800" title="Reactivate user">
-                      <UserCheck2 class="h-3.5 w-3.5" />
-                    </button>
-                  </form>
-                {/if}
+                  {#if u.status !== 'disabled'}
+                    <form method="POST" action="?/deactivateUser" use:enhance
+                      on:submit={(e) => { if (!confirm(`Deactivate ${u.name}? This will immediately revoke all active sessions.`)) e.preventDefault(); }}>
+                      <input type="hidden" name="userId" value={u.id} />
+                      <button type="submit" class="btn-ghost p-1 text-rose-600 hover:text-rose-800" title="Deactivate user">
+                        <UserMinus class="h-3.5 w-3.5" />
+                      </button>
+                    </form>
+                  {:else}
+                    <form method="POST" action="?/reactivateUser" use:enhance>
+                      <input type="hidden" name="userId" value={u.id} />
+                      <button type="submit" class="btn-ghost p-1 text-violet-600 hover:text-violet-800" title="Reactivate user">
+                        <UserCheck2 class="h-3.5 w-3.5" />
+                      </button>
+                    </form>
+                  {/if}
+                </div>
               </td>
             </tr>
           {:else}

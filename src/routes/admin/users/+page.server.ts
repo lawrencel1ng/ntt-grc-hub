@@ -162,5 +162,47 @@ export const actions: Actions = {
     });
 
     return { reactivateSuccess: true, reactivatedEmail: rows[0].email };
+  },
+
+  changeRole: async ({ request, locals }) => {
+    if (!locals.user) return fail(401, { roleError: 'Not authenticated.' });
+    if (locals.user.role !== 'admin') return fail(403, { roleError: 'Admin role required.' });
+    if (!isPgMode()) return fail(400, { roleError: 'User management requires Postgres mode.' });
+
+    const data = await request.formData();
+    const targetUserId = String(data.get('userId') ?? '').trim();
+    const newRole = String(data.get('role') ?? '').trim() as Role;
+
+    if (!targetUserId) return fail(400, { roleError: 'User ID required.' });
+    if (!VALID_ROLES.includes(newRole)) return fail(400, { roleError: 'Invalid role.' });
+    if (targetUserId === locals.user.id) return fail(400, { roleError: 'Cannot change your own role.' });
+
+    const pool = getPool();
+    const { rows } = await pool.query<{ id: string; email: string; tenant_id: string; role: string }>(
+      `SELECT id, email, tenant_id, role::text FROM platform.users WHERE id = $1::uuid LIMIT 1`,
+      [targetUserId]
+    );
+    if (!rows.length) return fail(404, { roleError: 'User not found.' });
+    if (rows[0].tenant_id !== locals.user.tenantId && locals.user.tenantId !== '__all__') {
+      return fail(403, { roleError: 'Access denied.' });
+    }
+    if (rows[0].role === newRole) return fail(409, { roleError: `User is already ${newRole}.` });
+
+    await pool.query(
+      `UPDATE platform.users SET role = $1 WHERE id = $2`,
+      [newRole, targetUserId]
+    );
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: 'user.role.changed',
+      target: `user:${rows[0].email}`,
+      result: 'success',
+      metadata: { targetUserId, targetEmail: rows[0].email, oldRole: rows[0].role, newRole }
+    });
+
+    return { roleChanged: true, targetEmail: rows[0].email, newRole };
   }
 };

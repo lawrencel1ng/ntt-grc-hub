@@ -2194,7 +2194,15 @@ export async function getTrainingCampaigns(tenantId?: string): Promise<TrainingC
 // =====================================================================
 
 async function computeVendorRiskIndex(tenantId?: string): Promise<number> {
-  if (!isPgMode()) return 62;
+  if (!isPgMode()) {
+    const qs = tenantId
+      ? mock.questionnairesForVendor(tenantId)
+      : ['t_maybank', 't_grab', 't_govtech'].flatMap((t) => mock.questionnairesForVendor(t));
+    const completed = qs.filter((q) => q.score != null);
+    if (!completed.length) return 50;
+    const avg = completed.reduce((s, q) => s + q.score!, 0) / completed.length;
+    return Math.min(100, Math.max(0, Math.round(100 - avg)));
+  }
   try {
     const sql = tenantId
       ? `SELECT ROUND(100 - COALESCE(AVG(q.score), 50))::int AS idx

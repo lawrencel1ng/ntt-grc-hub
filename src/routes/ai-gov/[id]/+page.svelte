@@ -7,7 +7,7 @@
   import { addToast } from '$lib/stores/toast';
   import {
     BrainCircuit, Calculator, BookOpen, AlertTriangle, ScrollText, Activity,
-    ShieldCheck, Sparkles, Pencil
+    ShieldCheck, Sparkles, Pencil, Plus
   } from 'lucide-svelte';
   import type {
     AIModel, AIRiskTier, ISO42001Status, AIModelKind, ModelRisk, PromptAuditEntry, RiskSeverity, ModelRiskType
@@ -15,12 +15,15 @@
   import { enhance } from '$app/forms';
 
   export let data;
-  export let form: { editSuccess?: boolean; editError?: string } | null = null;
+  export let form: { editSuccess?: boolean; editError?: string; riskLogged?: boolean; riskError?: string } | null = null;
 
   $: if (form?.editSuccess) { addToast('success', 'AI model updated.'); showEditForm = false; }
   $: if (form?.editError) addToast('error', form.editError);
+  $: if (form?.riskLogged) { addToast('success', 'Model risk recorded.'); showRiskForm = false; }
+  $: if (form?.riskError) addToast('error', form.riskError);
 
   let showEditForm = false;
+  let showRiskForm = false;
 
   // ---------- Tabs ----------
   type Tab = 'overview' | 'risk' | 'prompts' | 'monitoring';
@@ -304,6 +307,48 @@
 
     <!-- Model Risk -->
     {:else if tab === 'risk'}
+      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+        <span class="text-xs text-slate-500">{data.risks.length} risk{data.risks.length !== 1 ? 's' : ''} recorded</span>
+        <button class="btn-ghost text-xs" on:click={() => (showRiskForm = !showRiskForm)}>
+          <Plus class="h-3.5 w-3.5" />
+          Log risk
+        </button>
+      </div>
+      {#if showRiskForm}
+        <div class="border-b border-slate-100 bg-slate-50 px-5 py-4">
+          <form method="POST" action="?/logModelRisk" use:enhance class="space-y-3">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label class="block">
+                <span class="mb-1 block text-xs font-medium text-slate-700">Risk type</span>
+                <select name="riskType" class="input" required>
+                  <option value="bias">Bias</option>
+                  <option value="hallucination">Hallucination</option>
+                  <option value="drift">Drift</option>
+                  <option value="explainability">Explainability</option>
+                  <option value="privacy">Privacy</option>
+                </select>
+              </label>
+              <label class="block">
+                <span class="mb-1 block text-xs font-medium text-slate-700">Severity</span>
+                <select name="severity" class="input" required>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </label>
+            </div>
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Mitigation</span>
+              <textarea name="mitigation" rows="2" class="input resize-none" placeholder="Describe the mitigation or control applied…" required maxlength="2048"></textarea>
+            </label>
+            <div class="flex gap-2">
+              <button type="submit" class="btn-primary">Record risk</button>
+              <button type="button" class="btn-secondary" on:click={() => (showRiskForm = false)}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      {/if}
       <div class="divide-y divide-slate-100">
         {#each data.risks as r (r.id)}
           <div class="px-5 py-4">

@@ -27,8 +27,50 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 
 const VALID_RISK_TIERS = ['minimal', 'limited', 'high', 'unacceptable'] as const;
 const VALID_MODEL_KINDS = ['classifier', 'llm', 'regression', 'vision', 'recommender'] as const;
+const VALID_RISK_TYPES = ['bias', 'hallucination', 'drift', 'explainability', 'privacy'] as const;
+const VALID_SEVERITIES = ['critical', 'high', 'medium', 'low'] as const;
 
 export const actions: Actions = {
+  logModelRisk: async ({ params, request, locals }) => {
+    if (!locals.user) return fail(401, { riskError: 'Not authenticated' });
+    if (!isPgMode()) return fail(400, { riskError: 'Requires Postgres mode' });
+
+    const fd = await request.formData();
+    const riskType = String(fd.get('riskType') ?? '').trim();
+    const severity = String(fd.get('severity') ?? '').trim();
+    const mitigation = String(fd.get('mitigation') ?? '').trim();
+
+    if (!VALID_RISK_TYPES.includes(riskType as typeof VALID_RISK_TYPES[number])) return fail(400, { riskError: 'Invalid risk type.' });
+    if (!VALID_SEVERITIES.includes(severity as typeof VALID_SEVERITIES[number])) return fail(400, { riskError: 'Invalid severity.' });
+    if (!mitigation || mitigation.length > 2048) return fail(400, { riskError: 'Mitigation is required (max 2048 chars).' });
+
+    const pool = getPool();
+    const check = await pool.query<{ id: string }>(
+      `SELECT id FROM ai_gov.models WHERE id = $1::uuid AND tenant_id = $2 LIMIT 1`,
+      [params.id, locals.user.tenantId]
+    );
+    if (!check.rows.length) return fail(404, { riskError: 'AI model not found or access denied.' });
+
+    const { rows } = await pool.query<{ id: string }>(
+      `INSERT INTO ai_gov.model_risk (tenant_id, model_id, risk_type, severity, mitigation)
+       VALUES ($1, $2::uuid, $3, $4::risk.severity, $5)
+       RETURNING id::text`,
+      [locals.user.tenantId, params.id, riskType, severity, mitigation]
+    );
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: 'ai_gov.model_risk.logged',
+      target: `ai_model:${params.id}`,
+      result: 'success',
+      metadata: { riskId: rows[0].id, riskType, severity }
+    });
+
+    return { riskLogged: true };
+  },
+
   updateAIModel: async ({ params, request, locals }) => {
     if (!locals.user) return fail(401, { editError: 'Not authenticated' });
     if (!isPgMode()) return fail(400, { editError: 'Requires Postgres mode' });

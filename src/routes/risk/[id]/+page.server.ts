@@ -116,5 +116,53 @@ export const actions: Actions = {
     });
 
     return { statusUpdated: true, newStatus };
+  },
+
+  createTreatment: async ({ params, request, locals }) => {
+    if (!locals.user) return fail(401, { treatmentError: 'Not authenticated' });
+    if (!isPgMode()) return fail(400, { treatmentError: 'Requires Postgres mode' });
+
+    const fd = await request.formData();
+    const strategy = String(fd.get('strategy') ?? '').trim();
+    const description = String(fd.get('description') ?? '').trim();
+    const dueAt = String(fd.get('dueAt') ?? '').trim() || null;
+    const costSgdRaw = String(fd.get('costSgd') ?? '').trim();
+    const costSgd = costSgdRaw ? Number(costSgdRaw) : null;
+
+    if (!VALID_TREATMENTS.includes(strategy as typeof VALID_TREATMENTS[number])) {
+      return fail(400, { treatmentError: 'Invalid strategy.' });
+    }
+    if (!description) return fail(400, { treatmentError: 'Description is required.' });
+    if (description.length > 1024) return fail(400, { treatmentError: 'Description must be 1024 characters or fewer.' });
+    if (costSgd !== null && (isNaN(costSgd) || costSgd < 0)) {
+      return fail(400, { treatmentError: 'Cost must be a non-negative number.' });
+    }
+
+    const pool = getPool();
+    const check = await pool.query<{ tenant_id: string }>(
+      `SELECT tenant_id FROM risk.risks WHERE id = $1::uuid LIMIT 1`,
+      [params.id]
+    );
+    if (!check.rows.length) return fail(404, { treatmentError: 'Risk not found' });
+    if (check.rows[0].tenant_id !== locals.user.tenantId) return fail(403, { treatmentError: 'Access denied' });
+
+    const { rows } = await pool.query<{ id: string }>(
+      `INSERT INTO risk.treatments (tenant_id, risk_id, strategy, description, owner_user_id, due_at, cost_sgd)
+       VALUES ($1, $2::uuid, $3::risk.treatment_strategy, $4, $5::uuid, $6, $7)
+       RETURNING id::text`,
+      [locals.user.tenantId, params.id, strategy, description, locals.user.id, dueAt, costSgd]
+    );
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: 'risk.treatment.created',
+      target: `risk:${params.id}`,
+      result: 'success',
+      metadata: { treatmentId: rows[0].id, strategy }
+    });
+
+    return { treatmentCreated: true };
   }
 };

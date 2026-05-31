@@ -1057,7 +1057,7 @@ CREATE TABLE incident.postmortems (
     created_at                  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX ON incident.postmortems (tenant_id);
-CREATE INDEX ON incident.postmortems (incident_id);
+CREATE UNIQUE INDEX ON incident.postmortems (incident_id);
 
 -- =====================================================================
 -- 14. issue.*

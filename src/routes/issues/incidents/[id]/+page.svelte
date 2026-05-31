@@ -2,13 +2,14 @@
   import PageHeader from '$lib/components/PageHeader.svelte';
   import { addToast } from '$lib/stores/toast';
   import { enhance } from '$app/forms';
-  import { Siren, Clock, User, Bot, Monitor, ChevronRight, Plus } from 'lucide-svelte';
+  import { Siren, Clock, User, Bot, Monitor, Plus } from 'lucide-svelte';
   import type { IncidentSeverity, IncidentStatus } from '$lib/data/types';
 
   export let data;
   export let form: {
     statusUpdated?: boolean; newStatus?: string; statusError?: string;
     timelineAdded?: boolean; timelineError?: string;
+    pmCreated?: boolean; pmError?: string;
   } | null = null;
 
   $: if (form?.statusUpdated) {
@@ -18,9 +19,12 @@
   $: if (form?.statusError) addToast('error', form.statusError);
   $: if (form?.timelineAdded) { addToast('success', 'Timeline event added.'); showAddEvent = false; newEvent = ''; }
   $: if (form?.timelineError) addToast('error', form.timelineError);
+  $: if (form?.pmCreated) { addToast('success', 'Postmortem filed.'); showPmForm = false; }
+  $: if (form?.pmError) addToast('error', form.pmError);
 
   let showAddEvent = false;
   let newEvent = '';
+  let showPmForm = false;
 
   function sevCls(s: IncidentSeverity): string {
     if (s === 'sev1') return 'bg-rose-100 text-rose-800 ring-rose-200';
@@ -170,8 +174,39 @@
       </div>
     </div>
   {:else if data.incident.status === 'resolved' || data.incident.status === 'postmortem-done'}
-    <div class="card px-5 py-6 text-center text-sm text-slate-400">
-      No postmortem on file yet for this resolved incident.
+    <div class="card overflow-hidden">
+      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+        <h2 class="flex items-center gap-2 text-sm font-semibold text-grc-ink">
+          <Siren class="h-4 w-4 text-rose-500" />
+          Postmortem
+        </h2>
+        <button class="btn-ghost text-xs" on:click={() => (showPmForm = !showPmForm)}>
+          <Plus class="h-3.5 w-3.5" />
+          Draft postmortem
+        </button>
+      </div>
+      {#if showPmForm}
+        <div class="border-b border-slate-100 bg-slate-50 px-5 py-4">
+          <form method="POST" action="?/createPostmortem" use:enhance class="space-y-3">
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Root cause</span>
+              <textarea name="rootCauseMd" rows="4" class="input resize-none font-mono text-xs"
+                placeholder="## Root Cause&#10;&#10;Describe what went wrong and why…" required maxlength="10000"></textarea>
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Corrective actions</span>
+              <textarea name="correctiveActionsMd" rows="4" class="input resize-none font-mono text-xs"
+                placeholder="## Actions&#10;&#10;1. …&#10;2. …" required maxlength="10000"></textarea>
+            </label>
+            <div class="flex gap-2">
+              <button type="submit" class="btn-primary">File postmortem</button>
+              <button type="button" class="btn-secondary" on:click={() => (showPmForm = false)}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      {:else}
+        <div class="px-5 py-6 text-center text-sm text-slate-400">No postmortem on file yet for this resolved incident.</div>
+      {/if}
     </div>
   {/if}
 </div>

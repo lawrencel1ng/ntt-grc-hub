@@ -5,7 +5,7 @@
   import AgentTypeBadge from '$lib/components/AgentTypeBadge.svelte';
   import { addToast } from '$lib/stores/toast';
   import { runFAIR } from '$lib/utils/fair';
-  import { AlertTriangle, Calculator, Calendar, User as UserIcon, ListChecks, Layers, BookOpen, Hammer, History as HistoryIcon, ShieldCheck, Bot, Pencil } from 'lucide-svelte';
+  import { AlertTriangle, Calculator, Calendar, User as UserIcon, ListChecks, Layers, BookOpen, Hammer, History as HistoryIcon, ShieldCheck, Bot, Pencil, Plus } from 'lucide-svelte';
   import StatusDot from '$lib/components/StatusDot.svelte';
   import { enhance } from '$app/forms';
   import type { Risk, RiskSeverity, RiskLikelihood, FAIRScenario } from '$lib/data/types';
@@ -14,14 +14,18 @@
   export let form: {
     statusUpdated?: boolean; newStatus?: string; statusError?: string;
     editSuccess?: boolean; editError?: string;
+    treatmentCreated?: boolean; treatmentError?: string;
   } | null = null;
 
   $: if (form?.statusUpdated) addToast('success', `Risk status updated to "${form.newStatus}".`);
   $: if (form?.statusError) addToast('error', form.statusError);
   $: if (form?.editSuccess) { addToast('success', 'Risk updated.'); showEditForm = false; }
   $: if (form?.editError) addToast('error', form.editError);
+  $: if (form?.treatmentCreated) { addToast('success', 'Treatment plan added.'); showTreatmentForm = false; }
+  $: if (form?.treatmentError) addToast('error', form.treatmentError);
 
   let showEditForm = false;
+  let showTreatmentForm = false;
 
   // ---------- Scoring ----------
   const SEV_RANK: Record<RiskSeverity, number> = { critical: 5, high: 4, medium: 3, low: 2, info: 1 };
@@ -380,6 +384,46 @@
 
     <!-- Treatments -->
     {:else if tab === 'treatments'}
+      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+        <span class="text-xs text-slate-500">{treatments.length} treatment{treatments.length !== 1 ? 's' : ''}</span>
+        <button class="btn-ghost text-xs" on:click={() => (showTreatmentForm = !showTreatmentForm)}>
+          <Plus class="h-3.5 w-3.5" />
+          Add treatment
+        </button>
+      </div>
+      {#if showTreatmentForm}
+        <div class="border-b border-slate-100 bg-slate-50 px-5 py-4">
+          <form method="POST" action="?/createTreatment" use:enhance class="space-y-3">
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <label class="block">
+                <span class="mb-1 block text-xs font-medium text-slate-700">Strategy</span>
+                <select name="strategy" class="input" required>
+                  <option value="mitigate">Mitigate</option>
+                  <option value="accept">Accept</option>
+                  <option value="transfer">Transfer</option>
+                  <option value="avoid">Avoid</option>
+                </select>
+              </label>
+              <label class="block">
+                <span class="mb-1 block text-xs font-medium text-slate-700">Due date</span>
+                <input name="dueAt" type="date" class="input" />
+              </label>
+            </div>
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Description</span>
+              <input name="description" type="text" class="input" placeholder="Describe the treatment action…" required maxlength="1024" />
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Estimated cost (S$)</span>
+              <input name="costSgd" type="number" min="0" step="1000" class="input w-40" placeholder="0" />
+            </label>
+            <div class="flex gap-2">
+              <button type="submit" class="btn-primary">Add treatment</button>
+              <button type="button" class="btn-secondary" on:click={() => (showTreatmentForm = false)}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      {/if}
       <div class="divide-y divide-slate-100">
         {#each treatments as tp (tp.id)}
           <div class="px-5 py-4">

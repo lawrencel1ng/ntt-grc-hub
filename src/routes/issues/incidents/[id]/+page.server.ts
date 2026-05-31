@@ -100,5 +100,51 @@ export const actions: Actions = {
     });
 
     return { timelineAdded: true };
+  },
+
+  createPostmortem: async ({ params, request, locals }) => {
+    if (!locals.user) return fail(401, { pmError: 'Not authenticated' });
+    if (!isPgMode()) return fail(400, { pmError: 'Requires Postgres mode' });
+
+    const data = await request.formData();
+    const rootCauseMd = String(data.get('rootCauseMd') ?? '').trim();
+    const correctiveActionsMd = String(data.get('correctiveActionsMd') ?? '').trim();
+
+    if (!rootCauseMd) return fail(400, { pmError: 'Root cause is required.' });
+    if (rootCauseMd.length > 10_000) return fail(400, { pmError: 'Root cause must be 10 000 characters or fewer.' });
+    if (!correctiveActionsMd) return fail(400, { pmError: 'Corrective actions are required.' });
+    if (correctiveActionsMd.length > 10_000) return fail(400, { pmError: 'Corrective actions must be 10 000 characters or fewer.' });
+
+    const pool = getPool();
+    const check = await pool.query<{ tenant_id: string; status: string }>(
+      `SELECT tenant_id, status::text AS status FROM incident.incidents WHERE id = $1::uuid LIMIT 1`,
+      [params.id]
+    );
+    if (!check.rows.length) return fail(404, { pmError: 'Incident not found' });
+    if (check.rows[0].tenant_id !== locals.user.tenantId) return fail(403, { pmError: 'Access denied' });
+    if (!['resolved', 'postmortem-done'].includes(check.rows[0].status)) {
+      return fail(400, { pmError: 'Postmortem can only be filed for resolved incidents.' });
+    }
+
+    // Upsert: if a postmortem already exists for this incident, update it instead of inserting.
+    await pool.query(
+      `INSERT INTO incident.postmortems (tenant_id, incident_id, root_cause_md, corrective_actions_md)
+       VALUES ($1, $2::uuid, $3, $4)
+       ON CONFLICT (incident_id) DO UPDATE
+         SET root_cause_md = EXCLUDED.root_cause_md,
+             corrective_actions_md = EXCLUDED.corrective_actions_md`,
+      [locals.user.tenantId, params.id, rootCauseMd, correctiveActionsMd]
+    );
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: 'incident.postmortem.filed',
+      target: `incident:${params.id}`,
+      result: 'success'
+    });
+
+    return { pmCreated: true };
   }
 };

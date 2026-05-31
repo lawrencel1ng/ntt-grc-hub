@@ -17,6 +17,7 @@
     editSuccess?: boolean; editError?: string;
     depAdded?: boolean; depError?: string;
     testRecorded?: boolean; testId?: string; testError?: string;
+    contactAdded?: boolean; contactError?: string;
   } | null = null;
 
   $: if (form?.editSuccess) { addToast('success', 'BCM plan updated.'); showEditForm = false; }
@@ -25,10 +26,13 @@
   $: if (form?.depError) addToast('error', form.depError);
   $: if (form?.testRecorded) { addToast('success', 'Test result recorded.'); recordingTestId = null; }
   $: if (form?.testError) addToast('error', form.testError);
+  $: if (form?.contactAdded) { addToast('success', 'Escalation contact added.'); showContactForm = false; }
+  $: if (form?.contactError) addToast('error', form.contactError);
 
   let showEditForm = false;
   let showDepForm = false;
   let recordingTestId: string | null = null;
+  let showContactForm = false;
 
   // ---------- Tabs ----------
   type Tab = 'overview' | 'bia' | 'tests' | 'risks';
@@ -267,10 +271,48 @@
           <p class="mt-1 leading-relaxed text-slate-700">{data.plan.recoveryStrategy ?? 'Recovery strategy not documented.'}</p>
         </div>
         <div>
-          <div class="section-title text-xs">Escalation Contacts</div>
-          {#if escalationContacts.length === 0}
+          <div class="flex items-center justify-between">
+            <div class="section-title text-xs">Escalation Contacts</div>
+            <button type="button" class="btn-ghost text-xs" on:click={() => (showContactForm = !showContactForm)}>
+              <Plus class="h-3.5 w-3.5" />
+              Add contact
+            </button>
+          </div>
+          {#if showContactForm}
+            <form method="POST" action="?/addEscalationContact" use:enhance
+              class="mt-2 grid grid-cols-1 gap-2 rounded-lg bg-slate-50 p-3 sm:grid-cols-2">
+              <label class="block">
+                <span class="mb-0.5 block text-[11px] font-medium text-slate-600">Name</span>
+                <input name="name" type="text" class="input py-1 text-xs" placeholder="Jane Smith" required maxlength="128" />
+              </label>
+              <label class="block">
+                <span class="mb-0.5 block text-[11px] font-medium text-slate-600">Role</span>
+                <select name="role" class="input py-1 text-xs">
+                  <option value="incident-commander">Incident Commander</option>
+                  <option value="technical-lead">Technical Lead</option>
+                  <option value="communications">Communications</option>
+                  <option value="executive">Executive</option>
+                  <option value="vendor">Vendor</option>
+                  <option value="regulator">Regulator</option>
+                </select>
+              </label>
+              <label class="block">
+                <span class="mb-0.5 block text-[11px] font-medium text-slate-600">Email</span>
+                <input name="email" type="email" class="input py-1 text-xs" placeholder="jane@company.com" maxlength="254" />
+              </label>
+              <label class="block">
+                <span class="mb-0.5 block text-[11px] font-medium text-slate-600">Phone</span>
+                <input name="phone" type="tel" class="input py-1 text-xs" placeholder="+65 9000 0000" maxlength="32" />
+              </label>
+              <div class="flex gap-2 sm:col-span-2">
+                <button type="submit" class="btn-primary py-1 text-xs">Add</button>
+                <button type="button" class="btn-secondary py-1 text-xs" on:click={() => (showContactForm = false)}>Cancel</button>
+              </div>
+            </form>
+          {/if}
+          {#if escalationContacts.length === 0 && !showContactForm}
             <div class="mt-2 text-xs text-slate-400">No escalation contacts on file.</div>
-          {:else}
+          {:else if escalationContacts.length > 0}
             <div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-2">
               {#each escalationContacts as c (c.id)}
                 <div class="rounded-lg bg-white ring-1 ring-inset ring-slate-200/70 p-3 text-xs">

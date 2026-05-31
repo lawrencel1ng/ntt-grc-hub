@@ -30,6 +30,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 const VALID_DEP_KINDS = ['people', 'tech', 'site', 'vendor'] as const;
 const VALID_CRITICALITIES = ['critical', 'high', 'medium', 'low'] as const;
 const VALID_TEST_RESULTS = ['pass', 'partial', 'fail'] as const;
+const VALID_CONTACT_ROLES = ['incident-commander', 'technical-lead', 'communications', 'executive', 'vendor', 'regulator'] as const;
 
 export const actions: Actions = {
   addDependency: async ({ params, request, locals }) => {
@@ -164,5 +165,55 @@ export const actions: Actions = {
     });
 
     return { testRecorded: true, testId, result };
+  },
+
+  addEscalationContact: async ({ params, request, locals }) => {
+    if (!locals.user) return fail(401, { contactError: 'Not authenticated' });
+    if (!isPgMode()) return fail(400, { contactError: 'Requires Postgres mode' });
+
+    const fd = await request.formData();
+    const name = String(fd.get('name') ?? '').trim();
+    const role = String(fd.get('role') ?? '').trim();
+    const email = String(fd.get('email') ?? '').trim() || null;
+    const phone = String(fd.get('phone') ?? '').trim() || null;
+
+    if (!name || name.length > 128) return fail(400, { contactError: 'Name is required (max 128 chars).' });
+    if (!VALID_CONTACT_ROLES.includes(role as typeof VALID_CONTACT_ROLES[number])) {
+      return fail(400, { contactError: 'Invalid contact role.' });
+    }
+    if (email && (email.length > 254 || !email.includes('@'))) {
+      return fail(400, { contactError: 'Invalid email address.' });
+    }
+    if (phone && phone.length > 32) return fail(400, { contactError: 'Phone must be 32 characters or fewer.' });
+
+    const pool = getPool();
+    const check = await pool.query<{ id: string }>(
+      `SELECT id FROM bcm.plans WHERE id = $1::uuid AND tenant_id = $2 LIMIT 1`,
+      [params.id, locals.user.tenantId]
+    );
+    if (!check.rows.length) return fail(404, { contactError: 'BCM plan not found or access denied.' });
+
+    const { rows: max } = await pool.query<{ m: number }>(
+      `SELECT COALESCE(MAX(sort_order), 0) AS m FROM bcm.escalation_contacts WHERE plan_id = $1::uuid`,
+      [params.id]
+    );
+
+    await pool.query(
+      `INSERT INTO bcm.escalation_contacts (tenant_id, plan_id, role, name, email, phone, sort_order)
+       VALUES ($1, $2::uuid, $3, $4, $5, $6, $7)`,
+      [locals.user.tenantId, params.id, role, name, email, phone, (max[0]?.m ?? 0) + 1]
+    );
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: 'bcm.escalation_contact.added',
+      target: `bcm:${params.id}`,
+      result: 'success',
+      metadata: { name, role }
+    });
+
+    return { contactAdded: true };
   }
 };

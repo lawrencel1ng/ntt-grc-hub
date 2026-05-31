@@ -1006,6 +1006,7 @@ CREATE TABLE ai_gov.model_risk (
 );
 CREATE INDEX ON ai_gov.model_risk (tenant_id);
 CREATE INDEX ON ai_gov.model_risk (model_id);
+CREATE UNIQUE INDEX ON ai_gov.model_risk (model_id, risk_type);
 
 CREATE TABLE ai_gov.prompts_audit (
     id                  BIGSERIAL PRIMARY KEY,

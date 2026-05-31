@@ -29,7 +29,9 @@ export const POST: RequestHandler = async ({ request, cookies, locals }) => {
   const user = locals.user;
   if (user.role !== 'admin') {
     // Non-admin users may only view their own tenant — never the cross-tenant sentinel.
-    if (tenantId !== user.tenantId) {
+    // Check explicitly for the sentinel AND for a different tenantId to be safe
+    // against any future scenario where a tenant row with id '__all__' is created.
+    if (tenantId === ALL_TENANTS_ID || tenantId !== user.tenantId) {
       throw error(403, 'You may only view your own tenant.');
     }
   }

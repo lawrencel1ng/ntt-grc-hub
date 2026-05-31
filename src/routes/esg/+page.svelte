@@ -120,8 +120,11 @@
     // Only add a Target line if real scope 1/2 target data exists in the DB
     const s12Targets = (data.targets as ESGTarget[]).filter((t) => /Scope 1|Scope 2/i.test(t.metric));
     if (s12Targets.length > 0) {
-      const baseVal = s12Targets.reduce((s, t) => s + t.baselineValue, 0);
-      const targetVal = s12Targets.reduce((s, t) => s + t.targetValue, 0);
+      // Targets store annual tCO2e; chart periods are quarterly — scale to match.
+      const periodsAreQuarterly = chartPeriods.some((p) => p.includes('-Q'));
+      const periodDivisor = periodsAreQuarterly ? 4 : 1;
+      const baseVal = s12Targets.reduce((s, t) => s + t.baselineValue, 0) / periodDivisor;
+      const targetVal = s12Targets.reduce((s, t) => s + t.targetValue, 0) / periodDivisor;
       const baseYear = parseInt(s12Targets[0].baselinePeriod, 10) || 2020;
       const targetYear = parseInt(s12Targets[0].targetPeriod, 10) || 2030;
       series.push({ name: 'Target', color: '#ef4444', area: false, data: chartPeriods.map((p) => {

@@ -1884,7 +1884,78 @@ export async function getAuditLog(tenantId?: string, limit = 200): Promise<Audit
 
 export async function getHumanRiskSummary(tenantId?: string): Promise<HumanRiskSummary | null> {
   if (!isPgMode()) return mock.humanRiskSummary(tenantId ?? 't_maybank');
-  if (!tenantId) return null;
+
+  if (!tenantId) {
+    // All-tenants: headcount-weighted aggregate across every tenant.
+    const [aggOrg, aggQuant] = await Promise.all([
+      safeQuery<{
+        tenantId: string; orgRiskScore: number; orgRiskScore12mAgo: number;
+        phishPronePct: number; phishPronePct12mAgo: number; industryPhishPronePct: number;
+        trainingCompletionPct: number; headcount: number; usersAtHighRisk: number;
+        usersAtCriticalRisk: number; campaignsRun12m: number; reportingRatePct: number;
+        riskLevel: string; riskScoreHistory: { period: string; score: number; ppp: number }[];
+      }>(`
+        SELECT 'all' AS "tenantId",
+          SUM(headcount)::int AS headcount,
+          ROUND(SUM(org_risk_score * headcount::numeric) / NULLIF(SUM(headcount), 0))::int AS "orgRiskScore",
+          ROUND(SUM(org_risk_score_12m_ago * headcount::numeric) / NULLIF(SUM(headcount), 0))::int AS "orgRiskScore12mAgo",
+          ROUND(SUM(phish_prone_pct * headcount::numeric) / NULLIF(SUM(headcount), 0), 1)::numeric AS "phishPronePct",
+          ROUND(SUM(phish_prone_pct_12m_ago * headcount::numeric) / NULLIF(SUM(headcount), 0), 1)::numeric AS "phishPronePct12mAgo",
+          ROUND(AVG(industry_phish_prone_pct), 1)::numeric AS "industryPhishPronePct",
+          ROUND(SUM(training_completion_pct * headcount::numeric) / NULLIF(SUM(headcount), 0), 1)::numeric AS "trainingCompletionPct",
+          SUM(users_at_high_risk)::int AS "usersAtHighRisk",
+          SUM(users_at_critical_risk)::int AS "usersAtCriticalRisk",
+          SUM(campaigns_run_12m)::int AS "campaignsRun12m",
+          ROUND(AVG(reporting_rate_pct), 1)::numeric AS "reportingRatePct",
+          CASE WHEN ROUND(SUM(org_risk_score * headcount::numeric) / NULLIF(SUM(headcount), 0)) >= 70 THEN 'critical'
+               WHEN ROUND(SUM(org_risk_score * headcount::numeric) / NULLIF(SUM(headcount), 0)) >= 50 THEN 'high'
+               WHEN ROUND(SUM(org_risk_score * headcount::numeric) / NULLIF(SUM(headcount), 0)) >= 30 THEN 'medium'
+               ELSE 'low' END AS "riskLevel",
+          '[]'::jsonb AS "riskScoreHistory"
+        FROM human_risk.org_scores`
+      ),
+      safeQuery<{
+        aro: number; perIncidentMeanSgd: number; perIncidentStdevSgd: number;
+        aleSgd: number; aleSgd12mAgo: number; aleReducedSgd: number;
+      }>(`
+        SELECT ROUND(AVG(aro), 4)::numeric AS aro,
+               ROUND(AVG(per_incident_mean_sgd))::int AS "perIncidentMeanSgd",
+               ROUND(AVG(per_incident_stdev_sgd))::int AS "perIncidentStdevSgd",
+               SUM(ale_sgd)::int AS "aleSgd",
+               SUM(ale_sgd_12m_ago)::int AS "aleSgd12mAgo",
+               SUM(ale_reduced_sgd)::int AS "aleReducedSgd"
+        FROM human_risk.quant`
+      )
+    ]);
+    if (!aggOrg.length) return null;
+    const o = aggOrg[0];
+    const q = aggQuant[0];
+    const fallbackQuant = { aro: 0, perIncidentMeanSgd: 0, perIncidentStdevSgd: 0,
+      aleSgd: 0, aleSgd12mAgo: 0, aleReducedSgd: 0,
+      riskId: 'risk_all_humanrisk', scenarioId: 'scn_all_humanrisk' };
+    return {
+      tenantId: 'all',
+      headcount: o.headcount,
+      orgRiskScore: o.orgRiskScore,
+      riskLevel: o.riskLevel as import('$lib/data/types').HumanRiskLevel,
+      orgRiskScore12mAgo: o.orgRiskScore12mAgo,
+      phishPronePct: +o.phishPronePct,
+      phishPronePct12mAgo: +o.phishPronePct12mAgo,
+      industryPhishPronePct: +o.industryPhishPronePct,
+      trainingCompletionPct: +o.trainingCompletionPct,
+      usersAtHighRisk: o.usersAtHighRisk,
+      usersAtCriticalRisk: o.usersAtCriticalRisk,
+      campaignsRun12m: o.campaignsRun12m,
+      reportingRatePct: +o.reportingRatePct,
+      riskScoreHistory: [],
+      quant: q ? {
+        aro: +q.aro, perIncidentMeanSgd: q.perIncidentMeanSgd,
+        perIncidentStdevSgd: q.perIncidentStdevSgd, aleSgd: q.aleSgd,
+        aleSgd12mAgo: q.aleSgd12mAgo, aleReducedSgd: q.aleReducedSgd,
+        riskId: 'risk_all_humanrisk', scenarioId: 'scn_all_humanrisk'
+      } : fallbackQuant
+    };
+  }
 
   // Fetch org_scores and quant in parallel.
   type OrgRow = {

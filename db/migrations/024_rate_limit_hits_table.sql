@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS platform.rate_limit_hits (
     user_id     UUID NOT NULL,
     hit_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS ON platform.rate_limit_hits (bucket_id, user_id, hit_at DESC);
+CREATE INDEX IF NOT EXISTS rate_limit_hits_bucket_user_ts
+    ON platform.rate_limit_hits (bucket_id, user_id, hit_at DESC);
 
 CREATE OR REPLACE FUNCTION platform.purge_old_rate_limit_hits() RETURNS void
     LANGUAGE sql AS $$

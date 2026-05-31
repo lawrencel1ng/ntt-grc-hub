@@ -76,5 +76,45 @@ export const actions: Actions = {
     });
 
     return { editSuccess: true };
+  },
+
+  requestException: async ({ params, request, locals }) => {
+    if (!locals.user) return fail(401, { excError: 'Not authenticated' });
+    if (!isPgMode()) return fail(400, { excError: 'Requires Postgres mode' });
+
+    const fd = await request.formData();
+    const justification = String(fd.get('justification') ?? '').trim();
+    const expiresAt = String(fd.get('expiresAt') ?? '').trim() || null;
+
+    if (!justification) return fail(400, { excError: 'Justification is required.' });
+    if (justification.length > 2048) return fail(400, { excError: 'Justification must be 2048 characters or fewer.' });
+
+    const pool = getPool();
+    const check = await pool.query<{ tenant_id: string }>(
+      `SELECT tenant_id FROM control.library WHERE id = $1 LIMIT 1`,
+      [params.id]
+    );
+    if (!check.rows.length) return fail(404, { excError: 'Control not found.' });
+    if (check.rows[0].tenant_id !== locals.user.tenantId) return fail(403, { excError: 'Access denied.' });
+
+    const { rows } = await pool.query<{ id: string }>(
+      `INSERT INTO control.exceptions
+         (tenant_id, control_id, requester_user_id, justification, granted, expires_at)
+       VALUES ($1, $2, $3::uuid, $4, false, $5)
+       RETURNING id::text`,
+      [locals.user.tenantId, params.id, locals.user.id, justification, expiresAt]
+    );
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: 'control.exception.requested',
+      target: `control:${params.id}`,
+      result: 'success',
+      metadata: { exceptionId: rows[0].id }
+    });
+
+    return { excRequested: true };
   }
 };

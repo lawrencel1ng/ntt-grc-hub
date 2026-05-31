@@ -6,17 +6,20 @@
   import AgentTypeBadge from '$lib/components/AgentTypeBadge.svelte';
   import Sparkline from '$lib/components/Sparkline.svelte';
   import { addToast } from '$lib/stores/toast';
-  import { Bot, Play, ShieldCheck, Calendar, Activity, Layers, AlertCircle, FileLock2, Pencil } from 'lucide-svelte';
+  import { Bot, Play, ShieldCheck, Calendar, Activity, Layers, AlertCircle, FileLock2, Pencil, Plus } from 'lucide-svelte';
   import type { ControlTestResult, ControlMapping, ControlTest, ControlException } from '$lib/data/types';
   import { enhance } from '$app/forms';
 
   export let data;
-  export let form: { editSuccess?: boolean; editError?: string } | null = null;
+  export let form: { editSuccess?: boolean; editError?: string; excRequested?: boolean; excError?: string } | null = null;
 
   $: if (form?.editSuccess) { addToast('success', 'Control updated.'); showEditForm = false; }
   $: if (form?.editError) addToast('error', form.editError);
+  $: if (form?.excRequested) { addToast('success', 'Exception request submitted.'); showExcForm = false; }
+  $: if (form?.excError) addToast('error', form.excError);
 
   let showEditForm = false;
+  let showExcForm = false;
 
   // ---------- Real mappings from control.mappings ----------
   $: mappings = (data.mappings as ControlMapping[]).map((m) => ({
@@ -306,17 +309,42 @@
   </div>
 
   <!-- Exceptions -->
-  {#if exceptions.length > 0}
-    <div class="card p-5">
-      <h2 class="section-title mb-3 flex items-center gap-2"><AlertCircle class="h-4 w-4 text-amber-600" /> Exceptions</h2>
-      <ul class="space-y-2 text-sm">
+  <div class="card">
+    <div class="flex items-center justify-between px-5 py-3 border-b border-slate-100">
+      <h2 class="section-title flex items-center gap-2"><AlertCircle class="h-4 w-4 text-amber-600" /> Exceptions</h2>
+      <button class="btn-secondary text-xs py-1 px-3 flex items-center gap-1" on:click={() => (showExcForm = !showExcForm)}>
+        <Plus class="h-3.5 w-3.5" /> Request exception
+      </button>
+    </div>
+
+    {#if showExcForm}
+      <form method="POST" action="?/requestException" use:enhance class="border-b border-slate-100 bg-slate-50 p-5 space-y-3">
+        <div class="space-y-2">
+          <label class="block text-[11px] text-slate-500" for="exc-justification">Justification</label>
+          <textarea id="exc-justification" name="justification" rows="3" class="input resize-none w-full" placeholder="Describe why this control cannot be fully implemented…" required maxlength="2048"></textarea>
+        </div>
+        <div>
+          <label class="block text-[11px] text-slate-500 mb-0.5" for="exc-expires">Expiry date (optional)</label>
+          <input id="exc-expires" name="expiresAt" type="date" class="input" />
+        </div>
+        <div class="flex gap-2">
+          <button type="submit" class="btn-primary text-xs py-1 px-3">Submit request</button>
+          <button type="button" class="btn-secondary text-xs py-1 px-3" on:click={() => (showExcForm = false)}>Cancel</button>
+        </div>
+      </form>
+    {/if}
+
+    {#if exceptions.length > 0}
+      <ul class="divide-y divide-slate-100">
         {#each exceptions as exc}
-          <li class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
-            <div class="font-medium text-amber-900">{exc.justification}</div>
-            <div class="mt-1 text-xs text-amber-700">{exc.granted ? 'Granted' : 'Pending'} · expires {exc.expiresAt ? exc.expiresAt.slice(0, 10) : 'no expiry'}</div>
+          <li class="px-5 py-3 text-sm">
+            <div class="font-medium text-slate-800">{exc.justification}</div>
+            <div class="mt-1 text-xs text-slate-500">{exc.granted ? '✓ Granted' : '⏳ Pending'} · expires {exc.expiresAt ? exc.expiresAt.slice(0, 10) : 'no expiry'}</div>
           </li>
         {/each}
       </ul>
-    </div>
-  {/if}
+    {:else}
+      <p class="px-5 py-4 text-sm text-slate-500">No exceptions on record.</p>
+    {/if}
+  </div>
 </div>

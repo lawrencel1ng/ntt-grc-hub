@@ -414,7 +414,6 @@
           </tbody>
         </table>
       </div>
-      </div>
 
     <!-- Questionnaires -->
     {:else if tab === 'questionnaires'}

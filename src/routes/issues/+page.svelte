@@ -434,10 +434,10 @@
   <div class="space-y-6">
     <!-- Incident KPI strip -->
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-      <Kpi label="Active Incidents" value={openInc.toString()} tone={openInc > 0 ? 'bad' : 'neutral'}>
+      <Kpi label="Active Incidents" value={openInc.toString()} tone={openInc > 0 ? 'bad' : 'default'}>
         <Siren slot="icon" class="h-4 w-4 text-rose-600" />
       </Kpi>
-      <Kpi label="Sev1 Open" value={sev1Inc.toString()} tone={sev1Inc > 0 ? 'bad' : 'neutral'}>
+      <Kpi label="Sev1 Open" value={sev1Inc.toString()} tone={sev1Inc > 0 ? 'bad' : 'default'}>
         <ShieldOff slot="icon" class="h-4 w-4 text-rose-600" />
       </Kpi>
       <Kpi label="Resolved / Postmortem" value={resolvedInc.toString()}>

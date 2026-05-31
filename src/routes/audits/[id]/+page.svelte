@@ -135,7 +135,7 @@
     {#if !data.audit.closedAt}
       <form method="POST" action="?/closeAudit" use:enhance>
         <button type="submit" class="btn-secondary py-1 text-xs text-rose-600 hover:text-rose-700"
-          onclick="return confirm('Close this engagement? This cannot be undone.')">
+          on:click={(e) => { if (!confirm('Close this engagement? This cannot be undone.')) e.preventDefault(); }}>
           <XCircle class="h-4 w-4" />
           Close Engagement
         </button>

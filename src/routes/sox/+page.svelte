@@ -6,7 +6,7 @@
   import { addToast } from '$lib/stores/toast';
   import {
     ShieldCheck, ClipboardCheck, AlertTriangle, TrendingUp,
-    Network, Plus
+    Network, Plus, BookOpen
   } from 'lucide-svelte';
   import type { ControlTestResult, RiskSeverity } from '$lib/data/types';
 

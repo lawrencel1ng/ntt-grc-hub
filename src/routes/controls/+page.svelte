@@ -94,7 +94,7 @@
     return true;
   });
 
-  // Pagination (visible cap; mock returns up to 250 already).
+  // Show 50 rows at a time; "Load more" expands.
   let visible = 50;
   $: visibleRows = filtered.slice(0, visible);
 

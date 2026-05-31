@@ -4,6 +4,8 @@
   import Sidebar from '$lib/components/Sidebar.svelte';
   import TopBar from '$lib/components/TopBar.svelte';
   import ClassifiedBanner from '$lib/components/ClassifiedBanner.svelte';
+  import CommandPalette from '$lib/components/CommandPalette.svelte';
+  import Toast from '$lib/components/Toast.svelte';
   import { currentTenantId } from '$lib/stores/tenant';
   export let data;
 
@@ -41,4 +43,6 @@
       </div>
     </div>
   </div>
+  <CommandPalette />
+  <Toast />
 {/if}

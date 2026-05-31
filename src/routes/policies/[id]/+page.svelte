@@ -40,18 +40,50 @@
 
   $: current = data.versions.find((v) => v.status === 'approved') ?? data.versions[data.versions.length - 1];
 
-  // ---------- Naive markdown renderer ----------
-  // Splits the content on blank lines; lines starting with `# ` are h1,
-  // `## ` are h2, otherwise paragraphs. No external libraries per the
-  // task instructions.
-  function renderBlocks(md: string): { kind: 'h1' | 'h2' | 'p'; text: string }[] {
+  // Inline markdown → safe HTML (HTML-escaped first to prevent XSS).
+  function escHtml(s: string): string {
+    return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function inlineMd(s: string): string {
+    return escHtml(s)
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/`([^`]+)`/g, '<code class="rounded bg-slate-100 px-1 font-mono text-xs">$1</code>')
+      .replace(/\|/g, '<span class="mx-1 text-slate-300">|</span>');
+  }
+
+  type MdBlock =
+    | { kind: 'h1' | 'h2' | 'p'; html: string }
+    | { kind: 'ul'; items: string[] };
+
+  function renderBlocks(md: string): MdBlock[] {
     if (!md) return [];
-    const blocks = md.split(/\n\s*\n/).map((b) => b.trim()).filter(Boolean);
-    return blocks.map((b) => {
-      if (b.startsWith('## ')) return { kind: 'h2' as const, text: b.slice(3) };
-      if (b.startsWith('# '))  return { kind: 'h1' as const, text: b.slice(2) };
-      return { kind: 'p' as const, text: b };
-    });
+    const raw: ({ kind: 'h1' | 'h2' | 'p' | 'li'; html: string })[] = [];
+    let para: string[] = [];
+    function flushPara() {
+      if (para.length) { raw.push({ kind: 'p', html: inlineMd(para.join(' ')) }); para = []; }
+    }
+    for (const line of md.split('\n')) {
+      const t = line.trim();
+      if (!t)                  { flushPara(); }
+      else if (t.startsWith('## ')) { flushPara(); raw.push({ kind: 'h2', html: inlineMd(t.slice(3)) }); }
+      else if (t.startsWith('# '))  { flushPara(); raw.push({ kind: 'h1', html: inlineMd(t.slice(2)) }); }
+      else if (t.startsWith('- '))  { flushPara(); raw.push({ kind: 'li', html: inlineMd(t.slice(2)) }); }
+      else                          { para.push(t); }
+    }
+    flushPara();
+    // Group consecutive li items into ul blocks.
+    const result: MdBlock[] = [];
+    for (const item of raw) {
+      if (item.kind === 'li') {
+        const last = result[result.length - 1];
+        if (last && last.kind === 'ul') last.items.push(item.html);
+        else result.push({ kind: 'ul', items: [item.html] });
+      } else {
+        result.push(item);
+      }
+    }
+    return result;
   }
   $: blocks = current ? renderBlocks(current.contentMd) : [];
 
@@ -176,11 +208,15 @@
           <article class="prose prose-slate max-w-none">
             {#each blocks as b}
               {#if b.kind === 'h1'}
-                <h1 class="mt-4 text-2xl font-bold text-grc-ink">{b.text}</h1>
+                <h1 class="mt-4 text-2xl font-bold text-grc-ink">{@html b.html}</h1>
               {:else if b.kind === 'h2'}
-                <h2 class="mt-4 text-lg font-semibold text-grc-ink">{b.text}</h2>
+                <h2 class="mt-4 text-lg font-semibold text-grc-ink">{@html b.html}</h2>
+              {:else if b.kind === 'ul'}
+                <ul class="mt-2 list-inside list-disc space-y-1 text-sm leading-relaxed text-slate-700">
+                  {#each b.items as item}<li>{@html item}</li>{/each}
+                </ul>
               {:else}
-                <p class="mt-2 text-sm leading-relaxed text-slate-700">{b.text}</p>
+                <p class="mt-2 text-sm leading-relaxed text-slate-700">{@html b.html}</p>
               {/if}
             {/each}
           </article>

@@ -61,7 +61,7 @@ export async function getTenantSummaries(): Promise<Tenant[]> {
             COALESCE(ai_provider, 'anthropic') AS "aiProvider",
             COALESCE(data_residency, 'SG') AS "dataResidency",
             created_at AS "createdAt"
-     FROM platform.tenants ORDER BY name LIMIT 500`
+     FROM platform.tenants WHERE id != '__all__' ORDER BY name LIMIT 500`
   );
   return rows;
 }

@@ -1435,8 +1435,9 @@ export async function getSOXKcas(tenantId?: string) {
             END AS "automationPct",
             k.assessed_at AS "lastTestedAt",
             CASE i.status
-              WHEN 'effective'   THEN 'pass'
-              WHEN 'deficient'   THEN 'fail'
+              WHEN 'effective'          THEN 'pass'
+              WHEN 'deficiency'         THEN 'fail'
+              WHEN 'material_weakness'  THEN 'fail'
               ELSE 'partial'
             END AS result
      FROM sox.kcas k
@@ -1736,12 +1737,28 @@ export async function getBCMTests(planId: string): Promise<BCMTest[]> {
 
 export async function getWorkflows(tenantId?: string): Promise<Workflow[]> {
   if (!isPgMode()) return mock.workflowsForTenant(tenantId ?? 't_maybank');
-  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const where = tenantId ? 'WHERE d.tenant_id = $1' : '';
   const params = tenantId ? [tenantId] : [];
   const rows = await safeQuery<Workflow>(
-    `SELECT id::text AS id, tenant_id AS "tenantId", name, description,
-            steps, version, enabled
-     FROM workflow.definitions ${where} ORDER BY name LIMIT 500`,
+    `SELECT d.id::text AS id, d.tenant_id AS "tenantId", d.name, d.description,
+            d.steps, d.version, d.enabled,
+            last_exec.status::text AS "lastExecutionStatus",
+            COALESCE(stats.success_rate, 0)::float AS "successRate30d"
+     FROM workflow.definitions d
+     LEFT JOIN LATERAL (
+       SELECT status FROM workflow.executions
+       WHERE workflow_id = d.id
+       ORDER BY started_at DESC LIMIT 1
+     ) last_exec ON true
+     LEFT JOIN LATERAL (
+       SELECT ROUND(
+         COUNT(*) FILTER (WHERE status = 'success')::numeric / NULLIF(COUNT(*), 0), 4
+       ) AS success_rate
+       FROM workflow.executions
+       WHERE workflow_id = d.id
+         AND started_at >= now() - interval '30 days'
+     ) stats ON true
+     ${where} ORDER BY d.name LIMIT 500`,
     params
   );
   return rows;

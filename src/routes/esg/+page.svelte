@@ -7,13 +7,20 @@
   import { enhance } from '$app/forms';
   import { addToast } from '$lib/stores/toast';
   import {
-    Leaf, Cloud, Factory, FileText, Target, TrendingDown, BarChart3
+    Leaf, Cloud, Factory, FileText, Target, TrendingDown, BarChart3, Plus
   } from 'lucide-svelte';
   import type { ESGMetric, ESGDisclosure, ESGTarget } from '$lib/data/types';
   import { downloadCsv } from '$lib/utils/csv';
 
   export let data;
-  export let form: { disclosureUpdated?: boolean; disclosureId?: string; newStatus?: string; disclosureError?: string } | null = null;
+  export let form: {
+    disclosureUpdated?: boolean; disclosureId?: string; newStatus?: string; disclosureError?: string;
+    metricLogged?: boolean; metricError?: string;
+    targetAdded?: boolean; targetError?: string;
+  } | null = null;
+
+  let showMetricForm = false;
+  let showTargetForm = false;
 
   $: if (form?.disclosureUpdated && form.disclosureId && form.newStatus) {
     data = {
@@ -25,6 +32,10 @@
     addToast('success', `Disclosure status updated to "${form.newStatus}".`);
   }
   $: if (form?.disclosureError) addToast('error', form.disclosureError);
+  $: if (form?.metricLogged) { addToast('success', 'Metric recorded.'); showMetricForm = false; }
+  $: if (form?.metricError) addToast('error', form.metricError);
+  $: if (form?.targetAdded) { addToast('success', 'Target added.'); showTargetForm = false; }
+  $: if (form?.targetError) addToast('error', form.targetError);
 
   // ---------- KPIs by scope ----------
   function scopeTotal(scope: 'scope1' | 'scope2' | 'scope3'): number {
@@ -264,6 +275,60 @@
 
     <!-- Metrics -->
     {#if tab === 'metrics'}
+      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+        <span class="text-xs text-slate-500">{data.metrics.length} metric{data.metrics.length !== 1 ? 's' : ''}</span>
+        <button class="btn-ghost text-xs" on:click={() => (showMetricForm = !showMetricForm)}>
+          <Plus class="h-3.5 w-3.5" />
+          Log metric
+        </button>
+      </div>
+      {#if showMetricForm}
+        <div class="border-b border-slate-100 bg-slate-50 px-5 py-4">
+          <form method="POST" action="?/logMetric" use:enhance class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Period</span>
+              <input name="period" type="text" class="input" placeholder="2026-Q1" required maxlength="32" />
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Scope</span>
+              <select name="scope" class="input" required>
+                <option value="scope1">Scope 1</option>
+                <option value="scope2">Scope 2</option>
+                <option value="scope3">Scope 3</option>
+              </select>
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Framework</span>
+              <select name="framework" class="input" required>
+                <option value="GHG">GHG</option>
+                <option value="CSRD">CSRD</option>
+                <option value="ISSB">ISSB</option>
+                <option value="TCFD">TCFD</option>
+              </select>
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Category</span>
+              <input name="category" type="text" class="input" placeholder="Combustion" required maxlength="128" />
+            </label>
+            <label class="block sm:col-span-2">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Metric</span>
+              <input name="metric" type="text" class="input" placeholder="Natural gas combustion" required maxlength="256" />
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Value</span>
+              <input name="value" type="number" step="any" class="input" placeholder="1234.5" required />
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Unit</span>
+              <input name="unit" type="text" class="input" placeholder="tCO2e" required maxlength="32" />
+            </label>
+            <div class="flex gap-2 sm:col-span-2 lg:col-span-4">
+              <button type="submit" class="btn-primary">Record</button>
+              <button type="button" class="btn-secondary" on:click={() => (showMetricForm = false)}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      {/if}
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-100 text-sm">
           <thead class="thead">
@@ -338,6 +403,54 @@
 
     <!-- Targets -->
     {:else if tab === 'targets'}
+      <div class="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+        <span class="text-xs text-slate-500">{data.targets.length} target{data.targets.length !== 1 ? 's' : ''}</span>
+        <button class="btn-ghost text-xs" on:click={() => (showTargetForm = !showTargetForm)}>
+          <Plus class="h-3.5 w-3.5" />
+          Add target
+        </button>
+      </div>
+      {#if showTargetForm}
+        <div class="border-b border-slate-100 bg-slate-50 px-5 py-4">
+          <form method="POST" action="?/addTarget" use:enhance class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Framework</span>
+              <select name="framework" class="input" required>
+                <option value="GHG">GHG</option>
+                <option value="CSRD">CSRD</option>
+                <option value="ISSB">ISSB</option>
+                <option value="TCFD">TCFD</option>
+              </select>
+            </label>
+            <label class="block sm:col-span-2">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Metric</span>
+              <input name="metric" type="text" class="input" placeholder="Scope 1 + 2 tCO2e reduction" required maxlength="256" />
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Baseline value</span>
+              <input name="baselineValue" type="number" step="any" class="input" placeholder="100000" required />
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Baseline period</span>
+              <input name="baselinePeriod" type="text" class="input" placeholder="2020" required maxlength="32" />
+            </label>
+            <div></div>
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Target value</span>
+              <input name="targetValue" type="number" step="any" class="input" placeholder="50000" required />
+            </label>
+            <label class="block">
+              <span class="mb-1 block text-xs font-medium text-slate-700">Target period</span>
+              <input name="targetPeriod" type="text" class="input" placeholder="2030" required maxlength="32" />
+            </label>
+            <div></div>
+            <div class="flex gap-2 sm:col-span-2 lg:col-span-3">
+              <button type="submit" class="btn-primary">Add target</button>
+              <button type="button" class="btn-secondary" on:click={() => (showTargetForm = false)}>Cancel</button>
+            </div>
+          </form>
+        </div>
+      {/if}
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-100 text-sm">
           <thead class="thead">

@@ -141,7 +141,7 @@
   }
 </script>
 
-<PageHeader title="Risk Heatmap & FAIR Quantification" subtitle="{numericHeatmap.reduce((s, c) => s + c.n, 0).toLocaleString()} residual risks placed · {data.scenarios.length} scenarios · {data.isAll ? 'aggregated view' : data.effectiveTenantId}">
+<PageHeader title="Risk Heatmap & FAIR Quantification" subtitle="{numericHeatmap.reduce((s, c) => s + c.n, 0).toLocaleString()} residual risks placed · {data.scenarios.length} scenarios · {data.isAll ? 'aggregated view' : (data.currentTenant?.name ?? data.effectiveTenantId)}">
   <svelte:fragment slot="actions">
     <AgentTypeBadge type="intelligent" />
     <button class="btn-primary" on:click={runQuant}>

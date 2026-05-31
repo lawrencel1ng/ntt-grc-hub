@@ -39,6 +39,7 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 const VALID_VENDOR_STATUSES = ['active', 'onboarding', 'offboarded'] as const;
 const VALID_TIERS = ['1', '2', '3', '4'] as const;
 const VALID_CRITICALITIES = ['critical', 'high', 'medium', 'low'] as const;
+const VALID_FP_TYPES = ['cloud', 'saas', 'processor'] as const;
 
 export const actions: Actions = {
   updateVendor: async ({ params, request, locals }) => {
@@ -160,5 +161,47 @@ export const actions: Actions = {
     });
 
     return { contractAdded: true };
+  },
+
+  addFourthParty: async ({ params, request, locals }) => {
+    if (!locals.user) return fail(401, { fpError: 'Not authenticated' });
+    if (!isPgMode()) return fail(400, { fpError: 'Requires Postgres mode' });
+
+    const fd = await request.formData();
+    const name = String(fd.get('name') ?? '').trim();
+    const type = String(fd.get('type') ?? '').trim();
+    const region = String(fd.get('region') ?? '').trim() || null;
+    const criticality = String(fd.get('criticality') ?? '').trim();
+
+    if (!name || name.length > 256) return fail(400, { fpError: 'Name is required (max 256 chars).' });
+    if (!VALID_FP_TYPES.includes(type as typeof VALID_FP_TYPES[number])) return fail(400, { fpError: 'Type must be cloud, saas, or processor.' });
+    if (!VALID_CRITICALITIES.includes(criticality as typeof VALID_CRITICALITIES[number])) return fail(400, { fpError: 'Invalid criticality.' });
+    if (region && region.length > 128) return fail(400, { fpError: 'Region must be 128 characters or fewer.' });
+
+    const pool = getPool();
+    const check = await pool.query<{ id: string }>(
+      `SELECT id FROM vendor.vendors WHERE id = $1::uuid AND tenant_id = $2 LIMIT 1`,
+      [params.id, locals.user.tenantId]
+    );
+    if (!check.rows.length) return fail(404, { fpError: 'Vendor not found.' });
+
+    const { rows } = await pool.query<{ id: string }>(
+      `INSERT INTO vendor.fourth_parties (tenant_id, vendor_id, name, type, region, criticality)
+       VALUES ($1, $2::uuid, $3, $4, $5, $6::vendor.criticality)
+       RETURNING id::text`,
+      [locals.user.tenantId, params.id, name, type, region, criticality]
+    );
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: 'vendor.fourth_party.added',
+      target: `vendor:${params.id}`,
+      result: 'success',
+      metadata: { fpId: rows[0].id, name, type, criticality }
+    });
+
+    return { fpAdded: true };
   }
 };

@@ -18,6 +18,7 @@
     statusUpdated?: boolean; newStatus?: string; statusError?: string;
     editSuccess?: boolean; editError?: string;
     contractAdded?: boolean; contractError?: string;
+    fpAdded?: boolean; fpError?: string;
   } | null = null;
 
   $: if (form?.statusUpdated && form.newStatus) {
@@ -29,9 +30,12 @@
   $: if (form?.editError) addToast('error', form.editError);
   $: if (form?.contractAdded) { addToast('success', 'Contract added.'); showContractForm = false; }
   $: if (form?.contractError) addToast('error', form.contractError);
+  $: if (form?.fpAdded) { addToast('success', '4th party added.'); showFourthPartyForm = false; }
+  $: if (form?.fpError) addToast('error', form.fpError);
 
   let showEditForm = false;
   let showContractForm = false;
+  let showFourthPartyForm = false;
 
   // ---------- Computed ----------
   function residualScore(v: Vendor): number {
@@ -470,6 +474,49 @@
 
     <!-- 4th Parties -->
     {:else if tab === 'fourth'}
+      <div class="flex items-center justify-between px-5 py-3 border-b border-slate-100">
+        <span class="text-sm text-slate-500">{data.fourthParties.length} sub-processor{data.fourthParties.length !== 1 ? 's' : ''}</span>
+        <button class="btn-secondary text-xs py-1 px-3 flex items-center gap-1" on:click={() => (showFourthPartyForm = !showFourthPartyForm)}>
+          <Plus class="h-3.5 w-3.5" /> Add 4th party
+        </button>
+      </div>
+
+      {#if showFourthPartyForm}
+        <form method="POST" action="?/addFourthParty" use:enhance class="border-b border-slate-100 bg-slate-50 p-5 space-y-3">
+          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <label class="block text-[11px] text-slate-500 mb-0.5" for="fp-name">Name</label>
+              <input id="fp-name" name="name" type="text" class="input" placeholder="AWS S3 / Stripe" required maxlength="256" />
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-500 mb-0.5" for="fp-type">Type</label>
+              <select id="fp-type" name="type" class="input">
+                <option value="cloud">Cloud</option>
+                <option value="saas">SaaS</option>
+                <option value="processor">Processor</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-500 mb-0.5" for="fp-region">Region</label>
+              <input id="fp-region" name="region" type="text" class="input" placeholder="us-east-1" maxlength="128" />
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-500 mb-0.5" for="fp-criticality">Criticality</label>
+              <select id="fp-criticality" name="criticality" class="input">
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <button type="submit" class="btn-primary text-xs py-1 px-3">Add</button>
+            <button type="button" class="btn-secondary text-xs py-1 px-3" on:click={() => (showFourthPartyForm = false)}>Cancel</button>
+          </div>
+        </form>
+      {/if}
+
       <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-slate-100 text-sm">
           <thead class="thead">

@@ -125,6 +125,43 @@ See [`scripts/demo-walkthrough.md`](scripts/demo-walkthrough.md) for the full 20
 
 ---
 
+## Local Development
+
+### Quick start (with Postgres)
+
+1. Ensure a local Postgres database `ntt_grc_hub` exists with the schema loaded:
+   ```bash
+   psql postgres://localhost:5432/ntt_grc_hub -c "\dn"
+   ```
+   If missing, run `npm run db:init && npm run db:seed` first.
+
+2. Run the dev setup script (one-time):
+   ```bash
+   ./scripts/dev-setup.sh
+   ```
+   This applies pending migrations and seeds a dev password (`Demo1234!`) for all active users.
+
+3. Create `.env.local` in the project root (already gitignored):
+   ```
+   DATA_MODE=pg
+   DATABASE_URL=postgres://localhost:5432/ntt_grc_hub
+   ```
+
+4. Start the dev server:
+   ```bash
+   npm run dev
+   ```
+
+5. Log in at `http://localhost:5182` with any active user, e.g.:
+   - Email: `maybank.singapore.admin@example.sg`
+   - Password: `Demo1234!`
+
+### Mock mode (no Postgres)
+
+Omit `.env.local` (or set `DATA_MODE=mock`). The app runs on in-memory fixtures — no DB needed.
+
+---
+
 ## Setup
 
 ```bash

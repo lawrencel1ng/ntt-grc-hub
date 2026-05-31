@@ -92,7 +92,8 @@
     p95: derivedRun.percentiles.p95,
     p99: derivedRun.percentiles.p99
   } : null);
-  $: displayAle = data.fair?.aleSgd ?? derivedRun?.ale ?? 0;
+  let liveQuantAle: { p10: number; p50: number; p90: number; mean: number; riskCount: number } | null = null;
+  $: displayAle = liveQuantAle?.p50 ?? data.fair?.aleSgd ?? derivedRun?.ale ?? 0;
   $: displayAro = data.fair?.aro ?? derivedRun?.aro ?? 0;
   $: displayRunAt = data.fair?.runAt ?? new Date().toISOString();
 
@@ -123,10 +124,16 @@
         headers: { 'Content-Type': 'application/json' }
       });
       if (res.ok) {
-        addToast('success', 'Risk Quantifier agent queued. Re-running 10k-trial Monte Carlo for all scenarios.');
+        const body = await res.json().catch(() => null);
+        if (body?.ale) {
+          liveQuantAle = { ...body.ale, riskCount: body.riskCount ?? 0 };
+          addToast('success', `Portfolio ALE: ${fmtMoney(body.ale.p50)} median (P10 ${fmtMoney(body.ale.p10)} · P90 ${fmtMoney(body.ale.p90)}) across ${body.riskCount} risks — 5,000-trial Monte Carlo`);
+        } else {
+          addToast('success', body?.message ?? 'Quantification complete.');
+        }
       } else {
         const msg = await res.text().catch(() => '');
-        addToast('error', msg || 'Failed to queue FAIR quantification.');
+        addToast('error', msg || 'Failed to run FAIR quantification.');
       }
     } catch {
       addToast('error', 'Network error — check your connection and try again.');

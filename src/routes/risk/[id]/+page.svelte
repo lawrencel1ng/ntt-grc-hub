@@ -122,6 +122,8 @@
     return `${Math.floor(ad / 86400)}d ${diff > 0 ? '' : 'ago'}`;
   }
 
+  let liveAle: { p10: number; p50: number; p90: number; mean: number } | null = null;
+
   async function runFairAction() {
     try {
       const res = await fetch(`/api/risk/${data.risk.id}/run-fair`, {
@@ -129,10 +131,16 @@
         headers: { 'Content-Type': 'application/json' }
       });
       if (res.ok) {
-        addToast('success', `FAIR analysis queued for ${data.risk.code}. Risk Quantifier agent will report in ~30s.`);
+        const body = await res.json().catch(() => null);
+        if (body?.ale) {
+          liveAle = body.ale;
+          addToast('success', `FAIR ALE for ${data.risk.code}: ${fmtMoney(body.ale.p50)} median (P10 ${fmtMoney(body.ale.p10)} · P90 ${fmtMoney(body.ale.p90)}) — 10,000-trial Monte Carlo`);
+        } else {
+          addToast('success', `FAIR analysis complete for ${data.risk.code}.`);
+        }
       } else {
         const msg = await res.text().catch(() => '');
-        addToast('error', msg || 'Failed to queue FAIR analysis.');
+        addToast('error', msg || 'Failed to run FAIR analysis.');
       }
     } catch {
       addToast('error', 'Network error — check your connection and try again.');
@@ -302,7 +310,13 @@
         <div class="mt-2 flex h-24 w-24 items-center justify-center rounded-xl border-2 font-mono text-3xl font-semibold {scoreCellColor(res)}">{res}</div>
         <div class="mt-1 text-[11px] text-slate-500">{data.risk.residualSeverity} / {data.risk.residualLikelihood}</div>
       </div>
-      {#if data.fair}
+      {#if liveAle}
+        <div class="ml-auto text-right">
+          <div class="text-[11px] uppercase tracking-wider text-slate-500">FAIR ALE (live)</div>
+          <div class="mt-1 font-mono text-2xl font-bold text-rose-700">{fmtMoney(liveAle.p50)}</div>
+          <div class="text-[11px] text-slate-500">P10 {fmtMoney(liveAle.p10)} · P90 {fmtMoney(liveAle.p90)} · 10,000 trials</div>
+        </div>
+      {:else if data.fair}
         <div class="ml-auto text-right">
           <div class="text-[11px] uppercase tracking-wider text-slate-500">FAIR ALE</div>
           <div class="mt-1 font-mono text-2xl font-bold text-rose-700">{fmtMoney(data.fair.aleSgd)}</div>

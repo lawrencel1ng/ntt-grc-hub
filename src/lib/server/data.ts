@@ -1233,14 +1233,18 @@ export async function getConcentrations(tenantId?: string): Promise<Concentratio
 
 export async function getPrivacyActivities(tenantId?: string): Promise<PrivacyActivity[]> {
   if (!isPgMode()) return mock.privacyActivitiesForTenant(tenantId ?? 't_maybank');
-  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const where = tenantId ? 'WHERE pa.tenant_id = $1' : '';
   const params = tenantId ? [tenantId] : [];
   const rows = await safeQuery<PrivacyActivity>(
-    `SELECT id::text AS id, tenant_id AS "tenantId", code, name, controller, processor,
-            purpose, lawful_basis AS "lawfulBasis", data_categories AS "dataCategories",
-            retention_period AS "retentionPeriod", cross_border AS "crossBorder",
-            jurisdictions
-     FROM privacy.processing_activities ${where} ORDER BY code LIMIT 2000`,
+    `SELECT pa.id::text AS id, pa.tenant_id AS "tenantId", pa.code, pa.name,
+            COALESCE(t_ctrl.name, pa.controller) AS controller,
+            pa.processor,
+            pa.purpose, pa.lawful_basis AS "lawfulBasis", pa.data_categories AS "dataCategories",
+            pa.retention_period AS "retentionPeriod", pa.cross_border AS "crossBorder",
+            pa.jurisdictions
+     FROM privacy.processing_activities pa
+     LEFT JOIN platform.tenants t_ctrl ON t_ctrl.id = pa.controller
+     ${where} ORDER BY pa.code LIMIT 2000`,
     params
   );
   return rows;

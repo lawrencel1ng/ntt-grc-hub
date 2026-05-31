@@ -75,7 +75,7 @@ export const actions: Actions = {
        SET title = $1, description = $2, type = $3::control.type,
            frequency = $4, maturity = $5::control.maturity, automated = $6,
            owner_user_id = COALESCE($7::uuid, owner_user_id)
-       WHERE id = $8::uuid AND tenant_id = $9`,
+       WHERE id = $8 AND tenant_id = $9`,
       [title, description, type, frequency, maturity, automated, ownerUserId, params.id, locals.user.tenantId]
     );
     if (!rowCount) return fail(404, { editError: 'Control not found or access denied.' });

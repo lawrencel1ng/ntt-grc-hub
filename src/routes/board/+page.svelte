@@ -238,7 +238,7 @@
         <span class="font-mono text-sm tabular-nums text-slate-400">01.</span>
         <h3 class="font-serif text-2xl font-bold text-grc-ink">Executive Summary</h3>
       </div>
-      <span class="text-[11px] text-slate-400">May 2026 · Page 1 of 6</span>
+      <span class="text-[11px] text-slate-400">{month}</span>
     </header>
     <div class="space-y-4 text-[15px] leading-7 text-slate-700">
       {#each paragraphs as p, i}

@@ -96,7 +96,8 @@ export const handle: Handle = async ({ event, resolve }) => {
   if (authHeader.startsWith('Bearer ')) {
     const apiUser = await validateApiToken(authHeader.slice(7).trim());
     if (apiUser) {
-      event.locals.user = { ...apiUser, tenantId };
+      // API tokens are always scoped to their own DB tenant — never override with cookie.
+      event.locals.user = apiUser;
       return withRequestId(addSecurityHeaders(await resolve(event)), requestId);
     }
     // Invalid Bearer token — reject rather than falling through to cookie auth
@@ -110,7 +111,10 @@ export const handle: Handle = async ({ event, resolve }) => {
   const user = await validateSession(token);
 
   if (user) {
-    event.locals.user = { ...user, tenantId };
+    // Admin users may switch tenant context via the grc_tenant cookie (tenant switcher UI).
+    // Non-admin users always operate within their own DB-validated tenantId regardless of cookie.
+    const effectiveTenantId = user.role === 'admin' ? tenantId : user.tenantId;
+    event.locals.user = { ...user, tenantId: effectiveTenantId };
   } else {
     event.locals.user = undefined;
     if (!isPublic) {

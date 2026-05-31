@@ -12,11 +12,14 @@
   import type { Requirement, Control, EvidenceItem, RequirementCoverage, ComplianceGap, ComplianceAttestation } from '$lib/data/types';
 
   export let data;
-  export let form: { attested?: boolean; attestError?: string } | null = null;
+  export let form: { attested?: boolean; attestError?: string; gapUpdated?: boolean; gapId?: string; gapError?: string } | null = null;
 
   let showAttestForm = false;
+  let editingGapId: string | null = null;
   $: if (form?.attested) { addToast('success', 'Attestation signed and recorded.'); showAttestForm = false; }
   $: if (form?.attestError) addToast('error', form.attestError);
+  $: if (form?.gapUpdated) { addToast('success', 'Compliance gap updated.'); editingGapId = null; }
+  $: if (form?.gapError) addToast('error', form.gapError);
 
   type Tab = 'requirements' | 'controls' | 'evidence' | 'gaps' | 'attestations';
   let tab: Tab = 'requirements';
@@ -332,6 +335,7 @@
                 <th class="px-4 py-2 text-left">Requirement</th>
                 <th class="px-4 py-2 text-left">Remediation</th>
                 <th class="px-4 py-2 text-left">Target Date</th>
+                <th class="w-8 px-2 py-2"></th>
               </tr>
             </thead>
             <tbody>
@@ -344,8 +348,42 @@
                     <div class="font-mono text-xs text-slate-500">{g.requirementCode}</div>
                     <div class="text-xs text-slate-700">{g.requirementTitle}</div>
                   </td>
-                  <td class="td text-xs text-slate-600">{g.remediationPlan ?? '—'}</td>
-                  <td class="td font-mono text-xs text-slate-500">{g.targetDate?.slice(0, 10) ?? '—'}</td>
+                  <td class="td text-xs text-slate-600">
+                    {#if editingGapId === g.id}
+                      <textarea name="remediationPlan" form="gap-form-{g.id}"
+                        class="input h-16 w-full resize-none text-xs"
+                        placeholder="Describe remediation steps…"
+                        maxlength="4096">{g.remediationPlan ?? ''}</textarea>
+                    {:else}
+                      {g.remediationPlan ?? '—'}
+                    {/if}
+                  </td>
+                  <td class="td font-mono text-xs text-slate-500">
+                    {#if editingGapId === g.id}
+                      <input name="targetDate" form="gap-form-{g.id}" type="date"
+                        class="input text-xs" value={g.targetDate?.slice(0, 10) ?? ''} />
+                    {:else}
+                      {g.targetDate?.slice(0, 10) ?? '—'}
+                    {/if}
+                  </td>
+                  <td class="td">
+                    {#if editingGapId === g.id}
+                      <form id="gap-form-{g.id}" method="POST" action="?/updateGap" use:enhance
+                        class="flex flex-col gap-1">
+                        <input type="hidden" name="gapId" value={g.id} />
+                        <button type="submit" class="btn-primary py-0.5 text-[11px]">Save</button>
+                        <button type="button" class="btn-ghost py-0.5 text-[11px]"
+                          on:click={() => (editingGapId = null)}>Cancel</button>
+                      </form>
+                    {:else}
+                      <button type="button" class="text-slate-400 hover:text-grc-primary"
+                        title="Edit remediation" on:click={() => (editingGapId = g.id)}>
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                    {/if}
+                  </td>
                 </tr>
               {/each}
             </tbody>

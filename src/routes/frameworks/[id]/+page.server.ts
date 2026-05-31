@@ -76,5 +76,47 @@ export const actions: Actions = {
     });
 
     return { attested: true };
+  },
+
+  updateGap: async ({ params, request, locals }) => {
+    if (!locals.user) return fail(401, { gapError: 'Not authenticated' });
+    if (!isPgMode()) return fail(400, { gapError: 'Requires Postgres mode' });
+
+    const fd = await request.formData();
+    const gapId = String(fd.get('gapId') ?? '').trim();
+    const remediationPlan = String(fd.get('remediationPlan') ?? '').trim() || null;
+    const targetDate = String(fd.get('targetDate') ?? '').trim() || null;
+
+    if (!gapId) return fail(400, { gapError: 'Gap ID required.' });
+    if (remediationPlan && remediationPlan.length > 4096) {
+      return fail(400, { gapError: 'Remediation plan must be 4096 characters or fewer.' });
+    }
+
+    const pool = getPool();
+    // Verify the gap belongs to an assessment for this tenant
+    const { rowCount } = await pool.query(
+      `UPDATE compliance.gaps g
+       SET remediation_plan = $1,
+           target_date = $2::date,
+           owner_user_id = $3::uuid
+       FROM compliance.assessments a
+       WHERE g.id = $4::uuid
+         AND g.assessment_id = a.id
+         AND a.tenant_id = $5`,
+      [remediationPlan, targetDate, locals.user.id, gapId, locals.user.tenantId]
+    );
+    if (!rowCount) return fail(404, { gapError: 'Compliance gap not found or access denied.' });
+
+    writeAuditLog({
+      userId: locals.user.id,
+      actorEmail: locals.user.email,
+      tenantId: locals.user.tenantId,
+      action: 'compliance.gap.updated',
+      target: `framework:${params.id}:gap:${gapId}`,
+      result: 'success',
+      metadata: { gapId, targetDate }
+    });
+
+    return { gapUpdated: true, gapId };
   }
 };

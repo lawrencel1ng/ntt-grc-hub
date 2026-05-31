@@ -10,13 +10,22 @@
   import { enhance } from '$app/forms';
 
   export let data;
-  export let form: { statusUpdated?: boolean; newStatus?: string; statusError?: string } | null = null;
+  export let form: { statusUpdated?: boolean; newStatus?: string; score?: number | null; statusError?: string } | null = null;
 
   $: if (form?.statusUpdated && form.newStatus) {
-    data = { ...data, questionnaire: { ...data.questionnaire, status: form.newStatus as QuestionnaireStatus } };
+    data = {
+      ...data,
+      questionnaire: {
+        ...data.questionnaire,
+        status: form.newStatus as QuestionnaireStatus,
+        ...(form.score !== null && form.score !== undefined ? { score: form.score } : {})
+      }
+    };
     addToast('success', `Questionnaire status updated to "${form.newStatus}".`);
   }
   $: if (form?.statusError) addToast('error', form.statusError);
+
+  let selectedStatus = data.questionnaire.status;
 
   // ---------- Helpers ----------
   function templateCls(t: 'SIG' | 'CAIQ' | 'Custom'): string {
@@ -74,12 +83,24 @@
 >
   <svelte:fragment slot="actions">
     <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset {templateCls(data.questionnaire.template)}">{data.questionnaire.template}</span>
-    <form method="POST" action="?/updateStatus" use:enhance class="flex items-center gap-1">
-      <select name="status" class="input py-1 text-xs" value={data.questionnaire.status}>
+    <form method="POST" action="?/updateStatus" use:enhance class="flex items-center gap-1.5">
+      <select name="status" class="input py-1 text-xs" bind:value={selectedStatus}>
         <option value="sent">sent</option>
         <option value="in-progress">in-progress</option>
         <option value="complete">complete</option>
       </select>
+      {#if selectedStatus === 'complete'}
+        <input
+          name="score"
+          type="number"
+          min="0"
+          max="100"
+          step="0.5"
+          class="input w-20 py-1 text-xs"
+          placeholder="Score"
+          title="Overall score (0–100)"
+        />
+      {/if}
       <button type="submit" class="btn-secondary py-1 text-xs">Update</button>
     </form>
   </svelte:fragment>

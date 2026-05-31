@@ -45,11 +45,30 @@ export const actions: Actions = {
       return fail(400, { statusError: 'Invalid status' });
     }
 
+    const scoreRaw = data.get('score');
+    let score: number | null = null;
+    if (scoreRaw !== null && scoreRaw !== '') {
+      const n = parseFloat(String(scoreRaw));
+      if (isNaN(n) || n < 0 || n > 100) {
+        return fail(400, { statusError: 'Score must be a number between 0 and 100.' });
+      }
+      score = +n.toFixed(2);
+    }
+
     const pool = getPool();
+
+    // When marking complete, also stamp completed_at and optionally record the score.
+    const extraCols = newStatus === 'complete'
+      ? `, completed_at = now()${score !== null ? ', score = $4' : ''}`
+      : '';
+    const params2: unknown[] = [newStatus, params.id, locals.user.tenantId];
+    if (newStatus === 'complete' && score !== null) params2.push(score);
+
     const { rowCount } = await pool.query(
-      `UPDATE vendor.questionnaires SET status = $1::vendor.questionnaire_status
+      `UPDATE vendor.questionnaires
+       SET status = $1::vendor.questionnaire_status${extraCols}
        WHERE id = $2::uuid AND tenant_id = $3`,
-      [newStatus, params.id, locals.user.tenantId]
+      params2
     );
     if (!rowCount) return fail(404, { statusError: 'Questionnaire not found or access denied' });
 
@@ -60,9 +79,9 @@ export const actions: Actions = {
       action: 'questionnaire.status.updated',
       target: `questionnaire:${params.id}`,
       result: 'success',
-      metadata: { newStatus }
+      metadata: { newStatus, score }
     });
 
-    return { statusUpdated: true, newStatus };
+    return { statusUpdated: true, newStatus, score };
   }
 };

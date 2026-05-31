@@ -80,8 +80,8 @@ export const POST: RequestHandler = async ({ params, locals }) => {
     `10 000-iteration Monte Carlo, ${risk.inherent_severity} severity / ${risk.inherent_likelihood} likelihood`;
 
   // Attribution: find an enabled Risk Quantifier / FAIR agent if one exists
-  const { rows: agents } = await pool.query<{ id: string }>(
-    `SELECT id FROM agent.agents
+  const { rows: agents } = await pool.query<{ id: string; name: string; cost_per_run_cents: number; fte_equivalent: number }>(
+    `SELECT id, name, cost_per_run_cents, fte_equivalent FROM agent.agents
      WHERE (name ILIKE '%risk quantifier%' OR name ILIKE '%fair%' OR name ILIKE '%quantif%')
        AND tenant_id = $1 AND enabled = true
      ORDER BY created_at DESC LIMIT 1`,
@@ -90,30 +90,37 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 
   let runId: string | null = null;
   if (agents.length > 0) {
-    const agentId = agents[0].id;
+    const ag = agents[0];
+    const runCostCents = ag.cost_per_run_cents;
     const { rows: run } = await pool.query<{ id: string }>(
       `INSERT INTO agent.runs
          (tenant_id, agent_id, trigger, status, input_summary, output_summary, latency_ms, cost_cents, ended_at)
-       VALUES ($1, $2, 'manual', 'success', $3, $4, $5, 0, now())
+       VALUES ($1, $2, 'manual', 'success', $3, $4, $5, $6, now())
        RETURNING id::text`,
       [
         locals.user.tenantId,
-        agentId,
+        ag.id,
         `FAIR Monte Carlo for ${risk.code} (${risk.inherent_severity}/${risk.inherent_likelihood})`,
         outputSummary,
         latencyMs,
+        runCostCents,
       ]
     );
     runId = run[0].id;
+    pool.query(
+      `INSERT INTO agent.cost_ledger (tenant_id, agent_id, ts, runs, cost_cents, fte_saved_hours)
+       VALUES ($1, $2, now(), 1, $3, $4)`,
+      [locals.user.tenantId, ag.id, runCostCents, +(ag.fte_equivalent * 0.5).toFixed(2)]
+    ).catch(() => {});
     agentBus.dispatch({
       ts: new Date().toISOString(),
-      agentId,
-      agentName: 'Risk Quantifier',
+      agentId: ag.id,
+      agentName: ag.name,
       status: 'success',
       inputSummary: `FAIR analysis for ${risk.code}`,
       outputSummary,
       latencyMs,
-      costCents: 0,
+      costCents: runCostCents,
     });
   }
 

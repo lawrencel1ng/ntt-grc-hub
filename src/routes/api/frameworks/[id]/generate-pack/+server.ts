@@ -64,8 +64,8 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 
   // Store as an agent run so it appears in the activity stream
   const t0 = Date.now();
-  const { rows: agentRows } = await pool.query<{ id: string; name: string; cost_per_run_cents: number }>(
-    `SELECT id, name, cost_per_run_cents FROM agent.agents
+  const { rows: agentRows } = await pool.query<{ id: string; name: string; cost_per_run_cents: number; fte_equivalent: number }>(
+    `SELECT id, name, cost_per_run_cents, fte_equivalent FROM agent.agents
      WHERE (name ILIKE '%compliance%' OR name ILIKE '%audit%' OR name ILIKE '%framework%')
        AND tenant_id = $1
      ORDER BY created_at DESC LIMIT 1`,
@@ -90,6 +90,11 @@ export const POST: RequestHandler = async ({ params, locals }) => {
       ]
     );
     runId = run[0].id;
+    pool.query(
+      `INSERT INTO agent.cost_ledger (tenant_id, agent_id, ts, runs, cost_cents, fte_saved_hours)
+       VALUES ($1, $2, now(), 1, $3, $4)`,
+      [locals.user.tenantId, ag.id, ag.cost_per_run_cents, +(ag.fte_equivalent * 0.5).toFixed(2)]
+    ).catch(() => {});
     agentBus.dispatch({
       ts: new Date().toISOString(),
       agentId: ag.id,

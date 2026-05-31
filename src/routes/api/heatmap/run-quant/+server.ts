@@ -85,8 +85,8 @@ export const POST: RequestHandler = async ({ locals }) => {
     `5 000-iteration Monte Carlo`;
 
   // Attribution: find an enabled Risk Quantifier agent if one exists
-  const { rows: agents } = await pool.query<{ id: string; name: string }>(
-    `SELECT id, name FROM agent.agents
+  const { rows: agents } = await pool.query<{ id: string; name: string; cost_per_run_cents: number; fte_equivalent: number }>(
+    `SELECT id, name, cost_per_run_cents, fte_equivalent FROM agent.agents
      WHERE (name ILIKE '%risk quantifier%' OR name ILIKE '%fair%' OR name ILIKE '%quantif%')
        AND tenant_id = $1 AND enabled = true
      ORDER BY created_at DESC LIMIT 1`,
@@ -95,11 +95,11 @@ export const POST: RequestHandler = async ({ locals }) => {
 
   let runId: string | null = null;
   if (agents.length > 0) {
-    const { id: agentId, name: agentName } = agents[0];
+    const { id: agentId, name: agentName, cost_per_run_cents: runCostCents, fte_equivalent: fteEquiv } = agents[0];
     const { rows: run } = await pool.query<{ id: string }>(
       `INSERT INTO agent.runs
          (tenant_id, agent_id, trigger, status, input_summary, output_summary, latency_ms, cost_cents, ended_at)
-       VALUES ($1, $2, 'manual', 'success', $3, $4, $5, 0, now())
+       VALUES ($1, $2, 'manual', 'success', $3, $4, $5, $6, now())
        RETURNING id::text`,
       [
         locals.user.tenantId,
@@ -107,9 +107,15 @@ export const POST: RequestHandler = async ({ locals }) => {
         `Portfolio FAIR Monte Carlo — ${risks.length} active risks`,
         outputSummary,
         latencyMs,
+        runCostCents,
       ]
     );
     runId = run[0].id;
+    pool.query(
+      `INSERT INTO agent.cost_ledger (tenant_id, agent_id, ts, runs, cost_cents, fte_saved_hours)
+       VALUES ($1, $2, now(), 1, $3, $4)`,
+      [locals.user.tenantId, agentId, runCostCents, +(fteEquiv * 0.5).toFixed(2)]
+    ).catch(() => {});
     agentBus.dispatch({
       ts: new Date().toISOString(),
       agentId,
@@ -118,7 +124,7 @@ export const POST: RequestHandler = async ({ locals }) => {
       inputSummary: `Portfolio FAIR Monte Carlo — ${risks.length} active risks`,
       outputSummary,
       latencyMs,
-      costCents: 0,
+      costCents: runCostCents,
     });
   }
 

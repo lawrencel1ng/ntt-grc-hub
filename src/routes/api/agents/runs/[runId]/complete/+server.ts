@@ -46,9 +46,9 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
   const pool = getPool();
 
   const { rows } = await pool.query<{
-    id: string; agent_id: string; tenant_id: string; name: string; input_summary: string; status: string;
+    id: string; agent_id: string; tenant_id: string; name: string; input_summary: string; status: string; fte_equivalent: number;
   }>(
-    `SELECT r.id, r.agent_id, r.tenant_id, a.name, r.input_summary, r.status::text AS status
+    `SELECT r.id, r.agent_id, r.tenant_id, a.name, r.input_summary, r.status::text AS status, a.fte_equivalent
      FROM agent.runs r JOIN agent.agents a ON a.id = r.agent_id
      WHERE r.id = $1::uuid LIMIT 1`,
     [params.runId]
@@ -75,6 +75,14 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
      WHERE id = $6::uuid`,
     [status, outputSummary || null, latencyMs, costCents, JSON.stringify(toolsCalled), params.runId]
   );
+
+  // Record in cost ledger so fleet_summary view and cost reports reflect real usage.
+  const fteHours = +(Number(run.fte_equivalent) * 0.5).toFixed(2);
+  pool.query(
+    `INSERT INTO agent.cost_ledger (tenant_id, agent_id, ts, runs, cost_cents, fte_saved_hours)
+     VALUES ($1, $2, now(), 1, $3, $4)`,
+    [run.tenant_id, run.agent_id, costCents, fteHours]
+  ).catch(() => { /* best-effort — never block the response */ });
 
   writeAuditLog({
     userId: locals.user.id,

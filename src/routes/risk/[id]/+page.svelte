@@ -13,13 +13,19 @@
   export let data;
   export let form: {
     statusUpdated?: boolean; newStatus?: string; statusError?: string;
-    editSuccess?: boolean; editError?: string;
+    editSuccess?: boolean; editError?: string; ownerEmail?: string;
     treatmentCreated?: boolean; treatmentError?: string;
   } | null = null;
 
   $: if (form?.statusUpdated) addToast('success', `Risk status updated to "${form.newStatus}".`);
   $: if (form?.statusError) addToast('error', form.statusError);
-  $: if (form?.editSuccess) { addToast('success', 'Risk updated.'); showEditForm = false; }
+  $: if (form?.editSuccess) {
+    addToast('success', 'Risk updated.');
+    showEditForm = false;
+    if (form.ownerEmail) {
+      data = { ...data, risk: { ...data.risk, ownerEmail: form.ownerEmail } };
+    }
+  }
   $: if (form?.editError) addToast('error', form.editError);
   $: if (form?.treatmentCreated) { addToast('success', 'Treatment plan added.'); showTreatmentForm = false; }
   $: if (form?.treatmentError) addToast('error', form.treatmentError);
@@ -241,6 +247,10 @@
             <option value="unlikely">Unlikely</option>
             <option value="rare">Rare</option>
           </select>
+        </label>
+        <label class="block sm:col-span-2">
+          <span class="mb-1 block text-xs font-medium text-slate-700">Owner email</span>
+          <input name="ownerEmail" type="email" class="input" value={data.risk.ownerEmail ?? ''} placeholder="Leave blank to keep current owner" maxlength="256" />
         </label>
       </div>
       <div class="flex gap-2">

@@ -50,6 +50,7 @@ export const actions: Actions = {
     const residualSeverity = String(fd.get('residualSeverity') ?? '').trim();
     const residualLikelihood = String(fd.get('residualLikelihood') ?? '').trim();
     const treatmentStrategy = String(fd.get('treatmentStrategy') ?? '').trim();
+    const ownerEmail = String(fd.get('ownerEmail') ?? '').trim().toLowerCase() || null;
 
     if (!title) return fail(400, { editError: 'Title is required.' });
     if (title.length > 256) return fail(400, { editError: 'Title must be 256 characters or fewer.' });
@@ -60,17 +61,30 @@ export const actions: Actions = {
     if (!VALID_SEVERITIES.includes(residualSeverity as typeof VALID_SEVERITIES[number])) return fail(400, { editError: 'Invalid residual severity.' });
     if (!VALID_LIKELIHOODS.includes(residualLikelihood as typeof VALID_LIKELIHOODS[number])) return fail(400, { editError: 'Invalid residual likelihood.' });
     if (!VALID_TREATMENTS.includes(treatmentStrategy as typeof VALID_TREATMENTS[number])) return fail(400, { editError: 'Invalid treatment strategy.' });
+    if (ownerEmail && ownerEmail.length > 256) return fail(400, { editError: 'Owner email must be 256 characters or fewer.' });
 
     const pool = getPool();
+
+    let ownerUserId: string | null = null;
+    if (ownerEmail) {
+      const userRow = await pool.query<{ id: string }>(
+        `SELECT id FROM platform.users WHERE email = $1 AND tenant_id = $2 AND status = 'active' LIMIT 1`,
+        [ownerEmail, locals.user.tenantId]
+      );
+      if (!userRow.rows.length) return fail(400, { editError: `No active user found with email "${ownerEmail}" in your tenant.` });
+      ownerUserId = userRow.rows[0].id;
+    }
+
     const { rowCount } = await pool.query(
       `UPDATE risk.risks
        SET title = $1, description = $2, category = $3,
            inherent_severity = $4::risk.severity, inherent_likelihood = $5::risk.likelihood,
            residual_severity = $6::risk.severity, residual_likelihood = $7::risk.likelihood,
-           treatment_strategy = $8::risk.treatment_strategy
-       WHERE id = $9::uuid AND tenant_id = $10`,
+           treatment_strategy = $8::risk.treatment_strategy,
+           owner_user_id = COALESCE($9::uuid, owner_user_id)
+       WHERE id = $10::uuid AND tenant_id = $11`,
       [title, description, category, inherentSeverity, inherentLikelihood,
-       residualSeverity, residualLikelihood, treatmentStrategy, params.id, locals.user.tenantId]
+       residualSeverity, residualLikelihood, treatmentStrategy, ownerUserId, params.id, locals.user.tenantId]
     );
     if (!rowCount) return fail(404, { editError: 'Risk not found or access denied.' });
 
@@ -81,10 +95,10 @@ export const actions: Actions = {
       action: 'risk.updated',
       target: `risk:${params.id}`,
       result: 'success',
-      metadata: { title, inherentSeverity, residualSeverity, treatmentStrategy }
+      metadata: { title, inherentSeverity, residualSeverity, treatmentStrategy, ownerEmail }
     });
 
-    return { editSuccess: true };
+    return { editSuccess: true, ownerEmail: ownerEmail ?? undefined };
   },
 
   updateStatus: async ({ params, request, locals }) => {
@@ -98,8 +112,9 @@ export const actions: Actions = {
     }
 
     const pool = getPool();
+    const extraCol = newStatus === 'assessed' ? ', last_assessed_at = now()' : '';
     const { rowCount } = await pool.query(
-      `UPDATE risk.risks SET status = $1
+      `UPDATE risk.risks SET status = $1${extraCol}
        WHERE id = $2::uuid AND tenant_id = $3`,
       [newStatus, params.id, locals.user.tenantId]
     );

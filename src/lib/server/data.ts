@@ -1934,7 +1934,15 @@ export async function getHumanRiskSummary(tenantId?: string): Promise<HumanRiskS
                WHEN ROUND(SUM(org_risk_score * headcount::numeric) / NULLIF(SUM(headcount), 0)) >= 50 THEN 'high'
                WHEN ROUND(SUM(org_risk_score * headcount::numeric) / NULLIF(SUM(headcount), 0)) >= 30 THEN 'medium'
                ELSE 'low' END AS "riskLevel",
-          '[]'::jsonb AS "riskScoreHistory"
+          (SELECT jsonb_agg(avg_score ORDER BY idx)
+           FROM (
+             SELECT ordinality - 1 AS idx,
+                    ROUND(AVG((elem::text)::numeric))::int AS avg_score
+             FROM human_risk.org_scores o2,
+                  jsonb_array_elements(o2.risk_score_history) WITH ORDINALITY AS t(elem, ordinality)
+             GROUP BY ordinality
+           ) sub
+          ) AS "riskScoreHistory"
         FROM human_risk.org_scores`
       ),
       safeQuery<{
@@ -1970,7 +1978,21 @@ export async function getHumanRiskSummary(tenantId?: string): Promise<HumanRiskS
       usersAtCriticalRisk: o.usersAtCriticalRisk,
       campaignsRun12m: o.campaignsRun12m,
       reportingRatePct: +o.reportingRatePct,
-      riskScoreHistory: [],
+      riskScoreHistory: (() => {
+        const raw: unknown[] = Array.isArray(o.riskScoreHistory) ? o.riskScoreHistory : [];
+        if (!raw.length) return [];
+        const scores = raw as number[];
+        const pppStart = +o.phishPronePct12mAgo, pppEnd = +o.phishPronePct;
+        const now = new Date();
+        return scores.map((score, i) => {
+          const d = new Date(now);
+          d.setMonth(d.getMonth() - (scores.length - 1 - i));
+          const period = d.toLocaleDateString('en-SG', { month: 'short', year: '2-digit' });
+          const t = scores.length > 1 ? i / (scores.length - 1) : 1;
+          const ppp = +(pppStart + (pppEnd - pppStart) * t).toFixed(1);
+          return { period, score, ppp };
+        });
+      })(),
       quant: q ? {
         aro: +q.aro, perIncidentMeanSgd: q.perIncidentMeanSgd,
         perIncidentStdevSgd: q.perIncidentStdevSgd, aleSgd: q.aleSgd,
@@ -2065,7 +2087,25 @@ export async function getHumanRiskSummary(tenantId?: string): Promise<HumanRiskS
     usersAtCriticalRisk: org.usersAtCriticalRisk,
     campaignsRun12m: org.campaignsRun12m,
     reportingRatePct: +org.reportingRatePct,
-    riskScoreHistory: Array.isArray(org.riskScoreHistory) ? org.riskScoreHistory : [],
+    riskScoreHistory: (() => {
+      const raw: unknown[] = Array.isArray(org.riskScoreHistory) ? org.riskScoreHistory : [];
+      if (!raw.length) return [];
+      // DB stores plain score numbers; page expects { period, score, ppp }
+      if (typeof raw[0] === 'number') {
+        const scores = raw as number[];
+        const pppStart = +org.phishPronePct12mAgo, pppEnd = +org.phishPronePct;
+        const now = new Date();
+        return scores.map((score, i) => {
+          const d = new Date(now);
+          d.setMonth(d.getMonth() - (scores.length - 1 - i));
+          const period = d.toLocaleDateString('en-SG', { month: 'short', year: '2-digit' });
+          const t = scores.length > 1 ? i / (scores.length - 1) : 1;
+          const ppp = +(pppStart + (pppEnd - pppStart) * t).toFixed(1);
+          return { period, score, ppp };
+        });
+      }
+      return raw as { period: string; score: number; ppp: number }[];
+    })(),
     quant: q ? {
       aro: +q.aro,
       perIncidentMeanSgd: q.perIncidentMeanSgd,

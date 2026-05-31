@@ -2378,7 +2378,7 @@ export async function getBoardNarrative(tenantId?: string): Promise<string> {
     ].join('\n') : ''
   ].filter(Boolean).join('\n');
 
-  const system = 'You are a senior GRC analyst at NTT preparing a concise board risk pack narrative. Write in a formal, data-driven tone suitable for a board risk committee. Use markdown bold for the title. Do not invent numbers not listed in the user message.';
+  const system = `You are a senior GRC analyst at ${name} preparing a concise board risk pack narrative. Write in a formal, data-driven tone suitable for a board risk committee. Use markdown bold for the title. Do not invent numbers not listed in the user message.`;
   const user = `Write 4–5 short paragraphs. Focus on: (1) overall risk posture, (2) compliance, (3) third-party/vendor risk, (4) agentic AI operations ROI, and (5) human risk if data is provided.\n\nMetrics:\n${metrics}`;
   const text = await callLlm(system, user, provider, { maxTokens: 600 });
   if (text) return text;

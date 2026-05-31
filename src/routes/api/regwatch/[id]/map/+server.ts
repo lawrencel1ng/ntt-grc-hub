@@ -31,12 +31,26 @@ export const POST: RequestHandler = async ({ params, request, locals }) => {
   );
   if (!rows.length) throw error(404, 'Regulatory change not found');
 
-  await pool.query(
-    `INSERT INTO regwatch.mappings (change_id, framework_id, requirement_id, action)
-     VALUES ($1::uuid, $2, $3, $4)
-     ON CONFLICT DO NOTHING`,
-    [params.id, frameworkId, requirementId ?? null, action]
+  const { rows: existing } = await pool.query<{ id: number }>(
+    `SELECT id FROM regwatch.mappings
+     WHERE change_id = $1::uuid AND framework_id = $2
+       AND (requirement_id = $3 OR ($3::text IS NULL AND requirement_id IS NULL))
+     LIMIT 1`,
+    [params.id, frameworkId, requirementId ?? null]
   );
+
+  if (existing.length > 0) {
+    await pool.query(
+      `UPDATE regwatch.mappings SET action = $2 WHERE id = $1`,
+      [existing[0].id, action]
+    );
+  } else {
+    await pool.query(
+      `INSERT INTO regwatch.mappings (change_id, framework_id, requirement_id, action)
+       VALUES ($1::uuid, $2, $3, $4)`,
+      [params.id, frameworkId, requirementId ?? null, action]
+    );
+  }
 
   writeAuditLog({
     userId: locals.user.id,

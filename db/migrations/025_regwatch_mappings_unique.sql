@@ -1,0 +1,2 @@
+-- Migration 025: (placeholder — no schema change needed; regwatch/map upsert
+-- now handled with explicit SELECT + INSERT/UPDATE in the application layer.)

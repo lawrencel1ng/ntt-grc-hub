@@ -52,8 +52,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   const pool = getPool();
   await pool.query(
     `INSERT INTO human_risk.remediation_actions (tenant_id, user_id, action_type, actor_id, notes)
-     VALUES ($1, $2, 'training_enrollment', $3, 'Enrolled via GRC Hub')
-     ON CONFLICT DO NOTHING`,
+     VALUES ($1, $2, 'training_enrollment', $3, 'Enrolled via GRC Hub')`,
     [locals.user.tenantId, userId, locals.user.id]
   );
 

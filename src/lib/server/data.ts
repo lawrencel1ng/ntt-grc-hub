@@ -1214,7 +1214,7 @@ export async function getPrivacyActivities(tenantId?: string): Promise<PrivacyAc
             purpose, lawful_basis AS "lawfulBasis", data_categories AS "dataCategories",
             retention_period AS "retentionPeriod", cross_border AS "crossBorder",
             jurisdictions
-     FROM privacy.processing_activities ${where} ORDER BY code`,
+     FROM privacy.processing_activities ${where} ORDER BY code LIMIT 2000`,
     params
   );
   return rows;
@@ -1233,7 +1233,7 @@ export async function getDPIAs(tenantId?: string): Promise<DPIA[]> {
      FROM privacy.dpias d
      JOIN privacy.processing_activities a ON a.id = d.activity_id
      LEFT JOIN platform.users u ON u.id::text = d.conducted_by::text
-     ${where} ORDER BY d.created_at DESC`,
+     ${where} ORDER BY d.created_at DESC LIMIT 2000`,
     params
   );
   return rows;
@@ -1247,7 +1247,7 @@ export async function getSubjectRequests(tenantId?: string): Promise<SubjectRequ
     `SELECT id::text AS id, tenant_id AS "tenantId", kind::text AS kind,
             requester_email AS "requesterEmail", received_at AS "receivedAt",
             due_at AS "dueAt", status::text AS status, resolved_at AS "resolvedAt"
-     FROM privacy.subject_requests ${where} ORDER BY received_at DESC`,
+     FROM privacy.subject_requests ${where} ORDER BY received_at DESC LIMIT 2000`,
     params
   );
   return rows;
@@ -1263,7 +1263,7 @@ export async function getBreaches(tenantId?: string): Promise<Breach[]> {
             detected_at AS "detectedAt", reported_at AS "reportedAt",
             affected_subjects AS "affectedSubjects",
             regulator_notified AS "regulatorNotified", root_cause AS "rootCause"
-     FROM privacy.breaches ${where} ORDER BY occurred_at DESC`,
+     FROM privacy.breaches ${where} ORDER BY occurred_at DESC LIMIT 2000`,
     params
   );
   return rows;
@@ -2006,7 +2006,7 @@ export async function getHumanRiskUsers(tenantId?: string): Promise<HumanRiskUse
             mfa_enabled AS "mfaEnabled",
             privileged_access AS "privilegedAccess",
             risk_history AS "riskHistory"
-       FROM human_risk.users ${where} ORDER BY risk_score DESC`,
+       FROM human_risk.users ${where} ORDER BY risk_score DESC LIMIT 5000`,
     params
   );
   return rows;

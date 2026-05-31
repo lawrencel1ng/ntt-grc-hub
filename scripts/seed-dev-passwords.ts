@@ -15,6 +15,7 @@ async function main() {
           AND password_hash IS NULL`,
       [hash]
     );
+    if (rowCount === 0) console.warn('⚠ No active users needed password seeding — already set or no active users.');
     console.log(`✓ Set dev password on ${rowCount} active users`);
     console.log(`  Login: <any-active-email> / ${DEV_PASSWORD}`);
     console.log(`  e.g.  maybank.singapore.admin@example.sg / ${DEV_PASSWORD}`);

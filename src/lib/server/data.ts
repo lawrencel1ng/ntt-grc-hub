@@ -1798,12 +1798,20 @@ export async function getWorkflowExecutions(tenantId?: string, limit = 20, workf
 
 export async function getConnectors(tenantId?: string): Promise<Connector[]> {
   if (!isPgMode()) return mock.connectorsForTenant(tenantId ?? 't_maybank');
-  const where = tenantId ? 'WHERE tenant_id = $1' : '';
+  const where = tenantId ? 'WHERE c.tenant_id = $1' : '';
   const params = tenantId ? [tenantId] : [];
   const rows = await safeQuery<Connector>(
-    `SELECT id::text AS id, tenant_id AS "tenantId", kind, name, status::text AS status,
-            last_sync_at AS "lastSyncAt"
-     FROM integration.connectors ${where} ORDER BY name LIMIT 500`, params
+    `SELECT c.id::text AS id, c.tenant_id AS "tenantId", c.kind, c.name,
+            c.status::text AS status, c.last_sync_at AS "lastSyncAt",
+            COALESCE(sj.records_24h, 0)::int AS "recordsIngested24h"
+     FROM integration.connectors c
+     LEFT JOIN LATERAL (
+       SELECT SUM(records_ingested)::bigint AS records_24h
+       FROM integration.sync_jobs
+       WHERE connector_id = c.id
+         AND started_at >= now() - interval '24 hours'
+     ) sj ON true
+     ${where} ORDER BY c.name LIMIT 500`, params
   );
   return rows;
 }

@@ -108,11 +108,10 @@ export async function getUsers(tenantId?: string): Promise<import('$lib/data/typ
 // Agents
 // =====================================================================
 
-export async function getLiveAgentCount(tenantId?: string): Promise<number> {
+export async function getLiveAgentCount(_tenantId?: string): Promise<number> {
   if (!isPgMode()) return mock.liveAgentCount();
-  const where = tenantId ? `WHERE status = 'running' AND tenant_id = $1` : `WHERE status = 'running'`;
-  const params = tenantId ? [tenantId] : [];
-  const rows = await safeQuery<{ n: string }>(`SELECT COUNT(*)::text AS n FROM agent.agents ${where}`, params);
+  // agent.agents is platform-global; count running agents across the fleet
+  const rows = await safeQuery<{ n: string }>(`SELECT COUNT(*)::text AS n FROM agent.agents WHERE status = 'running'`);
   return rows.length ? Number(rows[0].n) : 0;
 }
 
@@ -122,11 +121,11 @@ export async function getNavBadgeCounts(tenantId?: string): Promise<{ agents: nu
     const { FRAMEWORKS } = await import('$lib/data/frameworks');
     return { agents: AGENTS.length, frameworks: FRAMEWORKS.length, connectors: 40 };
   }
-  // frameworks are a global catalog — no tenant filter
+  // agent.agents and compliance.frameworks are platform-global catalogs — no tenant filter
   const tenantParams = tenantId ? [tenantId] : [];
   const tenantWhere = tenantId ? 'WHERE tenant_id = $1' : '';
   const [agRows, fwRows, cnRows] = await Promise.all([
-    safeQuery<{ n: string }>(`SELECT COUNT(*)::text AS n FROM agent.agents ${tenantWhere}`, tenantParams),
+    safeQuery<{ n: string }>(`SELECT COUNT(*)::text AS n FROM agent.agents`),
     safeQuery<{ n: string }>(`SELECT COUNT(*)::text AS n FROM compliance.frameworks`),
     safeQuery<{ n: string }>(`SELECT COUNT(*)::text AS n FROM integration.connectors ${tenantWhere}`, tenantParams)
   ]);

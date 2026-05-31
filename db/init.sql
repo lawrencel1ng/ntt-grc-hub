@@ -1246,6 +1246,7 @@ CREATE TABLE agent.agents (
     cost_per_run_cents          INT NOT NULL DEFAULT 0,
     cost_monthly_estimate_cents INT NOT NULL DEFAULT 0,
     fte_equivalent              NUMERIC(5,2) NOT NULL DEFAULT 0,
+    enabled                     BOOLEAN NOT NULL DEFAULT true,
     created_at                  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX ON agent.agents (type);

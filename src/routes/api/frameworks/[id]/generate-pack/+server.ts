@@ -67,9 +67,8 @@ export const POST: RequestHandler = async ({ params, locals }) => {
   const { rows: agentRows } = await pool.query<{ id: string; name: string; cost_per_run_cents: number; fte_equivalent: number }>(
     `SELECT id, name, cost_per_run_cents, fte_equivalent FROM agent.agents
      WHERE (name ILIKE '%compliance%' OR name ILIKE '%audit%' OR name ILIKE '%framework%')
-       AND tenant_id = $1
-     ORDER BY created_at DESC LIMIT 1`,
-    [locals.user.tenantId]
+       AND enabled = true
+     ORDER BY created_at DESC LIMIT 1`
   );
 
   let runId: string | null = null;

@@ -12,13 +12,12 @@ export const POST: RequestHandler = async ({ params, locals }) => {
 
   const pool = getPool();
 
-  const { rows } = await pool.query<{ id: string; name: string; tenant_id: string; enabled: boolean }>(
-    `SELECT id, name, tenant_id, enabled FROM agent.agents WHERE id = $1 LIMIT 1`,
+  const { rows } = await pool.query<{ id: string; name: string; enabled: boolean }>(
+    `SELECT id, name, enabled FROM agent.agents WHERE id = $1 LIMIT 1`,
     [params.id]
   );
   if (!rows.length) throw error(404, 'Agent not found');
   const agent = rows[0];
-  if (agent.tenant_id !== locals.user.tenantId) throw error(403, 'Forbidden');
   if (!agent.enabled) throw error(400, 'Agent is disabled');
 
   const { rows: run } = await pool.query<{ id: string }>(

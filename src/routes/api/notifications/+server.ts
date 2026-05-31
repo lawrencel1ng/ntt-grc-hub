@@ -35,7 +35,7 @@ export const GET: RequestHandler = async ({ locals }) => {
        FROM control.test_runs tr
        JOIN control.library cl ON cl.id = tr.control_id
        WHERE tr.tenant_id = $1
-         AND tr.result IN ('fail','error')
+         AND tr.result IN ('fail','partial')
          AND tr.ran_at >= now() - interval '7 days'
        GROUP BY tr.control_id, cl.code
        ORDER BY ran_at DESC LIMIT 3`,
